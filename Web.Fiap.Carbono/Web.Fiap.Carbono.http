@@ -1,0 +1,6 @@
+@Web.Fiap.Carbono_HostAddress = http://localhost:5269
+
+GET {{Web.Fiap.Carbono_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
