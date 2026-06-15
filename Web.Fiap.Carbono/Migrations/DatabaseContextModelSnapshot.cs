@@ -27,51 +27,51 @@ namespace Web.Fiap.Carbono.Migrations
                     b.Property<int>("IdEmissao")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(10)")
-                        .HasColumnName("id_emissao");
+                        .HasColumnName("ID_EMISSAO");
 
                     OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdEmissao"));
 
                     b.Property<DateTime>("DataRegistro")
                         .HasColumnType("DATE")
-                        .HasColumnName("dt_data_registro");
+                        .HasColumnName("DT_DATA_REGISTRO");
 
                     b.Property<string>("FonteEmissao")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("NVARCHAR2(50)")
-                        .HasColumnName("ds_fonte_emissao");
+                        .HasColumnName("DS_FONTE_EMISSAO");
 
                     b.Property<int>("IdEtapa")
                         .HasColumnType("NUMBER(10)")
-                        .HasColumnName("id_etapa");
+                        .HasColumnName("ID_ETAPA");
 
                     b.Property<int>("IdFator")
                         .HasColumnType("NUMBER(10)")
-                        .HasColumnName("id_fator");
+                        .HasColumnName("ID_FATOR");
 
                     b.Property<string>("MetodoCalculo")
                         .HasMaxLength(100)
                         .HasColumnType("NVARCHAR2(100)")
-                        .HasColumnName("ds_metodo_calculo");
+                        .HasColumnName("DS_METODO_CALCULO");
 
                     b.Property<string>("Observacao")
                         .HasMaxLength(500)
                         .HasColumnType("NVARCHAR2(500)")
-                        .HasColumnName("ds_observacao");
+                        .HasColumnName("DS_OBSERVACAO");
 
                     b.Property<decimal>("QuantidadeAtividade")
                         .HasColumnType("NUMBER(12,3)")
-                        .HasColumnName("qt_atividade");
+                        .HasColumnName("QT_ATIVIDADE");
 
                     b.Property<decimal>("QuantidadeEmitida")
                         .HasColumnType("NUMBER(12,3)")
-                        .HasColumnName("qtd_emitida");
+                        .HasColumnName("QTD_EMITIDA");
 
                     b.Property<string>("Unidade")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("NVARCHAR2(20)")
-                        .HasColumnName("tp_unidade");
+                        .HasColumnName("TP_UNIDADE");
 
                     b.HasKey("IdEmissao")
                         .HasName("EC_EMISSOES_CARBONO_PK");
@@ -82,9 +82,9 @@ namespace Web.Fiap.Carbono.Migrations
 
                     b.ToTable("EC_EMISSOES_CARBONO", null, t =>
                         {
-                            t.HasCheckConstraint("CK_EC_EMISSOES_QTD_EMITIDA", "\"qtd_emitida\" >= 0");
+                            t.HasCheckConstraint("CK_EC_EMISSOES_QTD_EMITIDA", "\"QTD_EMITIDA\" >= 0");
 
-                            t.HasCheckConstraint("CK_EC_EMISSOES_QT_ATIVIDADE", "\"qt_atividade\" > 0");
+                            t.HasCheckConstraint("CK_EC_EMISSOES_QT_ATIVIDADE", "\"QT_ATIVIDADE\" > 0");
                         });
                 });
 
@@ -93,46 +93,46 @@ namespace Web.Fiap.Carbono.Migrations
                     b.Property<int>("IdEmpresa")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(10)")
-                        .HasColumnName("id_empresa");
+                        .HasColumnName("ID_EMPRESA");
 
                     OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdEmpresa"));
 
                     b.Property<string>("Cidade")
                         .HasMaxLength(100)
                         .HasColumnType("NVARCHAR2(100)")
-                        .HasColumnName("nm_cidade");
+                        .HasColumnName("NM_CIDADE");
 
                     b.Property<string>("Cnpj")
                         .IsRequired()
                         .HasMaxLength(18)
                         .HasColumnType("NVARCHAR2(18)")
-                        .HasColumnName("ds_cnpj");
+                        .HasColumnName("DS_CNPJ");
 
                     b.Property<DateTime>("DataCadastro")
                         .HasColumnType("DATE")
-                        .HasColumnName("dt_cadastro");
+                        .HasColumnName("DT_CADASTRO");
 
                     b.Property<string>("Estado")
                         .HasMaxLength(2)
                         .HasColumnType("NVARCHAR2(2)")
-                        .HasColumnName("nm_estado");
+                        .HasColumnName("NM_ESTADO");
 
                     b.Property<string>("NomeEmpresa")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("NVARCHAR2(150)")
-                        .HasColumnName("nm_empresa");
+                        .HasColumnName("NM_EMPRESA");
 
                     b.Property<string>("Pais")
                         .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("NVARCHAR2(80)")
-                        .HasColumnName("nm_pais");
+                        .HasColumnName("NM_PAIS");
 
                     b.Property<string>("SetorAtuacao")
                         .HasMaxLength(100)
                         .HasColumnType("NVARCHAR2(100)")
-                        .HasColumnName("ds_setor_atuacao");
+                        .HasColumnName("DS_SETOR_ATUACAO");
 
                     b.HasKey("IdEmpresa")
                         .HasName("EC_EMPRESAS_PK");
@@ -149,51 +149,51 @@ namespace Web.Fiap.Carbono.Migrations
                     b.Property<int>("IdEtapa")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(10)")
-                        .HasColumnName("id_etapa");
+                        .HasColumnName("ID_ETAPA");
 
                     OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdEtapa"));
 
                     b.Property<DateTime?>("DataFim")
                         .HasColumnType("DATE")
-                        .HasColumnName("dt_data_fim");
+                        .HasColumnName("DT_DATA_FIM");
 
                     b.Property<DateTime>("DataInicio")
                         .HasColumnType("DATE")
-                        .HasColumnName("dt_data_inicio");
+                        .HasColumnName("DT_DATA_INICIO");
 
                     b.Property<string>("Descricao")
                         .HasMaxLength(500)
                         .HasColumnType("NVARCHAR2(500)")
-                        .HasColumnName("ds_descricao");
+                        .HasColumnName("DS_DESCRICAO");
 
                     b.Property<string>("Destino")
                         .HasMaxLength(150)
                         .HasColumnType("NVARCHAR2(150)")
-                        .HasColumnName("ds_destino");
+                        .HasColumnName("DS_DESTINO");
 
                     b.Property<int>("IdFornecedor")
                         .HasColumnType("NUMBER(10)")
-                        .HasColumnName("id_fornecedor");
+                        .HasColumnName("ID_FORNECEDOR");
 
                     b.Property<int>("IdLote")
                         .HasColumnType("NUMBER(10)")
-                        .HasColumnName("id_lote");
+                        .HasColumnName("ID_LOTE");
 
                     b.Property<string>("OrdemEtapa")
                         .HasMaxLength(30)
                         .HasColumnType("NVARCHAR2(30)")
-                        .HasColumnName("ds_ordem_etapa");
+                        .HasColumnName("DS_ORDEM_ETAPA");
 
                     b.Property<string>("Origem")
                         .HasMaxLength(150)
                         .HasColumnType("NVARCHAR2(150)")
-                        .HasColumnName("ds_origem");
+                        .HasColumnName("DS_ORIGEM");
 
                     b.Property<string>("TipoEtapa")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("NVARCHAR2(30)")
-                        .HasColumnName("tp_tipo_etapa");
+                        .HasColumnName("TP_TIPO_ETAPA");
 
                     b.HasKey("IdEtapa")
                         .HasName("EC_ETAPAS_CADEIA_PK");
@@ -204,7 +204,7 @@ namespace Web.Fiap.Carbono.Migrations
 
                     b.ToTable("EC_ETAPAS_CADEIA", null, t =>
                         {
-                            t.HasCheckConstraint("CK_EC_ETAPAS_DATAS", "\"dt_data_fim\" IS NULL OR \"dt_data_fim\" >= \"dt_data_inicio\"");
+                            t.HasCheckConstraint("CK_EC_ETAPAS_DATAS", "\"DT_DATA_FIM\" IS NULL OR \"DT_DATA_FIM\" >= \"DT_DATA_INICIO\"");
                         });
                 });
 
@@ -213,7 +213,7 @@ namespace Web.Fiap.Carbono.Migrations
                     b.Property<int>("IdFator")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(10)")
-                        .HasColumnName("id_fator");
+                        .HasColumnName("ID_FATOR");
 
                     OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdFator"));
 
@@ -221,49 +221,49 @@ namespace Web.Fiap.Carbono.Migrations
                         .IsRequired()
                         .HasMaxLength(1)
                         .HasColumnType("CHAR(1)")
-                        .HasColumnName("st_ativo");
+                        .HasColumnName("ST_ATIVO");
 
                     b.Property<DateTime>("DataCadastro")
                         .HasColumnType("DATE")
-                        .HasColumnName("dt_cadastro");
+                        .HasColumnName("DT_CADASTRO");
 
                     b.Property<string>("Escopo")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("NVARCHAR2(20)")
-                        .HasColumnName("tp_escopo");
+                        .HasColumnName("TP_ESCOPO");
 
                     b.Property<string>("Fonte")
                         .IsRequired()
                         .HasMaxLength(155)
                         .HasColumnType("NVARCHAR2(155)")
-                        .HasColumnName("ds_fonte");
+                        .HasColumnName("DS_FONTE");
 
                     b.Property<string>("Referencia")
                         .HasMaxLength(200)
                         .HasColumnType("NVARCHAR2(200)")
-                        .HasColumnName("ds_referencia");
+                        .HasColumnName("DS_REFERENCIA");
 
                     b.Property<string>("UnidadeBase")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("NVARCHAR2(20)")
-                        .HasColumnName("ds_unidade_base");
+                        .HasColumnName("DS_UNIDADE_BASE");
 
                     b.Property<decimal>("ValorFatorCo2e")
                         .HasColumnType("NUMBER(12,6)")
-                        .HasColumnName("vl_fator_co2e");
+                        .HasColumnName("VL_FATOR_CO2E");
 
                     b.HasKey("IdFator")
                         .HasName("EC_FATORES_EMISSAO_PK");
 
                     b.ToTable("EC_FATORES_EMISSAO", null, t =>
                         {
-                            t.HasCheckConstraint("CK_EC_FATORES_ATIVO", "\"st_ativo\" IN (''S'', ''N'')");
+                            t.HasCheckConstraint("CK_EC_FATORES_ATIVO", "\"ST_ATIVO\" IN (''S'', ''N'')");
 
-                            t.HasCheckConstraint("CK_EC_FATORES_ESCOPO", "\"tp_escopo\" IN (''ESCOPO_1'', ''ESCOPO_2'', ''ESCOPO_3'')");
+                            t.HasCheckConstraint("CK_EC_FATORES_ESCOPO", "\"TP_ESCOPO\" IN (''ESCOPO_1'', ''ESCOPO_2'', ''ESCOPO_3'')");
 
-                            t.HasCheckConstraint("CK_EC_FATORES_VALOR", "\"vl_fator_co2e\" > 0");
+                            t.HasCheckConstraint("CK_EC_FATORES_VALOR", "\"VL_FATOR_CO2E\" > 0");
                         });
                 });
 
@@ -272,7 +272,7 @@ namespace Web.Fiap.Carbono.Migrations
                     b.Property<int>("IdFornecedor")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(10)")
-                        .HasColumnName("id_fornecedor");
+                        .HasColumnName("ID_FORNECEDOR");
 
                     OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdFornecedor"));
 
@@ -280,46 +280,46 @@ namespace Web.Fiap.Carbono.Migrations
                         .IsRequired()
                         .HasMaxLength(1)
                         .HasColumnType("CHAR(1)")
-                        .HasColumnName("st_ativo");
+                        .HasColumnName("ST_ATIVO");
 
                     b.Property<string>("CertificacaoEsg")
                         .HasMaxLength(100)
                         .HasColumnType("NVARCHAR2(100)")
-                        .HasColumnName("ds_certificacao_esg");
+                        .HasColumnName("DS_CERTIFICACAO_ESG");
 
                     b.Property<string>("Cidade")
                         .HasMaxLength(100)
                         .HasColumnType("NVARCHAR2(100)")
-                        .HasColumnName("nm_cidade");
+                        .HasColumnName("NM_CIDADE");
 
                     b.Property<string>("Cnpj")
                         .IsRequired()
                         .HasMaxLength(18)
                         .HasColumnType("NVARCHAR2(18)")
-                        .HasColumnName("ds_cnpj");
+                        .HasColumnName("DS_CNPJ");
 
                     b.Property<string>("Estado")
                         .HasMaxLength(2)
                         .HasColumnType("NVARCHAR2(2)")
-                        .HasColumnName("nm_estado");
+                        .HasColumnName("NM_ESTADO");
 
                     b.Property<string>("NomeFornecedor")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("NVARCHAR2(150)")
-                        .HasColumnName("nm_fornecedor");
+                        .HasColumnName("NM_FORNECEDOR");
 
                     b.Property<string>("Pais")
                         .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("NVARCHAR2(80)")
-                        .HasColumnName("nm_pais");
+                        .HasColumnName("NM_PAIS");
 
                     b.Property<string>("TipoFornecedor")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("NVARCHAR2(30)")
-                        .HasColumnName("tp_fornecedor");
+                        .HasColumnName("TP_FORNECEDOR");
 
                     b.HasKey("IdFornecedor")
                         .HasName("EC_FORNECEDORES_PK");
@@ -330,7 +330,7 @@ namespace Web.Fiap.Carbono.Migrations
 
                     b.ToTable("EC_FORNECEDORES", null, t =>
                         {
-                            t.HasCheckConstraint("CK_EC_FORNECEDORES_ATIVO", "\"st_ativo\" IN (''S'', ''N'')");
+                            t.HasCheckConstraint("CK_EC_FORNECEDORES_ATIVO", "\"ST_ATIVO\" IN (''S'', ''N'')");
                         });
                 });
 
@@ -339,7 +339,7 @@ namespace Web.Fiap.Carbono.Migrations
                     b.Property<int>("IdLote")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(10)")
-                        .HasColumnName("id_lote");
+                        .HasColumnName("ID_LOTE");
 
                     OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdLote"));
 
@@ -347,29 +347,29 @@ namespace Web.Fiap.Carbono.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("NVARCHAR2(50)")
-                        .HasColumnName("cd_codigo_lote");
+                        .HasColumnName("CD_CODIGO_LOTE");
 
                     b.Property<DateTime>("DataProducao")
                         .HasColumnType("DATE")
-                        .HasColumnName("dt_data_producao");
+                        .HasColumnName("DT_DATA_PRODUCAO");
 
                     b.Property<DateTime>("DataValidade")
                         .HasColumnType("DATE")
-                        .HasColumnName("dt_data_validade");
+                        .HasColumnName("DT_DATA_VALIDADE");
 
                     b.Property<int>("IdProduto")
                         .HasColumnType("NUMBER(10)")
-                        .HasColumnName("id_produto");
+                        .HasColumnName("ID_PRODUTO");
 
                     b.Property<decimal>("Quantidade")
                         .HasColumnType("NUMBER(10,2)")
-                        .HasColumnName("qt_quantidade");
+                        .HasColumnName("QT_QUANTIDADE");
 
                     b.Property<string>("StatusLote")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("NVARCHAR2(30)")
-                        .HasColumnName("st_status_lote");
+                        .HasColumnName("ST_STATUS_LOTE");
 
                     b.HasKey("IdLote")
                         .HasName("EC_LOTES_PRODUCAO_PK");
@@ -378,9 +378,9 @@ namespace Web.Fiap.Carbono.Migrations
 
                     b.ToTable("EC_LOTES_PRODUCAO", null, t =>
                         {
-                            t.HasCheckConstraint("CK_EC_LOTES_DATAS", "\"dt_data_validade\" >= \"dt_data_producao\"");
+                            t.HasCheckConstraint("CK_EC_LOTES_DATAS", "\"DT_DATA_VALIDADE\" >= \"DT_DATA_PRODUCAO\"");
 
-                            t.HasCheckConstraint("CK_EC_LOTES_QTDE", "\"qt_quantidade\" > 0");
+                            t.HasCheckConstraint("CK_EC_LOTES_QTDE", "\"QT_QUANTIDADE\" > 0");
                         });
                 });
 
@@ -389,7 +389,7 @@ namespace Web.Fiap.Carbono.Migrations
                     b.Property<int>("IdProduto")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("NUMBER(10)")
-                        .HasColumnName("id_produto");
+                        .HasColumnName("ID_PRODUTO");
 
                     OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdProduto"));
 
@@ -397,38 +397,38 @@ namespace Web.Fiap.Carbono.Migrations
                         .IsRequired()
                         .HasMaxLength(1)
                         .HasColumnType("CHAR(1)")
-                        .HasColumnName("st_ativo");
+                        .HasColumnName("ST_ATIVO");
 
                     b.Property<DateTime>("DataCadastro")
                         .HasColumnType("DATE")
-                        .HasColumnName("dt_cadastro");
+                        .HasColumnName("DT_CADASTRO");
 
                     b.Property<string>("Descricao")
                         .HasMaxLength(500)
                         .HasColumnType("NVARCHAR2(500)")
-                        .HasColumnName("ds_descricao");
+                        .HasColumnName("DS_DESCRICAO");
 
                     b.Property<int>("IdEmpresa")
                         .HasColumnType("NUMBER(10)")
-                        .HasColumnName("id_empresa");
+                        .HasColumnName("ID_EMPRESA");
 
                     b.Property<string>("NomeProduto")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("NVARCHAR2(150)")
-                        .HasColumnName("nm_produto");
+                        .HasColumnName("NM_PRODUTO");
 
                     b.Property<string>("TipoCategoria")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("NVARCHAR2(100)")
-                        .HasColumnName("tp_categoria");
+                        .HasColumnName("TP_CATEGORIA");
 
                     b.Property<string>("UnidadeMedida")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("NVARCHAR2(20)")
-                        .HasColumnName("ds_unidade_medida");
+                        .HasColumnName("DS_UNIDADE_MEDIDA");
 
                     b.HasKey("IdProduto")
                         .HasName("EC_PRODUTOS_PK");
@@ -437,7 +437,7 @@ namespace Web.Fiap.Carbono.Migrations
 
                     b.ToTable("EC_PRODUTOS", null, t =>
                         {
-                            t.HasCheckConstraint("CK_EC_PRODUTOS_ATIVO", "\"st_ativo\" IN (''S'', ''N'')");
+                            t.HasCheckConstraint("CK_EC_PRODUTOS_ATIVO", "\"ST_ATIVO\" IN (''S'', ''N'')");
                         });
                 });
 

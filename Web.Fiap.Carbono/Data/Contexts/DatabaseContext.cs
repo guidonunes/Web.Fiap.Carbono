@@ -29,38 +29,38 @@ public class DatabaseContext : DbContext
                 .HasName("EC_EMPRESAS_PK");
 
             entity.Property(e => e.IdEmpresa)
-                .HasColumnName("id_empresa")
+                .HasColumnName("ID_EMPRESA")
                 .ValueGeneratedOnAdd();
 
             entity.Property(e => e.NomeEmpresa)
-                .HasColumnName("nm_empresa")
+                .HasColumnName("NM_EMPRESA")
                 .HasMaxLength(150)
                 .IsRequired();
 
             entity.Property(e => e.Cnpj)
-                .HasColumnName("ds_cnpj")
+                .HasColumnName("DS_CNPJ")
                 .HasMaxLength(18)
                 .IsRequired();
 
             entity.Property(e => e.SetorAtuacao)
-                .HasColumnName("ds_setor_atuacao")
+                .HasColumnName("DS_SETOR_ATUACAO")
                 .HasMaxLength(100);
 
             entity.Property(e => e.Cidade)
-                .HasColumnName("nm_cidade")
+                .HasColumnName("NM_CIDADE")
                 .HasMaxLength(100);
 
             entity.Property(e => e.Estado)
-                .HasColumnName("nm_estado")
+                .HasColumnName("NM_ESTADO")
                 .HasMaxLength(2);
 
             entity.Property(e => e.Pais)
-                .HasColumnName("nm_pais")
+                .HasColumnName("NM_PAIS")
                 .HasMaxLength(80)
                 .IsRequired();
 
             entity.Property(e => e.DataCadastro)
-                .HasColumnName("dt_cadastro")
+                .HasColumnName("DT_CADASTRO")
                 .HasColumnType("DATE")
                 .IsRequired();
 
@@ -73,47 +73,47 @@ public class DatabaseContext : DbContext
         {
             entity.ToTable("EC_PRODUTOS", table =>
             {
-                table.HasCheckConstraint("CK_EC_PRODUTOS_ATIVO", "\"st_ativo\" IN (''S'', ''N'')");
+                table.HasCheckConstraint("CK_EC_PRODUTOS_ATIVO", "\"ST_ATIVO\" IN (''S'', ''N'')");
             });
 
             entity.HasKey(e => e.IdProduto)
                 .HasName("EC_PRODUTOS_PK");
 
             entity.Property(e => e.IdProduto)
-                .HasColumnName("id_produto")
+                .HasColumnName("ID_PRODUTO")
                 .ValueGeneratedOnAdd();
 
             entity.Property(e => e.IdEmpresa)
-                .HasColumnName("id_empresa")
+                .HasColumnName("ID_EMPRESA")
                 .IsRequired();
 
             entity.Property(e => e.NomeProduto)
-                .HasColumnName("nm_produto")
+                .HasColumnName("NM_PRODUTO")
                 .HasMaxLength(150)
                 .IsRequired();
 
             entity.Property(e => e.Descricao)
-                .HasColumnName("ds_descricao")
+                .HasColumnName("DS_DESCRICAO")
                 .HasMaxLength(500);
 
             entity.Property(e => e.TipoCategoria)
-                .HasColumnName("tp_categoria")
+                .HasColumnName("TP_CATEGORIA")
                 .HasMaxLength(100)
                 .IsRequired();
 
             entity.Property(e => e.UnidadeMedida)
-                .HasColumnName("ds_unidade_medida")
+                .HasColumnName("DS_UNIDADE_MEDIDA")
                 .HasMaxLength(20)
                 .IsRequired();
 
             entity.Property(e => e.Ativo)
-                .HasColumnName("st_ativo")
+                .HasColumnName("ST_ATIVO")
                 .HasColumnType("CHAR(1)")
                 .HasMaxLength(1)
                 .IsRequired();
 
             entity.Property(e => e.DataCadastro)
-                .HasColumnName("dt_cadastro")
+                .HasColumnName("DT_CADASTRO")
                 .HasColumnType("DATE")
                 .IsRequired();
 
@@ -128,50 +128,50 @@ public class DatabaseContext : DbContext
         {
             entity.ToTable("EC_FORNECEDORES", table =>
             {
-                table.HasCheckConstraint("CK_EC_FORNECEDORES_ATIVO", "\"st_ativo\" IN (''S'', ''N'')");
+                table.HasCheckConstraint("CK_EC_FORNECEDORES_ATIVO", "\"ST_ATIVO\" IN (''S'', ''N'')");
             });
 
             entity.HasKey(e => e.IdFornecedor)
                 .HasName("EC_FORNECEDORES_PK");
 
             entity.Property(e => e.IdFornecedor)
-                .HasColumnName("id_fornecedor")
+                .HasColumnName("ID_FORNECEDOR")
                 .ValueGeneratedOnAdd();
 
             entity.Property(e => e.NomeFornecedor)
-                .HasColumnName("nm_fornecedor")
+                .HasColumnName("NM_FORNECEDOR")
                 .HasMaxLength(150)
                 .IsRequired();
 
             entity.Property(e => e.Cnpj)
-                .HasColumnName("ds_cnpj")
+                .HasColumnName("DS_CNPJ")
                 .HasMaxLength(18)
                 .IsRequired();
 
             entity.Property(e => e.TipoFornecedor)
-                .HasColumnName("tp_fornecedor")
+                .HasColumnName("TP_FORNECEDOR")
                 .HasMaxLength(30)
                 .IsRequired();
 
             entity.Property(e => e.Cidade)
-                .HasColumnName("nm_cidade")
+                .HasColumnName("NM_CIDADE")
                 .HasMaxLength(100);
 
             entity.Property(e => e.Estado)
-                .HasColumnName("nm_estado")
+                .HasColumnName("NM_ESTADO")
                 .HasMaxLength(2);
 
             entity.Property(e => e.Pais)
-                .HasColumnName("nm_pais")
+                .HasColumnName("NM_PAIS")
                 .HasMaxLength(80)
                 .IsRequired();
 
             entity.Property(e => e.CertificacaoEsg)
-                .HasColumnName("ds_certificacao_esg")
+                .HasColumnName("DS_CERTIFICACAO_ESG")
                 .HasMaxLength(100);
 
             entity.Property(e => e.Ativo)
-                .HasColumnName("st_ativo")
+                .HasColumnName("ST_ATIVO")
                 .HasColumnType("CHAR(1)")
                 .HasMaxLength(1)
                 .IsRequired();
@@ -185,43 +185,43 @@ public class DatabaseContext : DbContext
         {
             entity.ToTable("EC_LOTES_PRODUCAO", table =>
             {
-                table.HasCheckConstraint("CK_EC_LOTES_QTDE", "\"qt_quantidade\" > 0");
-                table.HasCheckConstraint("CK_EC_LOTES_DATAS", "\"dt_data_validade\" >= \"dt_data_producao\"");
+                table.HasCheckConstraint("CK_EC_LOTES_QTDE", "\"QT_QUANTIDADE\" > 0");
+                table.HasCheckConstraint("CK_EC_LOTES_DATAS", "\"DT_DATA_VALIDADE\" >= \"DT_DATA_PRODUCAO\"");
             });
 
             entity.HasKey(e => e.IdLote)
                 .HasName("EC_LOTES_PRODUCAO_PK");
 
             entity.Property(e => e.IdLote)
-                .HasColumnName("id_lote")
+                .HasColumnName("ID_LOTE")
                 .ValueGeneratedOnAdd();
 
             entity.Property(e => e.IdProduto)
-                .HasColumnName("id_produto")
+                .HasColumnName("ID_PRODUTO")
                 .IsRequired();
 
             entity.Property(e => e.CodigoLote)
-                .HasColumnName("cd_codigo_lote")
+                .HasColumnName("CD_CODIGO_LOTE")
                 .HasMaxLength(50)
                 .IsRequired();
 
             entity.Property(e => e.Quantidade)
-                .HasColumnName("qt_quantidade")
+                .HasColumnName("QT_QUANTIDADE")
                 .HasColumnType("NUMBER(10,2)")
                 .IsRequired();
 
             entity.Property(e => e.DataProducao)
-                .HasColumnName("dt_data_producao")
+                .HasColumnName("DT_DATA_PRODUCAO")
                 .HasColumnType("DATE")
                 .IsRequired();
 
             entity.Property(e => e.DataValidade)
-                .HasColumnName("dt_data_validade")
+                .HasColumnName("DT_DATA_VALIDADE")
                 .HasColumnType("DATE")
                 .IsRequired();
 
             entity.Property(e => e.StatusLote)
-                .HasColumnName("st_status_lote")
+                .HasColumnName("ST_STATUS_LOTE")
                 .HasMaxLength(30)
                 .IsRequired();
 
@@ -236,52 +236,52 @@ public class DatabaseContext : DbContext
         {
             entity.ToTable("EC_ETAPAS_CADEIA", table =>
             {
-                table.HasCheckConstraint("CK_EC_ETAPAS_DATAS", "\"dt_data_fim\" IS NULL OR \"dt_data_fim\" >= \"dt_data_inicio\"");
+                table.HasCheckConstraint("CK_EC_ETAPAS_DATAS", "\"DT_DATA_FIM\" IS NULL OR \"DT_DATA_FIM\" >= \"DT_DATA_INICIO\"");
             });
 
             entity.HasKey(e => e.IdEtapa)
                 .HasName("EC_ETAPAS_CADEIA_PK");
 
             entity.Property(e => e.IdEtapa)
-                .HasColumnName("id_etapa")
+                .HasColumnName("ID_ETAPA")
                 .ValueGeneratedOnAdd();
 
             entity.Property(e => e.TipoEtapa)
-                .HasColumnName("tp_tipo_etapa")
+                .HasColumnName("TP_TIPO_ETAPA")
                 .HasMaxLength(30)
                 .IsRequired();
 
             entity.Property(e => e.Descricao)
-                .HasColumnName("ds_descricao")
+                .HasColumnName("DS_DESCRICAO")
                 .HasMaxLength(500);
 
             entity.Property(e => e.Origem)
-                .HasColumnName("ds_origem")
+                .HasColumnName("DS_ORIGEM")
                 .HasMaxLength(150);
 
             entity.Property(e => e.Destino)
-                .HasColumnName("ds_destino")
+                .HasColumnName("DS_DESTINO")
                 .HasMaxLength(150);
 
             entity.Property(e => e.DataInicio)
-                .HasColumnName("dt_data_inicio")
+                .HasColumnName("DT_DATA_INICIO")
                 .HasColumnType("DATE")
                 .IsRequired();
 
             entity.Property(e => e.DataFim)
-                .HasColumnName("dt_data_fim")
+                .HasColumnName("DT_DATA_FIM")
                 .HasColumnType("DATE");
 
             entity.Property(e => e.OrdemEtapa)
-                .HasColumnName("ds_ordem_etapa")
+                .HasColumnName("DS_ORDEM_ETAPA")
                 .HasMaxLength(30);
 
             entity.Property(e => e.IdFornecedor)
-                .HasColumnName("id_fornecedor")
+                .HasColumnName("ID_FORNECEDOR")
                 .IsRequired();
 
             entity.Property(e => e.IdLote)
-                .HasColumnName("id_lote")
+                .HasColumnName("ID_LOTE")
                 .IsRequired();
 
             entity.HasOne(e => e.Fornecedor)
@@ -301,50 +301,50 @@ public class DatabaseContext : DbContext
         {
             entity.ToTable("EC_FATORES_EMISSAO", table =>
             {
-                table.HasCheckConstraint("CK_EC_FATORES_ATIVO", "\"st_ativo\" IN (''S'', ''N'')");
-                table.HasCheckConstraint("CK_EC_FATORES_VALOR", "\"vl_fator_co2e\" > 0");
-                table.HasCheckConstraint("CK_EC_FATORES_ESCOPO", "\"tp_escopo\" IN (''ESCOPO_1'', ''ESCOPO_2'', ''ESCOPO_3'')");
+                table.HasCheckConstraint("CK_EC_FATORES_ATIVO", "\"ST_ATIVO\" IN (''S'', ''N'')");
+                table.HasCheckConstraint("CK_EC_FATORES_VALOR", "\"VL_FATOR_CO2E\" > 0");
+                table.HasCheckConstraint("CK_EC_FATORES_ESCOPO", "\"TP_ESCOPO\" IN (''ESCOPO_1'', ''ESCOPO_2'', ''ESCOPO_3'')");
             });
 
             entity.HasKey(e => e.IdFator)
                 .HasName("EC_FATORES_EMISSAO_PK");
 
             entity.Property(e => e.IdFator)
-                .HasColumnName("id_fator")
+                .HasColumnName("ID_FATOR")
                 .ValueGeneratedOnAdd();
 
             entity.Property(e => e.Fonte)
-                .HasColumnName("ds_fonte")
+                .HasColumnName("DS_FONTE")
                 .HasMaxLength(155)
                 .IsRequired();
 
             entity.Property(e => e.Escopo)
-                .HasColumnName("tp_escopo")
+                .HasColumnName("TP_ESCOPO")
                 .HasMaxLength(20)
                 .IsRequired();
 
             entity.Property(e => e.UnidadeBase)
-                .HasColumnName("ds_unidade_base")
+                .HasColumnName("DS_UNIDADE_BASE")
                 .HasMaxLength(20)
                 .IsRequired();
 
             entity.Property(e => e.ValorFatorCo2e)
-                .HasColumnName("vl_fator_co2e")
+                .HasColumnName("VL_FATOR_CO2E")
                 .HasColumnType("NUMBER(12,6)")
                 .IsRequired();
 
             entity.Property(e => e.Referencia)
-                .HasColumnName("ds_referencia")
+                .HasColumnName("DS_REFERENCIA")
                 .HasMaxLength(200);
 
             entity.Property(e => e.Ativo)
-                .HasColumnName("st_ativo")
+                .HasColumnName("ST_ATIVO")
                 .HasColumnType("CHAR(1)")
                 .HasMaxLength(1)
                 .IsRequired();
 
             entity.Property(e => e.DataCadastro)
-                .HasColumnName("dt_cadastro")
+                .HasColumnName("DT_CADASTRO")
                 .HasColumnType("DATE")
                 .IsRequired();
         });
@@ -353,55 +353,55 @@ public class DatabaseContext : DbContext
         {
             entity.ToTable("EC_EMISSOES_CARBONO", table =>
             {
-                table.HasCheckConstraint("CK_EC_EMISSOES_QTD_EMITIDA", "\"qtd_emitida\" >= 0");
-                table.HasCheckConstraint("CK_EC_EMISSOES_QT_ATIVIDADE", "\"qt_atividade\" > 0");
+                table.HasCheckConstraint("CK_EC_EMISSOES_QTD_EMITIDA", "\"QTD_EMITIDA\" >= 0");
+                table.HasCheckConstraint("CK_EC_EMISSOES_QT_ATIVIDADE", "\"QT_ATIVIDADE\" > 0");
             });
 
             entity.HasKey(e => e.IdEmissao)
                 .HasName("EC_EMISSOES_CARBONO_PK");
 
             entity.Property(e => e.IdEmissao)
-                .HasColumnName("id_emissao")
+                .HasColumnName("ID_EMISSAO")
                 .ValueGeneratedOnAdd();
 
             entity.Property(e => e.IdFator)
-                .HasColumnName("id_fator")
+                .HasColumnName("ID_FATOR")
                 .IsRequired();
 
             entity.Property(e => e.IdEtapa)
-                .HasColumnName("id_etapa")
+                .HasColumnName("ID_ETAPA")
                 .IsRequired();
 
             entity.Property(e => e.FonteEmissao)
-                .HasColumnName("ds_fonte_emissao")
+                .HasColumnName("DS_FONTE_EMISSAO")
                 .HasMaxLength(50)
                 .IsRequired();
 
             entity.Property(e => e.QuantidadeEmitida)
-                .HasColumnName("qtd_emitida")
+                .HasColumnName("QTD_EMITIDA")
                 .HasColumnType("NUMBER(12,3)")
                 .IsRequired();
 
             entity.Property(e => e.QuantidadeAtividade)
-                .HasColumnName("qt_atividade")
+                .HasColumnName("QT_ATIVIDADE")
                 .HasColumnType("NUMBER(12,3)")
                 .IsRequired();
 
             entity.Property(e => e.Unidade)
-                .HasColumnName("tp_unidade")
+                .HasColumnName("TP_UNIDADE")
                 .HasMaxLength(20)
                 .IsRequired();
 
             entity.Property(e => e.MetodoCalculo)
-                .HasColumnName("ds_metodo_calculo")
+                .HasColumnName("DS_METODO_CALCULO")
                 .HasMaxLength(100);
 
             entity.Property(e => e.Observacao)
-                .HasColumnName("ds_observacao")
+                .HasColumnName("DS_OBSERVACAO")
                 .HasMaxLength(500);
 
             entity.Property(e => e.DataRegistro)
-                .HasColumnName("dt_data_registro")
+                .HasColumnName("DT_DATA_REGISTRO")
                 .HasColumnType("DATE")
                 .IsRequired();
 
