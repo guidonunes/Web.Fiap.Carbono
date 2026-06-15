@@ -1,16 +1,17 @@
 using Microsoft.EntityFrameworkCore;
+using Web.Fiap.Carbono.Data.Contexts;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-/*#region DATA BASE INITIALIZATION
+#region DATA BASE INITIALIZATION
 
 var connectionString = builder.Configuration.GetConnectionString("DatabaseConnection");
 builder.Services.AddDbContext<DatabaseContext>(opt => opt.UseOracle(connectionString).EnableSensitiveDataLogging(true)
 );
 
-#endregion*/
+#endregion
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
