@@ -1,0 +1,12 @@
+using Web.Fiap.Carbono.Models;
+
+namespace Web.Fiap.Carbono.Services.Interfaces;
+
+public interface IEmissaoCarbonoService
+{
+    Task<IReadOnlyList<EmissaoCarbonoModel>> GetPagedAsync(int pageNumber, int pageSize);
+
+    Task<int> CountAsync();
+
+    Task<EmissaoCarbonoModel?> GetByIdAsync(int idEmissao);
+}
