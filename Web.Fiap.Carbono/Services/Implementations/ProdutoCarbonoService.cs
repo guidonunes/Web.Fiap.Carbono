@@ -1,9 +1,10 @@
 using Web.Fiap.Carbono.Data.Repository;
 using Web.Fiap.Carbono.Models;
+using Web.Fiap.Carbono.Services.Interfaces;
 
 namespace Web.Fiap.Carbono.Services.Implementations;
 
-public class ProdutoCarbonoService: IProdutoCarbonoRepository
+public class ProdutoCarbonoService: IProdutoCarbonoService
 {
     private readonly IProdutoCarbonoRepository _repository;
 

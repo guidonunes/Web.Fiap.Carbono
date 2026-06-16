@@ -4,7 +4,7 @@ using Web.Fiap.Carbono.Models;
 
 namespace Web.Fiap.Carbono.Data.Repository.Implementations;
 
-public class FornecedorCarbonoRepository
+public class FornecedorCarbonoRepository: IFornecedorCarbonoRepository
 {
     private readonly DatabaseContext _context;
 

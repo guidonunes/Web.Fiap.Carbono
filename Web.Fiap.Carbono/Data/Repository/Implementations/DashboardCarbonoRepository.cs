@@ -4,7 +4,7 @@ using Web.Fiap.Carbono.Models;
 
 namespace Web.Fiap.Carbono.Data.Repository.Implementations;
 
-public class DashboardCarbonoRepository
+public class DashboardCarbonoRepository: IDashboardCarbonoRepository
 {
     private readonly DatabaseContext _context;
 

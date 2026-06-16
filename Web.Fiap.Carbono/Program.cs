@@ -1,5 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Web.Fiap.Carbono.Data.Contexts;
+using Web.Fiap.Carbono.Data.Repository;
+using Web.Fiap.Carbono.Data.Repository.Implementations;
+using Web.Fiap.Carbono.Mapping;
+using Web.Fiap.Carbono.Services.Implementations;
+using Web.Fiap.Carbono.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +16,23 @@ var connectionString = builder.Configuration.GetConnectionString("DatabaseConnec
 builder.Services.AddDbContext<DatabaseContext>(opt => opt.UseOracle(connectionString).EnableSensitiveDataLogging(true)
 );
 
+#endregion
+
+#region AutoMapper
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddProfile<MappingProfile>();
+});
+
+builder.Services.AddScoped<IEmissaoCarbonoRepository, EmissaoCarbonoRepository>();
+builder.Services.AddScoped<IProdutoCarbonoRepository, ProdutoCarbonoRepository>();
+builder.Services.AddScoped<IFornecedorCarbonoRepository, FornecedorCarbonoRepository>();
+builder.Services.AddScoped<IDashboardCarbonoRepository, DashboardCarbonoRepository>();
+
+builder.Services.AddScoped<IEmissaoCarbonoService, EmissaoCarbonoService>();
+builder.Services.AddScoped<IProdutoCarbonoService, ProdutoCarbonoService>();
+builder.Services.AddScoped<IFornecedorCarbonoService, FornecedorCarbonoService>();
+builder.Services.AddScoped<IDashboardCarbonoService, DashboardCarbonoService>();
 #endregion
 
 builder.Services.AddControllers();
