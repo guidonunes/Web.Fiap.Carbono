@@ -1,0 +1,8 @@
+namespace Web.Fiap.Carbono.Exceptions;
+
+public class NotFoundException : Exception
+{
+    public NotFoundException(string message) : base(message)
+    {
+    }
+}
