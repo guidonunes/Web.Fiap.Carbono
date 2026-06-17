@@ -79,4 +79,19 @@ public class EmissoesCarbonoController : ControllerBase
             });
         }
     }
+    
+    [HttpPost("calcular")]
+    public async Task<ActionResult<EmissaoCarbonoViewModel>> CalcularEmissao(
+        [FromBody] CalcularEmissaoCarbonoViewModel viewModel)
+    {
+        var emissaoCriada = await _emissaoCarbonoService.CalcularEmissaoAsync(viewModel);
+
+        var emissaoViewModel = _mapper.Map<EmissaoCarbonoViewModel>(emissaoCriada);
+
+        return CreatedAtAction(
+            nameof(GetById),
+            new { idEmissao = emissaoCriada.IdEmissao },
+            emissaoViewModel
+        );
+    }
 }
