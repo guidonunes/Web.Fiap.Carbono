@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Web.Fiap.Carbono.Data.Contexts;
 using Web.Fiap.Carbono.Data.Repository;
 using Web.Fiap.Carbono.Data.Repository.Implementations;
+using Web.Fiap.Carbono.Data.Repository.Interfaces;
 using Web.Fiap.Carbono.Mapping;
 using Web.Fiap.Carbono.Middlewares;
 using Web.Fiap.Carbono.Services.Implementations;
