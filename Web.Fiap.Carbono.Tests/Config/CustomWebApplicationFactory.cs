@@ -14,11 +14,13 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         builder.ConfigureServices(services =>
         {
+            var databaseName = $"CarbonoTestDb_{Guid.NewGuid()}";
+
             services.RemoveAll<DbContextOptions<DatabaseContext>>();
 
             services.AddDbContext<DatabaseContext>(options =>
             {
-                options.UseInMemoryDatabase("CarbonoTestDb");
+                options.UseInMemoryDatabase(databaseName);
             });
 
             using var scope = services.BuildServiceProvider().CreateScope();
@@ -34,6 +36,12 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
     private static void SeedDatabase(DatabaseContext context)
     {
+        
+        if (context.EmissoesCarbono.Any())
+        {
+            return;
+        }
+        
         var empresa = new EmpresaModel
         {
             IdEmpresa = 1,
