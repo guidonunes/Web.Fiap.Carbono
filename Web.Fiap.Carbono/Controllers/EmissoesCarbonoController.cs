@@ -8,6 +8,7 @@ namespace Web.Fiap.Carbono.Controllers;
 
 [ApiController]
 [Route("api/emissoes-carbono")]
+[Tags("Carbon Emissions")]
 public class EmissoesCarbonoController : ControllerBase
 {
     private readonly IEmissaoCarbonoService _emissaoCarbonoService;

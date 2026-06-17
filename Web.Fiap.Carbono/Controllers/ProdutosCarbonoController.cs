@@ -7,6 +7,7 @@ namespace Web.Fiap.Carbono.Controllers;
 
 [ApiController]
 [Route("api/produtos-carbono")]
+[Tags("Carbon Products")]
 public class ProdutosCarbonoController : ControllerBase
 {
     private readonly IProdutoCarbonoService _produtoCarbonoService;

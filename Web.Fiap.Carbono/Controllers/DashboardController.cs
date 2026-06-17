@@ -7,6 +7,7 @@ namespace Web.Fiap.Carbono.Controllers;
 
 [ApiController]
 [Route("api/dashboard-carbono")]
+[Tags("Carbon Dashboard")]
 public class DashboardCarbonoController : ControllerBase
 {
     private readonly IDashboardCarbonoService _dashboardCarbonoService;

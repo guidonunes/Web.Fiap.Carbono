@@ -6,6 +6,7 @@ namespace Web.Fiap.Carbono.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+[Tags("Authentication")]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
