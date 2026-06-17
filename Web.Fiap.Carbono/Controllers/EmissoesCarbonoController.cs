@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Web.Fiap.Carbono.Services.Interfaces;
 using Web.Fiap.Carbono.ViewModel;
@@ -80,6 +81,7 @@ public class EmissoesCarbonoController : ControllerBase
         }
     }
     
+    [Authorize(Roles = "ADMIN,ANALISTA_ESG")]
     [HttpPost("calcular")]
     public async Task<ActionResult<EmissaoCarbonoViewModel>> CalcularEmissao(
         [FromBody] CalcularEmissaoCarbonoViewModel viewModel)
