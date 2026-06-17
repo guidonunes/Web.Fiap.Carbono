@@ -3,6 +3,7 @@ using Web.Fiap.Carbono.Data.Contexts;
 using Web.Fiap.Carbono.Data.Repository;
 using Web.Fiap.Carbono.Data.Repository.Implementations;
 using Web.Fiap.Carbono.Mapping;
+using Web.Fiap.Carbono.Middlewares;
 using Web.Fiap.Carbono.Services.Implementations;
 using Web.Fiap.Carbono.Services.Interfaces;
 
@@ -43,6 +44,8 @@ builder.Services.AddSwaggerGen();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseMiddleware<GlobalExceptionMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
