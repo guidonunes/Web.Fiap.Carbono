@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using Web.Fiap.Carbono.Tests.Config;
 
 namespace Web.Fiap.Carbono.Tests.Controllers;
@@ -49,5 +50,27 @@ public class EmissoesCarbonoControllerTest : IClassFixture<CustomWebApplicationF
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+    
+    [Fact]
+    public async Task CalcularEmissao_WithoutToken_ReturnsUnauthorized()
+    {
+        // Arrange
+        var request = "/api/emissoes-carbono/calcular";
+
+        var body = new
+        {
+            idEtapa = 1,
+            idFator = 1,
+            quantidadeAtividade = 100,
+            fonteEmissao = "Diesel",
+            observacao = "Teste sem token"
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync(request, body);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }

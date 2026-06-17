@@ -4,6 +4,7 @@
     &lt;TestId&gt;xUnit::45CAD80E-0CA3-40B9-8088-E28C68D5BD68::net8.0::Web.Fiap.Carbono.Tests.Controllers.EmissoesCarbonoControllerTest.Get_ReturnsHttpStatusCode200&lt;/TestId&gt;
     &lt;TestId&gt;xUnit::45CAD80E-0CA3-40B9-8088-E28C68D5BD68::net8.0::Web.Fiap.Carbono.Tests.Controllers.ProdutosCarbonoControllerTest&lt;/TestId&gt;
     &lt;TestId&gt;xUnit::45CAD80E-0CA3-40B9-8088-E28C68D5BD68::net8.0::Web.Fiap.Carbono.Tests.Controllers.FornecedoresCarbonoControllerTest.GetRanking_ReturnsHttpStatusCode200&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::45CAD80E-0CA3-40B9-8088-E28C68D5BD68::net8.0::Web.Fiap.Carbono.Tests.Controllers.DashboardCarbonoControllerTest.GetResumoEmpresa_ReturnsHttpStatusCode200&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=a35605b3_002D2308_002D4170_002Da4d1_002Da69840b37ded/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="GetById_ReturnsHttpStatusCode200" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
