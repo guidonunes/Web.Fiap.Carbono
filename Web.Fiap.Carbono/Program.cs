@@ -62,7 +62,7 @@ builder.Services.AddAuthorization();
 
 #region DATA BASE INITIALIZATION
 
-var connectionString = builder.Configuration.GetConnectionString("DatabaseConnection");
+var connectionString = builder.Configuration.GetConnectionString("OracleConnection");
 builder.Services.AddDbContext<DatabaseContext>(opt => opt.UseOracle(connectionString).EnableSensitiveDataLogging(true)
 );
 
@@ -83,6 +83,8 @@ builder.Services.AddScoped<IEmissaoCarbonoService, EmissaoCarbonoService>();
 builder.Services.AddScoped<IProdutoCarbonoService, ProdutoCarbonoService>();
 builder.Services.AddScoped<IFornecedorCarbonoService, FornecedorCarbonoService>();
 builder.Services.AddScoped<IDashboardCarbonoService, DashboardCarbonoService>();
+
+builder.Services.AddScoped<IAuthService, AuthService>();
 #endregion
 
 builder.Services.AddControllers();
