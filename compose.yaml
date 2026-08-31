@@ -1,0 +1,26 @@
+services:
+  mongodb:
+    image: mongo:8.0.29-noble
+    container_name: fiap-carbono-mongodb
+
+    ports:
+      - "127.0.0.1:27017:27017"
+
+    volumes:
+      - fiap_carbono_mongodb_data:/data/db
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+    restart: unless-stopped
+
+volumes:
+  fiap_carbono_mongodb_data:

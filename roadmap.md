@@ -371,16 +371,16 @@ Run a reproducible MongoDB instance locally without modifying the application ye
 
 ### Tasks
 
-- [ ] Choose and pin the MongoDB version supported by the course environment.
-- [ ] Add MongoDB to the existing Docker Compose file or create a dedicated Compose file.
-- [ ] Configure a named volume for persistent local data.
-- [ ] Configure a health check.
-- [ ] Do not commit real credentials.
-- [ ] Add example environment variables to `.env.example`.
-- [ ] Start the container.
-- [ ] Connect with `mongosh`.
-- [ ] Connect with MongoDB Compass.
-- [ ] Confirm the target database name is `fiap_carbono`.
+- [x] Choose and pin the MongoDB version supported by the course environment.
+- [x] Add MongoDB to the existing Docker Compose file or create a dedicated Compose file.
+- [x] Configure a named volume for persistent local data.
+- [x] Configure a health check.
+- [x] Do not commit real credentials.
+- [x] Add example environment variables to `.env.example`.
+- [x] Start the container.
+- [x] Connect with `mongosh`.
+- [x] Connect with MongoDB Compass.
+- [x] Confirm the target database name is `fiap_carbono`.
 
 Recommended configuration keys:
 
@@ -405,9 +405,11 @@ db.runCommand({ ping: 1 })
 
 ### Exit gate
 
-- [ ] MongoDB reports a healthy state.
-- [ ] Both `mongosh` and Compass can connect.
-- [ ] Credentials and local configuration files are ignored by Git.
+- [x] MongoDB reports a healthy state.
+- [x] Both `mongosh` and Compass can connect.
+- [x] Credentials and local configuration files are ignored by Git.
+
+Verified on 2026-08-31 with the course-supported `mongo:8.0.29-noble` image. Docker reported the container as healthy, `mongosh` returned `{ ok: 1 }` in the `fiap_carbono` database context, MongoDB Compass connected through port `27017`, and the local `.env` remained ignored and untracked.
 
 ## Phase 3 — Create collections, validators, and indexes
 

@@ -8,6 +8,14 @@ The target architecture and commands are defined here before implementation. Sec
 
 Oracle remains the active persistence provider. The [Oracle API baseline](oracle-baseline.md) records observable responses and representative totals for comparison with the future MongoDB implementation. Its calculation request succeeded with `201 Created`, persisted emission `41`, and returned `122.55 kgCO2e`; detailed evidence and the remaining aggregate-refresh status are maintained in the baseline report.
 
+### Local MongoDB environment status
+
+Phase 2 was verified on 2026-08-31 using the course-supported `mongo:8.0.29-noble` image defined in `compose.yaml`. The local service binds port `27017` only to `127.0.0.1`, stores data in the named `fiap_carbono_mongodb_data` volume, and uses a `mongosh` ping health check.
+
+Docker reported the container as healthy. A direct `mongosh` connection to `mongodb://localhost:27017/fiap_carbono` returned `{ ok: 1 }` with `fiap_carbono` as the database context, and MongoDB Compass connected successfully through port `27017`. The safe example settings are stored in `.env.example`, while the local `.env` is ignored and untracked.
+
+This environment is isolated from the running application at this phase. Oracle remains the active API persistence provider; no MongoDB driver or application persistence configuration has been added yet.
+
 ## 1. Project overview
 
 Web.Fiap.Carbono is an ASP.NET Core Web API for measuring and analyzing greenhouse-gas emissions across product supply chains. It connects companies, products, production batches, supply-chain stages, suppliers, emission factors, and calculated carbon-emission records.
