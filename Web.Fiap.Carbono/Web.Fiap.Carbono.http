@@ -1,6 +1,47 @@
-@Web.Fiap.Carbono_HostAddress = http://localhost:5269
+@HostAddress = http://localhost:5269
+@Token = paste-jwt-token-here
+@EmissionId = 1
+@ProductId = 1
+@CompanyId = 1
 
-GET {{Web.Fiap.Carbono_HostAddress}}/weatherforecast/
+### Log in as an administrator
+POST {{HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@carbono.com",
+  "senha": "Carbono@123"
+}
+
+### List carbon emissions
+GET {{HostAddress}}/api/emissoes-carbono?pageNumber=1&pageSize=10
 Accept: application/json
 
-###
+### Get one carbon emission
+GET {{HostAddress}}/api/emissoes-carbono/{{EmissionId}}
+Accept: application/json
+
+### Calculate and persist a carbon emission
+POST {{HostAddress}}/api/emissoes-carbono/calcular
+Authorization: Bearer {{Token}}
+Content-Type: application/json
+
+{
+  "idEtapa": 1,
+  "idFator": 1,
+  "quantidadeAtividade": 100,
+  "fonteEmissao": "Diesel",
+  "observacao": "Monthly transport activity"
+}
+
+### Get a product carbon footprint
+GET {{HostAddress}}/api/produtos-carbono/{{ProductId}}/pegada
+Accept: application/json
+
+### Get the supplier emissions ranking
+GET {{HostAddress}}/api/fornecedores-carbono/ranking?pageNumber=1&pageSize=10
+Accept: application/json
+
+### Get a company carbon dashboard
+GET {{HostAddress}}/api/dashboard-carbono/empresas/{{CompanyId}}/resumo
+Accept: application/json

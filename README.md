@@ -1,132 +1,198 @@
 # Web.Fiap.Carbono
 
-API RESTful em **.NET 8** para gestão, cálculo e análise de emissões de carbono na cadeia produtiva, desenvolvida para o curso de Análise e Desenvolvimento de Sistemas.
+Web.Fiap.Carbono is a REST API for measuring and analyzing greenhouse-gas emissions across a product supply chain. It was built as an ESG-focused FIAP academic project and covers the environmental pillar of ESG.
 
-## Tema ESG
+The API connects companies, products, production batches, supply-chain stages, suppliers, emission factors, and carbon-emission records. It can calculate an emission in `kgCO2e` from activity data and an emission factor, then aggregate those records into product footprints, supplier rankings, and company dashboards.
 
-O tema escolhido é **gestão de emissões de carbono**, com foco no pilar ambiental de ESG. A solução permite registrar emissões por etapa da cadeia produtiva, calcular emissões a partir de fatores de emissão e gerar indicadores para apoiar decisões sustentáveis.
+This repository contains a backend API only; it does not include a web or mobile frontend.
 
-## Problema resolvido
+## Main features
 
-Empresas precisam medir, rastrear e analisar suas emissões de carbono para melhorar a gestão ambiental e identificar pontos críticos da cadeia produtiva. A API centraliza dados de empresas, produtos, fornecedores, lotes, etapas da cadeia, fatores de emissão e emissões calculadas, permitindo consultas consolidadas e rastreáveis.
+- Issue JWTs for two demonstration users with `ADMIN` and `ANALISTA_ESG` roles.
+- List carbon-emission records with pagination and retrieve an individual record.
+- Calculate and persist an emission for a supply-chain stage using an active emission factor.
+- Calculate a product's total carbon footprint and break it down by supply-chain stage.
+- Rank suppliers using the emissions associated with the stages they operate.
+- Produce a company-level ESG summary with totals, counts, monthly emissions, average emissions per product, and the highest-emitting product and supplier.
+- Validate request data, IDs, pagination, active emission factors, and database constraints.
+- Return consistent JSON errors through global exception handling.
+- Expose Swagger/OpenAPI documentation in the Development environment.
+- Run integration-style API tests against an isolated EF Core InMemory database.
 
-## Tecnologias utilizadas
-
-- .NET 8
-- ASP.NET Core Web API
-- Entity Framework Core
-- Oracle Database
-- Migrations
-- AutoMapper
-- JWT Authentication
-- Swagger / OpenAPI
-- xUnit
-- Rider no Linux Ubuntu
-
-## Arquitetura
-
-O projeto segue uma organização baseada em **MVVM**, com separação entre entidades de domínio, ViewModels, controllers, services e repositories.
+The emission calculation is:
 
 ```text
-Controllers/        Endpoints da API
-Models/             Entidades do domínio
-ViewModel/          Objetos de entrada e saída da API
-Services/           Regras de negócio
-Repository/         Acesso aos dados
-Data/Contexts/      DatabaseContext do Entity Framework
-Mapping/            Configuração do AutoMapper
-Config/Security/    Configurações de JWT
-Middlewares/        Tratamento global de exceções
-Exceptions/         Exceções customizadas
-Migrations/         Histórico de alterações do banco
+emitted quantity (kgCO2e) = activity quantity × emission factor value
 ```
 
-## MER e tabelas principais
+The API stores the result with the unit `kgCO2e`. It does not perform unit conversion, so the activity quantity must match the selected factor's base unit.
 
-As tabelas usam o prefixo `EC_` para diferenciar o projeto no banco Oracle.
+## Technology stack
 
-| Tabela | Função |
+| Area | Technology |
 |---|---|
-| `EC_EMPRESAS` | Empresas monitoradas pela solução |
-| `EC_PRODUTOS` | Produtos vinculados a empresas |
-| `EC_FORNECEDORES` | Fornecedores da cadeia produtiva |
-| `EC_LOTES_PRODUCAO` | Lotes de produção dos produtos |
-| `EC_ETAPAS_CADEIA` | Etapas da cadeia produtiva de cada lote |
-| `EC_FATORES_EMISSAO` | Fatores usados no cálculo de CO2e |
-| `EC_EMISSOES_CARBONO` | Registros de emissões calculadas |
+| Runtime and language | .NET 8, C# |
+| Web framework | ASP.NET Core Web API |
+| Database | Oracle Database |
+| Data access | Entity Framework Core 8 with `Oracle.EntityFrameworkCore` |
+| Schema management | EF Core migrations |
+| Object mapping | AutoMapper |
+| Authentication | JWT Bearer tokens signed with HMAC-SHA256 |
+| API documentation | Swagger/OpenAPI through Swashbuckle |
+| Tests | xUnit, `Microsoft.AspNetCore.Mvc.Testing`, EF Core InMemory, Coverlet |
+| Packaging | Multi-stage Linux Docker image |
 
-Relacionamento principal:
+Important package versions are declared in [the API project file](Web.Fiap.Carbono/Web.Fiap.Carbono.csproj). The repository pins the .NET 8 SDK family in [`global.json`](global.json).
 
-```text
-Empresa 1:N Produtos
-Produto 1:N Lotes de Produção
-Lote 1:N Etapas da Cadeia
-Fornecedor 1:N Etapas da Cadeia
-Etapa 1:N Emissões de Carbono
-Fator de Emissão 1:N Emissões de Carbono
+## Architecture
+
+The code uses a layered controller-service-repository architecture. The classes under `ViewModel/` are API request and response DTOs; despite the name, this is not a conventional MVVM user-interface application.
+
+```mermaid
+flowchart LR
+    Client[HTTP client] --> Controller[Controllers]
+    Controller --> Service[Services<br/>validation and business rules]
+    Service --> Repository[Repositories<br/>queries and persistence]
+    Repository --> EF[EF Core DatabaseContext]
+    EF --> Oracle[(Oracle Database)]
+    Controller --> Mapper[AutoMapper]
+    Mapper --> DTO[ViewModels / DTOs]
 ```
 
-## Endpoints principais
+| Directory | Responsibility |
+|---|---|
+| `Controllers/` | HTTP routes, status codes, and request/response handling |
+| `Services/` | Domain validation, business rules, and emission calculation |
+| `Data/Repository/` | EF Core queries and persistence |
+| `Data/Contexts/` | Oracle table, relationship, index, and constraint mapping |
+| `Models/` | Database-backed domain entities |
+| `ViewModel/` | API input and output models |
+| `Mapping/` | Domain-to-response transformations and aggregate calculations |
+| `Config/Security/` | JWT settings |
+| `Middlewares/` | Global exception-to-HTTP-response mapping |
+| `Exceptions/` | Domain-specific exception types |
+| `Migrations/` | Versioned Oracle schema |
 
-### Autenticação
+Dependencies are registered with ASP.NET Core's built-in dependency injection container in [`Program.cs`](Web.Fiap.Carbono/Program.cs).
 
-| Método | Rota | Descrição |
-|---|---|---|
-| `POST` | `/api/auth/login` | Gera token JWT |
+## Database
 
-### Emissões de carbono
+The production data provider is **Oracle Database**, accessed through Entity Framework Core and Oracle's EF Core provider. The connection is configured under `ConnectionStrings:OracleConnection`.
 
-| Método | Rota | Descrição |
-|---|---|---|
-| `GET` | `/api/emissoes-carbono?pageNumber=1&pageSize=10` | Lista emissões com paginação |
-| `GET` | `/api/emissoes-carbono/{idEmissao}` | Busca emissão por ID |
-| `POST` | `/api/emissoes-carbono/calcular` | Calcula e registra emissão de carbono |
+The schema is created by the `CreateCarbonEmissionSchema` EF Core migration. All application tables use the `EC_` prefix:
 
-### Produtos
+| Table | Purpose |
+|---|---|
+| `EC_EMPRESAS` | Companies whose products and emissions are tracked |
+| `EC_PRODUTOS` | Products owned by a company |
+| `EC_LOTES_PRODUCAO` | Production batches for a product |
+| `EC_ETAPAS_CADEIA` | Ordered supply-chain stages for a batch, each linked to a supplier |
+| `EC_FORNECEDORES` | Suppliers participating in supply-chain stages |
+| `EC_FATORES_EMISSAO` | Emission factors, base units, references, and GHG scopes |
+| `EC_EMISSOES_CARBONO` | Calculated activity and `kgCO2e` emission records |
 
-| Método | Rota | Descrição |
-|---|---|---|
-| `GET` | `/api/produtos-carbono/{idProduto}/pegada` | Retorna a pegada de carbono de um produto |
+### Entity relationships
 
-### Fornecedores
-
-| Método | Rota | Descrição |
-|---|---|---|
-| `GET` | `/api/fornecedores-carbono/ranking?pageNumber=1&pageSize=10` | Ranking de fornecedores por emissão |
-
-### Dashboard
-
-| Método | Rota | Descrição |
-|---|---|---|
-| `GET` | `/api/dashboard-carbono/empresas/{idEmpresa}/resumo` | Resumo ESG de emissões por empresa |
-
-## Autenticação e autorização
-
-O endpoint de cálculo de emissão é protegido por JWT:
-
-```http
-POST /api/emissoes-carbono/calcular
-Authorization: Bearer {token}
+```mermaid
+erDiagram
+    EC_EMPRESAS ||--o{ EC_PRODUTOS : owns
+    EC_PRODUTOS ||--o{ EC_LOTES_PRODUCAO : contains
+    EC_LOTES_PRODUCAO ||--o{ EC_ETAPAS_CADEIA : passes_through
+    EC_FORNECEDORES ||--o{ EC_ETAPAS_CADEIA : operates
+    EC_ETAPAS_CADEIA ||--o{ EC_EMISSOES_CARBONO : produces
+    EC_FATORES_EMISSAO ||--o{ EC_EMISSOES_CARBONO : calculates
 ```
 
-Usuários de teste:
+The schema includes unique CNPJ indexes for companies and suppliers, foreign-key indexes, positive-value checks, date-order checks, active-status checks (`S` or `N`), and emission-scope checks (`ESCOPO_1`, `ESCOPO_2`, or `ESCOPO_3`). Foreign-key deletion is restrictive; related records are not cascade-deleted.
 
-```text
-admin@carbono.com / Carbono@123
-analista@carbono.com / Carbono@123
+Authentication users are not stored in Oracle. The two demonstration users are currently held in memory by `AuthService`.
+
+## API endpoints
+
+All routes use the `/api` prefix. Except for emission creation, the current read endpoints are public.
+
+| Method | Route | Authentication | Description |
+|---|---|---|---|
+| `POST` | `/api/auth/login` | Public | Validate a demonstration user and issue a JWT |
+| `GET` | `/api/emissoes-carbono?pageNumber=1&pageSize=10` | Public | List emissions, newest first |
+| `GET` | `/api/emissoes-carbono/{idEmissao}` | Public | Retrieve one emission and its stage/factor details |
+| `POST` | `/api/emissoes-carbono/calcular` | `ADMIN` or `ANALISTA_ESG` | Calculate and persist an emission |
+| `GET` | `/api/produtos-carbono/{idProduto}/pegada` | Public | Return a product footprint and totals by stage |
+| `GET` | `/api/fornecedores-carbono/ranking?pageNumber=1&pageSize=10` | Public | Return paginated supplier emission summaries |
+| `GET` | `/api/dashboard-carbono/empresas/{idEmpresa}/resumo` | Public | Return a company's aggregated carbon dashboard |
+
+Pagination starts at page 1. `pageSize` must be between 1 and 50. A paginated response has this shape:
+
+```json
+{
+  "items": [],
+  "pageNumber": 1,
+  "pageSize": 10,
+  "totalItems": 0,
+  "totalPages": 0
+}
 ```
 
-## Configuração do Oracle
+The API currently exposes analytics and emission-record operations. It does not expose CRUD endpoints for companies, products, batches, suppliers, stages, or emission factors; those records must already exist in the database before an emission can be calculated.
 
-O arquivo `appsettings.Development.json` deve conter a connection string real e não deve ser versionado no Git.
+## Authentication
+
+Use one of the demonstration accounts:
+
+| Role | Email | Password |
+|---|---|---|
+| `ADMIN` | `admin@carbono.com` | `Carbono@123` |
+| `ANALISTA_ESG` | `analista@carbono.com` | `Carbono@123` |
+
+Request a token:
+
+```bash
+curl --request POST http://localhost:5269/api/auth/login \
+  --header "Content-Type: application/json" \
+  --data '{
+    "email": "admin@carbono.com",
+    "senha": "Carbono@123"
+  }'
+```
+
+Then send the returned token in the `Authorization` header:
+
+```bash
+curl --request POST http://localhost:5269/api/emissoes-carbono/calcular \
+  --header "Authorization: Bearer YOUR_TOKEN" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "idEtapa": 1,
+    "idFator": 1,
+    "quantidadeAtividade": 100,
+    "fonteEmissao": "Diesel",
+    "observacao": "Monthly transport activity"
+  }'
+```
+
+A successful calculation returns `201 Created`, including the created emission and a `Location` header for its resource.
+
+> The built-in users and plain-text demonstration passwords are suitable only for this academic sample. A production deployment should use a persistent identity store, hashed passwords, secret management, HTTPS-only token handling, and an appropriate token-revocation strategy.
+
+## Local setup
+
+### Prerequisites
+
+- .NET 8 SDK
+- Access to an Oracle Database instance
+- `dotnet-ef` 8.x if you need to apply or create migrations
+
+### 1. Configure Oracle and JWT
+
+Create `Web.Fiap.Carbono/appsettings.Development.json`. This file is ignored by Git, so real credentials and signing keys are not committed.
 
 ```json
 {
   "ConnectionStrings": {
-    "OracleConnection": "User Id=SEU_USUARIO;Password=SUA_SENHA;Data Source=SEU_DATASOURCE"
+    "OracleConnection": "User Id=YOUR_USER;Password=YOUR_PASSWORD;Data Source=YOUR_DATA_SOURCE"
   },
   "Jwt": {
-    "SecretKey": "uma-chave-super-secreta-com-mais-de-32-caracteres",
+    "SecretKey": "replace-with-a-random-secret-at-least-32-characters-long",
     "Issuer": "Web.Fiap.Carbono",
     "Audience": "Web.Fiap.Carbono.Users",
     "ExpirationMinutes": 60
@@ -134,96 +200,88 @@ O arquivo `appsettings.Development.json` deve conter a connection string real e 
 }
 ```
 
-O `appsettings.json` deve manter apenas valores genéricos.
+ASP.NET Core configuration can also be supplied with environment variables such as `ConnectionStrings__OracleConnection` and `Jwt__SecretKey`.
 
-## Executar migrations
+### 2. Restore and build
 
-Na pasta do projeto principal:
-
-```bash
-dotnet ef migrations add CreateCarbonEmissionSchema -o Migrations
-dotnet ef database update
-```
-
-Para listar migrations:
+From the repository root:
 
 ```bash
-dotnet ef migrations list
+dotnet restore Web.Fiap.Carbono.sln
+dotnet build Web.Fiap.Carbono.sln
 ```
 
-## Rodar o projeto no Linux/Rider
-
-Na raiz do projeto da API:
+### 3. Apply the schema
 
 ```bash
-dotnet restore
-dotnet build
-dotnet run
+dotnet ef database update \
+  --project Web.Fiap.Carbono/Web.Fiap.Carbono.csproj \
+  --startup-project Web.Fiap.Carbono/Web.Fiap.Carbono.csproj
 ```
 
-Acesse o Swagger em:
+The migration creates the schema only; it does not seed production data.
+
+### 4. Run the API
+
+```bash
+dotnet run --project Web.Fiap.Carbono/Web.Fiap.Carbono.csproj
+```
+
+With the checked-in launch profile, the HTTP URL is `http://localhost:5269` and the HTTPS URL is `https://localhost:7090`. Swagger is available only when `ASPNETCORE_ENVIRONMENT=Development`:
 
 ```text
-http://localhost:SUA_PORTA/swagger
+http://localhost:5269/swagger
 ```
 
-## Executar testes xUnit
+Ready-to-run request examples are available in [`Web.Fiap.Carbono.http`](Web.Fiap.Carbono/Web.Fiap.Carbono.http).
 
-Na raiz da solution:
+## Tests
+
+Run all tests from the repository root:
 
 ```bash
-dotnet test
+dotnet test Web.Fiap.Carbono.sln
 ```
 
-Os testes utilizam uma base `InMemory` com dados de seed controlados, permitindo validar os endpoints sem depender diretamente do ambiente Oracle da FIAP. A integração real com Oracle foi validada manualmente via Swagger/Postman.
+The tests start the real ASP.NET Core application through `WebApplicationFactory`, replace Oracle with a uniquely named EF Core InMemory database, and seed a controlled company/product/supplier/emission graph. They cover the public analytics endpoints, valid emission reads, invalid pagination, and rejection of unauthenticated emission creation.
 
-## Exemplos de JSON
+The InMemory provider is useful for deterministic API tests but does not validate Oracle-specific SQL, types, indexes, or constraints. Oracle integration still needs to be verified against a real Oracle instance.
 
-### Login
+## Docker
+
+Build the multi-stage image from the repository root:
+
+```bash
+docker build \
+  --file Web.Fiap.Carbono/Dockerfile \
+  --tag web-fiap-carbono .
+```
+
+Supply configuration at runtime rather than baking secrets into the image:
+
+```bash
+docker run --rm --publish 8080:8080 \
+  --env ConnectionStrings__OracleConnection="YOUR_ORACLE_CONNECTION_STRING" \
+  --env Jwt__SecretKey="YOUR_RANDOM_JWT_SECRET" \
+  --env Jwt__Issuer="Web.Fiap.Carbono" \
+  --env Jwt__Audience="Web.Fiap.Carbono.Users" \
+  --env Jwt__ExpirationMinutes="60" \
+  web-fiap-carbono
+```
+
+Swagger is disabled by default in the container because the image does not set the Development environment.
+
+## Error responses
+
+Unhandled domain exceptions are converted to JSON by the global middleware:
 
 ```json
 {
-  "email": "admin@carbono.com",
-  "senha": "Carbono@123"
+  "statusCode": 404,
+  "error": "NotFound",
+  "message": "Etapa da cadeia não encontrada.",
+  "timestamp": "2026-08-26T12:00:00Z"
 }
 ```
 
-### Cálculo de emissão
-
-```json
-{
-  "idEtapa": 1,
-  "idFator": 1,
-  "quantidadeAtividade": 100,
-  "fonteEmissao": "Diesel",
-  "observacao": "Teste de cálculo de emissão de carbono"
-}
-```
-
-Resposta esperada:
-
-```http
-201 Created
-```
-
-## Validações e segurança
-
-- Paginação obrigatória em endpoints de listagem
-- `pageNumber` mínimo igual a 1
-- `pageSize` entre 1 e 50
-- Tratamento global de exceções
-- Validação de entrada com Data Annotations
-- JWT em endpoint crítico
-- Teste automatizado para endpoints públicos
-- Teste de segurança para endpoint protegido sem token
-
-## Status da entrega
-
-- API em .NET 8 criada
-- Oracle integrado via Entity Framework Core
-- Migrations implementadas
-- Endpoints RESTful principais criados
-- Paginação implementada
-- JWT configurado
-- Swagger organizado por tema
-- Testes xUnit implementados
+The main mappings are `400` for validation/argument errors, `401` for invalid login or missing authentication, `404` for missing domain records, `422` for business-rule violations such as an inactive emission factor, and `500` for unexpected failures.
