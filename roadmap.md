@@ -657,29 +657,31 @@ Represent the target MongoDB model explicitly in C#.
 
 ### Tasks
 
-- [ ] Create a document class for each of the five collections.
-- [ ] Create embedded classes for batch, stage, factor snapshot, reduction target, certification, and ESG audit data.
-- [ ] Map `_id` using `[BsonId]`.
-- [ ] Configure string IDs with `[BsonRepresentation(BsonType.ObjectId)]` if the public C# property type is `string`.
-- [ ] Use explicit `[BsonElement]` names if the persisted naming convention differs from C# property names.
-- [ ] Use `[BsonIgnoreExtraElements]` where forward-compatible reads are appropriate.
-- [ ] Configure decimal values to use BSON `Decimal128`.
-- [ ] Keep API request/response DTOs separate from database documents.
-- [ ] Do not expose MongoDB-specific attributes in API DTOs.
-- [ ] Add mapping code between documents and response DTOs.
+- [x] Create a document class for each of the five collections.
+- [x] Create embedded classes for batch, stage, factor snapshot, reduction target, certification, and ESG audit data.
+- [x] Map `_id` using `[BsonId]`.
+- [x] Configure string IDs with `[BsonRepresentation(BsonType.ObjectId)]` if the public C# property type is `string`.
+- [x] Use explicit `[BsonElement]` names if the persisted naming convention differs from C# property names.
+- [x] Use `[BsonIgnoreExtraElements]` where forward-compatible reads are appropriate.
+- [x] Configure decimal values to use BSON `Decimal128`.
+- [x] Keep API request/response DTOs separate from database documents.
+- [x] Do not expose MongoDB-specific attributes in API DTOs.
+- [x] Add mapping code between documents and response DTOs.
 
 ### Verification
 
-- [ ] Serialize one example of every document type to BSON.
-- [ ] Deserialize the BSON back to the original type.
-- [ ] Confirm that IDs, UTC dates, decimal values, enum strings, and embedded documents retain their values.
-- [ ] Build the solution without warnings introduced by nullable reference types.
+- [x] Serialize one example of every document type to BSON.
+- [x] Deserialize the BSON back to the original type.
+- [x] Confirm that IDs, UTC dates, decimal values, enum strings, and embedded documents retain their values.
+- [x] Build the solution without warnings introduced by nullable reference types.
 
 ### Exit gate
 
-- [ ] All five document classes represent the approved model.
-- [ ] Serialization round-trip tests pass.
-- [ ] Documents and API DTOs remain separate.
+- [x] All five document classes represent the approved model.
+- [x] Serialization round-trip tests pass.
+- [x] Documents and API DTOs remain separate.
+
+Verified on 2026-09-01 after aligning the test project's Entity Framework Core packages with application version 8.0.22. Solution restore completed cleanly, the solution build completed with zero warnings and zero errors, and all 19 tests passed, including BSON round-trip and document-to-response mapping coverage for the five approved MongoDB document types.
 
 ## Phase 8 — Implement MongoDB repositories
 

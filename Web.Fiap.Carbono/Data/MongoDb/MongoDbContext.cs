@@ -1,5 +1,5 @@
-using MongoDB.Bson;
 using MongoDB.Driver;
+using Web.Fiap.Carbono.Models.Documents;
 
 namespace Web.Fiap.Carbono.Data.MongoDb;
 
@@ -15,26 +15,26 @@ public sealed class MongoDbContext
     {
         ArgumentNullException.ThrowIfNull(database);
 
-        Empresas = database.GetCollection<BsonDocument>(
+        Empresas = database.GetCollection<EmpresaDocument>(
             EmpresasCollectionName
         );
-        Produtos = database.GetCollection<BsonDocument>(
+        Produtos = database.GetCollection<ProdutoDocument>(
             ProdutosCollectionName
         );
-        Fornecedores = database.GetCollection<BsonDocument>(
+        Fornecedores = database.GetCollection<FornecedorDocument>(
             FornecedoresCollectionName
         );
-        FatoresEmissao = database.GetCollection<BsonDocument>(
+        FatoresEmissao = database.GetCollection<FatorEmissaoDocument>(
             FatoresEmissaoCollectionName
         );
-        EmissoesCarbono = database.GetCollection<BsonDocument>(
+        EmissoesCarbono = database.GetCollection<EmissaoCarbonoDocument>(
             EmissoesCarbonoCollectionName
         );
     }
 
-    public IMongoCollection<BsonDocument> Empresas { get; }
-    public IMongoCollection<BsonDocument> Produtos { get; }
-    public IMongoCollection<BsonDocument> Fornecedores { get; }
-    public IMongoCollection<BsonDocument> FatoresEmissao { get; }
-    public IMongoCollection<BsonDocument> EmissoesCarbono { get; }
+    public IMongoCollection<EmpresaDocument> Empresas { get; }
+    public IMongoCollection<ProdutoDocument> Produtos { get; }
+    public IMongoCollection<FornecedorDocument> Fornecedores { get; }
+    public IMongoCollection<FatorEmissaoDocument> FatoresEmissao { get; }
+    public IMongoCollection<EmissaoCarbonoDocument> EmissoesCarbono { get; }
 }
