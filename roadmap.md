@@ -557,16 +557,16 @@ Meet the CRUD requirement without deleting the permanent seed data.
 
 ### Tasks
 
-- [ ] Create `database/mongodb/04-crud-demo.js`.
-- [ ] For each collection, insert one temporary `CRUD-TEMP` document.
-- [ ] Read the temporary document and print it.
-- [ ] Update the temporary document with `$set` and record `atualizadoEm`.
-- [ ] Read it again to prove the update.
-- [ ] Delete the temporary document.
-- [ ] Print the deletion result.
-- [ ] Print the final collection count.
-- [ ] Ensure at least ten permanent documents remain after every deletion.
-- [ ] Add readable section comments to the script so its output can be captured for the report.
+- [x] Create `database/mongodb/04-crud-demo.js`.
+- [x] For each collection, insert one temporary `CRUD-TEMP` document.
+- [x] Read the temporary document and print it.
+- [x] Update the temporary document with `$set` and record `atualizadoEm`.
+- [x] Read it again to prove the update.
+- [x] Delete the temporary document.
+- [x] Print the deletion result.
+- [x] Print the final collection count.
+- [x] Ensure at least ten permanent documents remain after every deletion.
+- [x] Add readable section comments to the script so its output can be captured for the report.
 
 Required operation sequence per collection:
 
@@ -589,19 +589,23 @@ mongosh "mongodb://localhost:27017/fiap_carbono" \
 Confirm that no temporary document remains:
 
 ```javascript
-db.empresas.find({ codigo: "CRUD-TEMP" })
-db.produtos.find({ codigo: "CRUD-TEMP" })
-db.fornecedores.find({ codigo: "CRUD-TEMP" })
-db.fatores_emissao.find({ codigo: "CRUD-TEMP" })
-db.emissoes_carbono.find({ codigoDemonstracao: "CRUD-TEMP" })
+db.empresas.countDocuments({ codigo: "CRUD-TEMP-EMP" })
+db.produtos.countDocuments({ codigo: "CRUD-TEMP-PROD" })
+db.fornecedores.countDocuments({ codigo: "CRUD-TEMP-FOR" })
+db.fatores_emissao.countDocuments({ codigo: "CRUD-TEMP-FE" })
+db.emissoes_carbono.countDocuments({ codigo: "CRUD-TEMP-EMISSAO" })
 ```
+
+Each absence query must return `0`.
 
 ### Exit gate
 
-- [ ] CRUD has been executed successfully against every collection.
-- [ ] The script output visibly proves each operation.
-- [ ] Every collection still contains at least ten documents.
-- [ ] Permanent seed data was not deleted.
+- [x] CRUD has been executed successfully against every collection.
+- [x] The script output visibly proves each operation.
+- [x] Every collection still contains at least ten documents.
+- [x] Permanent seed data was not deleted.
+
+Verified on 2026-09-01 against MongoDB 8.0.31. The script completed the insert, first read, `$set` update, second read, delete, absence check, and final count for all five collections. Final counts matched their starting values: 10 companies, 10 products, 10 suppliers, 10 emission factors, and 15 emissions. The temporary emission preserved its calculation inputs and applied-factor snapshot during the audit-only update, and all five `CRUD-TEMP` absence checks returned zero. Solution restore and build passed, with the existing EF Core Relational version warning, and all 8 tests passed. Required screenshot evidence remains pending and must be captured from actual execution before final submission.
 
 ## Phase 6 — Add MongoDB to the .NET application
 

@@ -814,7 +814,7 @@ db.produtos.insertOne({
   nome: "Produto CRUD Temporario",
   categoria: "TESTE",
   unidadeFuncional: "UNIDADE",
-  atributosAmbientais: { percentualReciclavel: Decimal128("10.00") },
+  atributosAmbientais: { percentualReciclavel: NumberDecimal("10.00") },
   ativo: true,
   criadoEm: new Date(),
   atualizadoEm: new Date(),
@@ -827,7 +827,7 @@ db.produtos.updateOne(
   { codigo: "CRUD-TEMP-PROD" },
   {
     $set: {
-      "atributosAmbientais.percentualReciclavel": Decimal128("25.00"),
+      "atributosAmbientais.percentualReciclavel": NumberDecimal("25.00"),
       atualizadoEm: new Date()
     }
   }
@@ -884,7 +884,7 @@ db.fatores_emissao.insertOne({
   codigo: "CRUD-TEMP-FE",
   nome: "Fator CRUD Temporario",
   categoria: "TESTE",
-  valor: Decimal128("0.500"),
+  valor: NumberDecimal("0.500"),
   unidadeBase: "KG",
   escopo: "ESCOPO_3",
   fonteReferencia: "Demonstracao academica",
@@ -902,7 +902,7 @@ db.fatores_emissao.findOne({ codigo: "CRUD-TEMP-FE", versao: 1 })
 
 db.fatores_emissao.updateOne(
   { codigo: "CRUD-TEMP-FE", versao: 1 },
-  { $set: { valor: Decimal128("0.650"), ativo: false, atualizadoEm: new Date() } }
+  { $set: { valor: NumberDecimal("0.650"), ativo: false, atualizadoEm: new Date() } }
 )
 
 db.fatores_emissao.findOne({ codigo: "CRUD-TEMP-FE", versao: 1 })
@@ -914,29 +914,29 @@ db.fatores_emissao.countDocuments()
 ### 12.5 `emissoes_carbono`
 
 ```javascript
-const produtoPermanente = db.produtos.findOne({ codigo: "PROD-001" })
+const produtoPermanente = db.produtos.findOne({ codigo: "PRO-001" })
 const empresaDaEmissao = db.empresas.findOne({ _id: produtoPermanente.empresaId })
 const fornecedorPermanente = db.fornecedores.findOne({ codigo: "FOR-001" })
-const fatorPermanente = db.fatores_emissao.findOne({ codigo: "FE-TRANS-DIESEL", versao: 1 })
+const fatorPermanente = db.fatores_emissao.findOne({ codigo: "FE-TRANSPORTE-001", versao: 1 })
 
 db.emissoes_carbono.insertOne({
-  codigoDemonstracao: "CRUD-TEMP-EMISSAO",
+  codigo: "CRUD-TEMP-EMISSAO",
   empresaId: empresaDaEmissao._id,
   produtoId: produtoPermanente._id,
   fornecedorId: fornecedorPermanente._id,
   fatorEmissaoId: fatorPermanente._id,
   lote: {
     codigo: "LOTE-CRUD-TEMP",
-    quantidadeProduzida: Decimal128("100.00"),
+    quantidadeProduzida: NumberDecimal("100.00"),
     unidade: "UNIDADES",
     dataProducao: new Date()
   },
   etapa: { nome: "Transporte de teste", ordem: 1, categoria: "TRANSPORTE" },
-  quantidadeAtividade: Decimal128("10.00"),
+  quantidadeAtividade: NumberDecimal("10.00"),
   dadosAtividade: {
     tipo: "TRANSPORTE",
-    distanciaKm: Decimal128("10.00"),
-    cargaToneladas: Decimal128("1.00"),
+    distanciaKm: NumberDecimal("10.00"),
+    cargaToneladas: NumberDecimal("1.00"),
     combustivel: "DIESEL"
   },
   fatorAplicado: {
@@ -948,35 +948,44 @@ db.emissoes_carbono.insertOne({
     versao: fatorPermanente.versao,
     fonteReferencia: fatorPermanente.fonteReferencia
   },
-  quantidadeEmitidaKgCO2e: Decimal128("1.840"),
+  quantidadeEmitidaKgCO2e: NumberDecimal("1.2000"),
+  metodoCalculo: "quantidadeAtividade × fatorAplicado.valor",
   fonteEmissao: "Diesel",
   observacao: "Documento temporario para demonstracao de CRUD",
   calculadoPor: "admin@carbono.com",
   dataEmissao: new Date(),
   criadoEm: new Date(),
+  atualizadoEm: new Date(),
   schemaVersion: 1
 })
 
-db.emissoes_carbono.findOne({ codigoDemonstracao: "CRUD-TEMP-EMISSAO" })
+db.emissoes_carbono.findOne({ codigo: "CRUD-TEMP-EMISSAO" })
 
 db.emissoes_carbono.updateOne(
-  { codigoDemonstracao: "CRUD-TEMP-EMISSAO" },
+  { codigo: "CRUD-TEMP-EMISSAO" },
   {
     $set: {
       observacao: "Documento CRUD atualizado",
       revisadoEm: new Date(),
-      revisadoPor: "admin@carbono.com"
+      revisadoPor: "admin@carbono.com",
+      atualizadoEm: new Date()
     }
   }
 )
 
-db.emissoes_carbono.findOne({ codigoDemonstracao: "CRUD-TEMP-EMISSAO" })
-db.emissoes_carbono.deleteOne({ codigoDemonstracao: "CRUD-TEMP-EMISSAO" })
-db.emissoes_carbono.findOne({ codigoDemonstracao: "CRUD-TEMP-EMISSAO" })
+db.emissoes_carbono.findOne({ codigo: "CRUD-TEMP-EMISSAO" })
+db.emissoes_carbono.deleteOne({ codigo: "CRUD-TEMP-EMISSAO" })
+db.emissoes_carbono.findOne({ codigo: "CRUD-TEMP-EMISSAO" })
 db.emissoes_carbono.countDocuments()
 ```
 
 The emission update is included only to satisfy the academic CRUD demonstration. In a production ESG ledger, calculation inputs and results should normally be immutable; corrections should create a new version or reversal event with an audit trail.
+
+### 12.6 Phase 5 execution status
+
+Phase 5 was verified on 2026-09-01 against MongoDB 8.0.31. The executable `04-crud-demo.js` completed the full CRUD lifecycle for exactly the five domain collections and removed only the exact `CRUD-TEMP` records. Supplier audit fields and factor validity fields use the same canonical shapes as the seeded documents.
+
+The temporary emission resolved the permanent `EMP-001`, `PRO-001`, `FOR-001`, and `FE-TRANSPORTE-001` version 1 references. MongoDB Decimal128 arithmetic produced `1.2000 kgCO2e`, and the audit-only update left `quantidadeAtividade`, `quantidadeEmitidaKgCO2e`, and the applied-factor snapshot unchanged. Final counts matched the baseline at 10 companies, 10 products, 10 suppliers, 10 emission factors, and 15 emissions; every temporary-record absence assertion passed. Solution restore and build passed, with the existing EF Core Relational version warning, and all 8 tests passed. Required screenshot evidence remains pending and must be captured from actual execution before final submission.
 
 ## 13. Aggregation pipelines
 
