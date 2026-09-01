@@ -609,7 +609,6 @@ db.produtos.createIndex(
   { empresaId: 1, codigo: 1 },
   { unique: true, name: "ux_produtos_empresa_codigo" }
 )
-db.produtos.createIndex({ empresaId: 1, ativo: 1 }, { name: "ix_produtos_empresa_ativo" })
 
 db.fornecedores.createIndex({ codigo: 1 }, { unique: true, name: "ux_fornecedores_codigo" })
 db.fornecedores.createIndex({ cnpj: 1 }, { unique: true, name: "ux_fornecedores_cnpj" })
@@ -617,10 +616,6 @@ db.fornecedores.createIndex({ cnpj: 1 }, { unique: true, name: "ux_fornecedores_
 db.fatores_emissao.createIndex(
   { codigo: 1, versao: 1 },
   { unique: true, name: "ux_fatores_codigo_versao" }
-)
-db.fatores_emissao.createIndex(
-  { categoria: 1, escopo: 1, ativo: 1 },
-  { name: "ix_fatores_categoria_escopo_ativo" }
 )
 
 db.emissoes_carbono.createIndex(
@@ -637,9 +632,17 @@ db.emissoes_carbono.createIndex(
 )
 db.emissoes_carbono.createIndex({ fatorEmissaoId: 1 }, { name: "ix_emissoes_fator" })
 db.emissoes_carbono.createIndex({ "etapa.categoria": 1 }, { name: "ix_emissoes_etapa_categoria" })
+db.emissoes_carbono.createIndex(
+  { codigo: 1 },
+  {
+    unique: true,
+    name: "ux_emissoes_codigo_seed",
+    partialFilterExpression: { codigo: { $type: "string" } }
+  }
+)
 ```
 
-Indexes support known access patterns; they should be reviewed with `explain("executionStats")` once the final query shapes and dataset are available.
+Indexes support known access patterns and deterministic seed business keys. The partial emission-code index applies only to demonstration documents that contain a string `codigo`, so it does not prevent future application-created emissions that omit this seed key. Query indexes should be reviewed with `explain("executionStats")` once the final application query shapes are available.
 
 ## 10. Creation commands
 
@@ -749,6 +752,14 @@ Verify final counts:
 ```
 
 **Acceptance condition:** every count is at least `10` after the CRUD demonstration has removed its temporary documents.
+
+### 11.1 Phase 4 execution status
+
+Phase 4 was verified on 2026-09-01 against MongoDB 8.0.29. The seed created 10 companies, 10 products, 10 suppliers, 10 emission factors, and 15 emissions. Products resolve their company references, and every emission resolves its company, product, supplier, and factor; all orphan checks returned zero.
+
+The emission dataset includes `ENERGIA`, `MATERIA_PRIMA`, `RESIDUO`, and `TRANSPORTE` activity structures and represents `ESCOPO_1`, `ESCOPO_2`, and `ESCOPO_3`. All quantities, factor values, percentages, and calculated totals use BSON `Decimal128`. The script verifies activity-unit compatibility and reported zero differences between stored totals and `quantidadeAtividade × fatorAplicado.valor` across all 15 emissions.
+
+A consecutive execution matched all 55 seeded documents with zero modifications and zero upserts. The seed therefore remains deterministic without dropping the database or deleting persistent documents. Solution restore and build passed, with the existing EF Core Relational version warning, and all 8 tests passed. Required screenshot evidence remains pending and must be captured from actual execution before final submission.
 
 ## 12. CRUD commands
 
@@ -1373,9 +1384,9 @@ dotnet test Web.Fiap.Carbono.sln
 
 - [x] Exactly five MongoDB ESG collections exist.
 - [x] Validators and indexes are applied.
-- [ ] Each collection contains at least ten permanent documents.
+- [x] Each collection contains at least ten permanent documents.
 - [ ] CRUD is executed and evidenced for every collection.
-- [ ] At least three meaningful activity-document shapes are demonstrated.
+- [x] At least three meaningful activity-document shapes are demonstrated.
 - [ ] Emission calculations use decimal arithmetic and preserve factor snapshots.
 - [ ] Product, supplier, and company aggregations return correct results.
 - [ ] MongoDB integration tests pass.

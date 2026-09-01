@@ -486,18 +486,18 @@ Populate every collection with at least ten realistic and connected documents.
 
 ### Tasks
 
-- [ ] Create `database/mongodb/03-seed.js`.
-- [ ] Make the seed deterministic and safe to run on a clean database.
-- [ ] Insert at least 10 companies.
-- [ ] Insert at least 10 products referencing valid companies.
-- [ ] Insert at least 10 suppliers.
-- [ ] Insert at least 10 emission factors.
-- [ ] Insert at least 10 emissions referencing valid domain documents.
-- [ ] Include emission examples for transport, energy, raw materials, waste, or another meaningful activity type.
-- [ ] Include all three GHG scopes across the factor and emission data when reasonable.
-- [ ] Include different ESG attributes across suppliers and products.
-- [ ] Ensure every emission's stored total equals activity quantity multiplied by the applied factor.
-- [ ] Avoid random data that makes the analytics impossible to verify.
+- [x] Create `database/mongodb/03-seed.js`.
+- [x] Make the seed deterministic and safe to run on a clean database.
+- [x] Insert at least 10 companies.
+- [x] Insert at least 10 products referencing valid companies.
+- [x] Insert at least 10 suppliers.
+- [x] Insert at least 10 emission factors.
+- [x] Insert at least 10 emissions referencing valid domain documents.
+- [x] Include emission examples for transport, energy, raw materials, waste, or another meaningful activity type.
+- [x] Include all three GHG scopes across the factor and emission data when reasonable.
+- [x] Include different ESG attributes across suppliers and products.
+- [x] Ensure every emission's stored total equals activity quantity multiplied by the applied factor.
+- [x] Avoid random data that makes the analytics impossible to verify.
 
 Recommended minimum final counts:
 
@@ -542,10 +542,12 @@ Repeat the orphan check for companies, suppliers, and factors.
 
 ### Exit gate
 
-- [ ] Every collection contains at least ten persistent documents.
-- [ ] All references point to existing documents.
-- [ ] At least three distinct `dadosAtividade` structures are visible.
-- [ ] Seeded emission calculations have been manually verified.
+- [x] Every collection contains at least ten persistent documents.
+- [x] All references point to existing documents.
+- [x] At least three distinct `dadosAtividade` structures are visible.
+- [x] Seeded emission calculations have been manually verified.
+
+Verified on 2026-09-01 against MongoDB 8.0.29. The final counts were 10 companies, 10 products, 10 suppliers, 10 emission factors, and 15 emissions. Orphan checks returned zero for product-to-company and all four emission references. The dataset demonstrates `ENERGIA`, `MATERIA_PRIMA`, `RESIDUO`, and `TRANSPORTE`, covers all three GHG scopes, and produced zero calculation mismatches. A consecutive seed execution matched all 55 documents with zero modifications and zero upserts. Solution restore and build passed, with the existing EF Core Relational version warning, and all 8 tests passed.
 
 ## Phase 5 — Demonstrate CRUD in all five collections
 

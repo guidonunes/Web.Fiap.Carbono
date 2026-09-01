@@ -23,9 +23,19 @@ targetDb.empresas.createIndex(
   { unique: true, name: "ux_empresas_cnpj" }
 );
 
+targetDb.empresas.createIndex(
+  { codigo: 1 },
+  { unique: true, name: "ux_empresas_codigo" }
+);
+
 targetDb.fornecedores.createIndex(
   { cnpj: 1 },
   { unique: true, name: "ux_fornecedores_cnpj" }
+);
+
+targetDb.fornecedores.createIndex(
+  { codigo: 1 },
+  { unique: true, name: "ux_fornecedores_codigo" }
 );
 
 targetDb.produtos.createIndex(
@@ -61,6 +71,17 @@ targetDb.emissoes_carbono.createIndex(
 targetDb.emissoes_carbono.createIndex(
   { "etapa.categoria": 1 },
   { name: "ix_emissoes_etapa_categoria" }
+);
+
+targetDb.emissoes_carbono.createIndex(
+  { codigo: 1 },
+  {
+    unique: true,
+    name: "ux_emissoes_codigo_seed",
+    partialFilterExpression: {
+      codigo: { $type: "string" }
+    }
+  }
 );
 
 print("MongoDB indexes created or already present.");
