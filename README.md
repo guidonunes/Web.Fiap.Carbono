@@ -33,8 +33,8 @@ The API stores the result with the unit `kgCO2e`. It does not perform unit conve
 |---|---|
 | Runtime and language | .NET 8, C# |
 | Web framework | ASP.NET Core Web API |
-| Database | Oracle Database |
-| Data access | Entity Framework Core 8 with `Oracle.EntityFrameworkCore` |
+| Database | Oracle Database (active) and MongoDB 8 (migration target) |
+| Data access | Entity Framework Core 8 with `Oracle.EntityFrameworkCore`; `MongoDB.Driver` configured for the transition |
 | Schema management | EF Core migrations |
 | Object mapping | AutoMapper |
 | Authentication | JWT Bearer tokens signed with HMAC-SHA256 |
@@ -65,19 +65,23 @@ flowchart LR
 | `Services/` | Domain validation, business rules, and emission calculation |
 | `Data/Repository/` | EF Core queries and persistence |
 | `Data/Contexts/` | Oracle table, relationship, index, and constraint mapping |
+| `Data/MongoDb/` | MongoDB database and five-collection provider used by the migration |
 | `Models/` | Database-backed domain entities |
 | `ViewModel/` | API input and output models |
 | `Mapping/` | Domain-to-response transformations and aggregate calculations |
 | `Config/Security/` | JWT settings |
+| `Config/MongoDb/` | MongoDB connection and database-name settings |
 | `Middlewares/` | Global exception-to-HTTP-response mapping |
 | `Exceptions/` | Domain-specific exception types |
 | `Migrations/` | Versioned Oracle schema |
 
 Dependencies are registered with ASP.NET Core's built-in dependency injection container in [`Program.cs`](Web.Fiap.Carbono/Program.cs).
 
+The application is currently in a transitional state. Oracle repositories remain the active persistence implementation, while one reusable MongoDB client, database, and five-collection context are registered for the later migration phases. MongoDB is not yet used by controllers, services, or repositories.
+
 ## Database
 
-The production data provider is **Oracle Database**, accessed through Entity Framework Core and Oracle's EF Core provider. The connection is configured under `ConnectionStrings:OracleConnection`.
+The active API data provider is **Oracle Database**, accessed through Entity Framework Core and Oracle's EF Core provider. The connection is configured under `ConnectionStrings:OracleConnection`. MongoDB is configured under `MongoDb`, but does not replace Oracle persistence during Phase 6.
 
 The schema is created by the `CreateCarbonEmissionSchema` EF Core migration. All application tables use the `EC_` prefix:
 
@@ -180,9 +184,10 @@ A successful calculation returns `201 Created`, including the created emission a
 
 - .NET 8 SDK
 - Access to an Oracle Database instance
+- MongoDB 8, either locally or through the provided Compose service
 - `dotnet-ef` 8.x if you need to apply or create migrations
 
-### 1. Configure Oracle and JWT
+### 1. Configure Oracle, JWT, and MongoDB
 
 Create `Web.Fiap.Carbono/appsettings.Development.json`. This file is ignored by Git, so real credentials and signing keys are not committed.
 
@@ -196,13 +201,24 @@ Create `Web.Fiap.Carbono/appsettings.Development.json`. This file is ignored by 
     "Issuer": "Web.Fiap.Carbono",
     "Audience": "Web.Fiap.Carbono.Users",
     "ExpirationMinutes": 60
+  },
+  "MongoDb": {
+    "ConnectionString": "mongodb://localhost:27017",
+    "DatabaseName": "fiap_carbono"
   }
 }
 ```
 
-ASP.NET Core configuration can also be supplied with environment variables such as `ConnectionStrings__OracleConnection` and `Jwt__SecretKey`.
+ASP.NET Core configuration can also be supplied with environment variables such as `ConnectionStrings__OracleConnection`, `Jwt__SecretKey`, `MongoDb__ConnectionString`, and `MongoDb__DatabaseName`. Safe MongoDB examples are provided in [`.env.example`](.env.example); do not commit credentials.
 
-### 2. Restore and build
+### 2. Start MongoDB
+
+```bash
+docker compose up -d mongodb
+docker compose ps
+```
+
+### 3. Restore and build
 
 From the repository root:
 
@@ -211,7 +227,7 @@ dotnet restore Web.Fiap.Carbono.sln
 dotnet build Web.Fiap.Carbono.sln
 ```
 
-### 3. Apply the schema
+### 4. Apply the Oracle schema
 
 ```bash
 dotnet ef database update \
@@ -221,7 +237,7 @@ dotnet ef database update \
 
 The migration creates the schema only; it does not seed production data.
 
-### 4. Run the API
+### 5. Run the API
 
 ```bash
 dotnet run --project Web.Fiap.Carbono/Web.Fiap.Carbono.csproj
@@ -243,9 +259,9 @@ Run all tests from the repository root:
 dotnet test Web.Fiap.Carbono.sln
 ```
 
-The tests start the real ASP.NET Core application through `WebApplicationFactory`, replace Oracle with a uniquely named EF Core InMemory database, and seed a controlled company/product/supplier/emission graph. They cover the public analytics endpoints, valid emission reads, invalid pagination, and rejection of unauthenticated emission creation.
+The tests start the real ASP.NET Core application through `WebApplicationFactory`, replace Oracle with a uniquely named EF Core InMemory database, and seed a controlled company/product/supplier/emission graph. They cover the public analytics endpoints, valid emission reads, invalid pagination, and rejection of unauthenticated emission creation. Phase 6 tests also verify MongoDB settings binding, singleton reuse, startup validation, and the exact five collection names without connecting to or mutating a developer database.
 
-The InMemory provider is useful for deterministic API tests but does not validate Oracle-specific SQL, types, indexes, or constraints. Oracle integration still needs to be verified against a real Oracle instance.
+The InMemory provider is useful for deterministic API tests but does not validate Oracle- or MongoDB-specific persistence behavior, types, indexes, or constraints. The Phase 6 configuration tests are not substitutes for the disposable MongoDB integration tests required in a later phase.
 
 ## Docker
 

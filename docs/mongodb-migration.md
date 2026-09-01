@@ -1150,6 +1150,12 @@ MongoDb__DatabaseName
 
 Create one application-wide `MongoClient`. Expose typed collections through `MongoDbContext`, and use dedicated repositories for MongoDB filters, updates, paging, and aggregation pipelines.
 
+#### Phase 6 implementation status
+
+Phase 6 was verified on 2026-09-01 using `MongoDB.Driver` 3.11.1 and the local MongoDB 8 environment. The application binds `MongoDbSettings` through the options pattern, validates the required connection string and database name at startup, and registers one singleton `IMongoClient`, `IMongoDatabase`, and `MongoDbContext`. The context exposes only `empresas`, `produtos`, `fornecedores`, `fatores_emissao`, and `emissoes_carbono`; its temporary `BsonDocument` handles avoid starting the Phase 7 domain-model work early.
+
+The API started successfully in Development, Swagger returned HTTP 200, MongoDB returned a successful read-only ping, and an Oracle-backed emissions GET returned HTTP 200. Startup output did not expose MongoDB configuration values or credentials. Oracle remains the active persistence provider, while MongoDB services are available through dependency injection for later phases. Five focused configuration tests and the eight existing API tests passed. The solution build introduced no new warnings; the accepted EF Core Relational dependency-version warning remains.
+
 Target documents:
 
 ```text

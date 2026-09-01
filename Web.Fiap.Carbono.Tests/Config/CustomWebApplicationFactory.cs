@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Web.Fiap.Carbono.Data.Contexts;
@@ -12,6 +13,25 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.ConfigureAppConfiguration(
+            (_, configurationBuilder) =>
+            {
+                var mongoDbConfiguration =
+                    new Dictionary<string, string?>
+                    {
+                        ["MongoDb:ConnectionString"] =
+                            "mongodb://localhost:27017",
+
+                        ["MongoDb:DatabaseName"] =
+                            "fiap_carbono_test"
+                    };
+
+                configurationBuilder.AddInMemoryCollection(
+                    mongoDbConfiguration
+                );
+            }
+        );
+
         builder.ConfigureServices(services =>
         {
             var databaseName = $"CarbonoTestDb_{Guid.NewGuid()}";
@@ -36,12 +56,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
     private static void SeedDatabase(DatabaseContext context)
     {
-        
         if (context.EmissoesCarbono.Any())
         {
             return;
         }
-        
+
         var empresa = new EmpresaModel
         {
             IdEmpresa = 1,

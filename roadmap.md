@@ -615,16 +615,16 @@ Configure the official MongoDB driver while keeping Oracle available temporarily
 
 ### Tasks
 
-- [ ] Add the `MongoDB.Driver` package to the API project.
-- [ ] Add `MongoDbSettings` with connection-string and database-name properties.
-- [ ] Add MongoDB configuration to the development configuration file without committing secrets.
-- [ ] Add environment-variable examples to the README or `.env.example`.
-- [ ] Create a reusable `MongoClient` registration in `Program.cs`.
-- [ ] Register `IMongoDatabase` once through dependency injection.
-- [ ] Create `MongoDbContext` or typed collection-provider abstractions.
-- [ ] Fail application startup with a clear message when required MongoDB settings are missing.
-- [ ] Ensure configuration values and credentials are not printed in logs.
-- [ ] Keep Oracle configuration working during the transition.
+- [x] Add the `MongoDB.Driver` package to the API project.
+- [x] Add `MongoDbSettings` with connection-string and database-name properties.
+- [x] Add MongoDB configuration to the development configuration file without committing secrets.
+- [x] Add environment-variable examples to the README or `.env.example`.
+- [x] Create a reusable `MongoClient` registration in `Program.cs`.
+- [x] Register `IMongoDatabase` once through dependency injection.
+- [x] Create `MongoDbContext` or typed collection-provider abstractions.
+- [x] Fail application startup with a clear message when required MongoDB settings are missing.
+- [x] Ensure configuration values and credentials are not printed in logs.
+- [x] Keep Oracle configuration working during the transition.
 
 Package command:
 
@@ -642,10 +642,12 @@ dotnet run --project Web.Fiap.Carbono/Web.Fiap.Carbono.csproj
 
 ### Exit gate
 
-- [ ] The application starts with MongoDB configured.
-- [ ] Dependency injection can resolve the database and all five typed collections.
-- [ ] No credentials appear in console output.
-- [ ] The solution still builds cleanly.
+- [x] The application starts with MongoDB configured.
+- [x] Dependency injection can resolve the database and all five typed collections.
+- [x] No credentials appear in console output.
+- [x] The solution still builds cleanly.
+
+Verified on 2026-09-01 with `MongoDB.Driver` 3.11.1 and the local MongoDB 8 environment. The API started in Development, Swagger returned HTTP 200, a read-only Oracle-backed emissions request returned HTTP 200, and MongoDB returned a successful ping with exactly the five approved collection names. Dependency-injection tests resolve one shared client, database, and context, verify the lowercase persisted collection names, and prove that missing settings stop startup with fixed messages that do not echo configuration values. The Phase 6 context intentionally uses `BsonDocument`; Phase 7 replaces these transitional handles with the five domain document types. All 13 tests passed. The build succeeded with no new warnings; the accepted pre-existing EF Core Relational version warning remains.
 
 ## Phase 7 — Implement BSON document classes
 
