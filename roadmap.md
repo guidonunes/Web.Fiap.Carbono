@@ -176,9 +176,11 @@ fatorAplicado
 quantidadeEmitidaKgCO2e
 fonteEmissao
 observacao
+metodoCalculo
 calculadoPor
 dataEmissao
 criadoEm
+atualizadoEm
 schemaVersion
 ```
 
@@ -419,20 +421,20 @@ Create the five collections explicitly and enforce only the stable domain invari
 
 ### Tasks
 
-- [ ] Create `database/mongodb/01-create-collections.js`.
-- [ ] Add explicit `db.createCollection(...)` commands for all five collections.
-- [ ] Add JSON Schema validation to each collection.
-- [ ] Require stable identifiers, calculation values, and timestamps.
-- [ ] Allow optional and activity-specific fields where flexibility is valuable.
-- [ ] Validate nonnegative activity and emission values.
-- [ ] Restrict emission scopes to `ESCOPO_1`, `ESCOPO_2`, or `ESCOPO_3`.
-- [ ] Create `database/mongodb/02-create-indexes.js`.
-- [ ] Add a unique CNPJ index for companies.
-- [ ] Add a unique CNPJ index for suppliers.
-- [ ] Add a unique compound index for `{ empresaId, codigo }` on products.
-- [ ] Add a unique compound index for `{ codigo, versao }` on emission factors.
-- [ ] Add query indexes for emissions by company, product, supplier, factor, date, and stage category.
-- [ ] Make both scripts safe to rerun or clearly document that they initialize an empty database.
+- [x] Create `database/mongodb/01-create-collections.js`.
+- [x] Add explicit `db.createCollection(...)` commands for all five collections.
+- [x] Add JSON Schema validation to each collection.
+- [x] Require stable identifiers, calculation values, and timestamps.
+- [x] Allow optional and activity-specific fields where flexibility is valuable.
+- [x] Validate nonnegative activity and emission values.
+- [x] Restrict emission scopes to `ESCOPO_1`, `ESCOPO_2`, or `ESCOPO_3`.
+- [x] Create `database/mongodb/02-create-indexes.js`.
+- [x] Add a unique CNPJ index for companies.
+- [x] Add a unique CNPJ index for suppliers.
+- [x] Add a unique compound index for `{ empresaId, codigo }` on products.
+- [x] Add a unique compound index for `{ codigo, versao }` on emission factors.
+- [x] Add query indexes for emissions by company, product, supplier, factor, date, and stage category.
+- [x] Make both scripts safe to rerun or clearly document that they initialize an empty database.
 
 Recommended emission indexes:
 
@@ -469,10 +471,12 @@ db.emissoes_carbono.getIndexes()
 
 ### Exit gate
 
-- [ ] Exactly five ESG collections exist.
-- [ ] Validators accept valid documents and reject an intentionally invalid document.
-- [ ] Required unique and query indexes exist.
-- [ ] No collection was created merely as a relational join table.
+- [x] Exactly five ESG collections exist.
+- [x] Validators accept valid documents and reject an intentionally invalid document.
+- [x] Required unique and query indexes exist.
+- [x] No collection was created merely as a relational join table.
+
+Verified on 2026-08-31 against the local MongoDB 8.0.29 environment. Both scripts completed successfully on consecutive runs. The database contained exactly the five required collections with strict error-level validators; valid temporary documents were accepted and representative invalid documents were rejected in every collection. All temporary validation documents were removed, leaving the collections empty for Phase 4. The required unique and query indexes were inspected successfully, and no join collection exists.
 
 ## Phase 4 — Seed a coherent ESG dataset
 

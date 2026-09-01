@@ -86,7 +86,7 @@ This structure provides referential integrity, but reading a complete emission c
 
 ### 4.1 Flexible activity data
 
-Transport, energy, raw-material, waste, and water activities do not share every measurement field. MongoDB allows the stable emission fields to remain consistent while a nested `dadosAtividade` document varies by activity type.
+Transport, energy, raw-material, and waste activities do not share every measurement field. MongoDB allows the stable emission fields to remain consistent while a nested `dadosAtividade` document varies by activity type.
 
 This flexibility is controlled rather than arbitrary: every variant represents a real ESG measurement context.
 
@@ -348,9 +348,11 @@ Example:
   quantidadeEmitidaKgCO2e: Decimal128("77.280"),
   fonteEmissao: "Diesel",
   observacao: "Entrega ao centro de distribuicao",
+  metodoCalculo: "QuantidadeAtividade * ValorFatorCo2e",
   calculadoPor: "analista@carbono.com",
   dataEmissao: ISODate("2026-08-10T14:30:00Z"),
   criadoEm: ISODate("2026-08-10T14:31:00Z"),
+  atualizadoEm: ISODate("2026-08-10T14:31:00Z"),
   schemaVersion: 1
 }
 ```
@@ -453,8 +455,9 @@ db.createCollection("empresas", {
   validator: {
     $jsonSchema: {
       bsonType: "object",
-      required: ["codigo", "razaoSocial", "cnpj", "ativa", "criadoEm", "schemaVersion"],
+      required: ["_id", "codigo", "razaoSocial", "cnpj", "ativa", "criadoEm", "atualizadoEm", "schemaVersion"],
       properties: {
+        _id: { bsonType: "objectId" },
         codigo: { bsonType: "string" },
         razaoSocial: { bsonType: "string" },
         cnpj: { bsonType: "string" },
@@ -475,8 +478,9 @@ db.createCollection("produtos", {
   validator: {
     $jsonSchema: {
       bsonType: "object",
-      required: ["empresaId", "codigo", "nome", "unidadeFuncional", "ativo", "criadoEm", "schemaVersion"],
+      required: ["_id", "empresaId", "codigo", "nome", "unidadeFuncional", "ativo", "criadoEm", "atualizadoEm", "schemaVersion"],
       properties: {
+        _id: { bsonType: "objectId" },
         empresaId: { bsonType: "objectId" },
         codigo: { bsonType: "string" },
         nome: { bsonType: "string" },
@@ -497,8 +501,9 @@ db.createCollection("fornecedores", {
   validator: {
     $jsonSchema: {
       bsonType: "object",
-      required: ["codigo", "razaoSocial", "cnpj", "ativo", "criadoEm", "schemaVersion"],
+      required: ["_id", "codigo", "razaoSocial", "cnpj", "ativo", "criadoEm", "atualizadoEm", "schemaVersion"],
       properties: {
+        _id: { bsonType: "objectId" },
         codigo: { bsonType: "string" },
         razaoSocial: { bsonType: "string" },
         cnpj: { bsonType: "string" },
@@ -521,8 +526,9 @@ db.createCollection("fatores_emissao", {
   validator: {
     $jsonSchema: {
       bsonType: "object",
-      required: ["codigo", "nome", "valor", "unidadeBase", "escopo", "versao", "ativo", "criadoEm", "schemaVersion"],
+      required: ["_id", "codigo", "nome", "valor", "unidadeBase", "escopo", "versao", "ativo", "criadoEm", "atualizadoEm", "schemaVersion"],
       properties: {
+        _id: { bsonType: "objectId" },
         codigo: { bsonType: "string" },
         nome: { bsonType: "string" },
         valor: { bsonType: "decimal" },
@@ -547,6 +553,7 @@ db.createCollection("emissoes_carbono", {
     $jsonSchema: {
       bsonType: "object",
       required: [
+        "_id",
         "empresaId",
         "produtoId",
         "fornecedorId",
@@ -557,12 +564,15 @@ db.createCollection("emissoes_carbono", {
         "dadosAtividade",
         "fatorAplicado",
         "quantidadeEmitidaKgCO2e",
+        "metodoCalculo",
         "calculadoPor",
         "dataEmissao",
         "criadoEm",
+        "atualizadoEm",
         "schemaVersion"
       ],
       properties: {
+        _id: { bsonType: "objectId" },
         empresaId: { bsonType: "objectId" },
         produtoId: { bsonType: "objectId" },
         fornecedorId: { bsonType: "objectId" },
@@ -573,9 +583,11 @@ db.createCollection("emissoes_carbono", {
         dadosAtividade: { bsonType: "object" },
         fatorAplicado: { bsonType: "object" },
         quantidadeEmitidaKgCO2e: { bsonType: "decimal" },
+        metodoCalculo: { bsonType: "string" },
         calculadoPor: { bsonType: "string" },
         dataEmissao: { bsonType: "date" },
         criadoEm: { bsonType: "date" },
+        atualizadoEm: { bsonType: "date" },
         schemaVersion: { bsonType: "int", minimum: 1 }
       }
     }
@@ -674,6 +686,8 @@ fatores_emissao
 fornecedores
 produtos
 ```
+
+Phase 3 was verified on 2026-08-31 against MongoDB 8.0.29. Both scripts completed successfully twice, proving the update-in-place validator flow and named index creation are safe to rerun. The database contained exactly the five expected collections, all with `strict`/`error` validation. Valid temporary documents were accepted and representative invalid documents were rejected in every collection; the temporary records were then removed. The required unique and query indexes were inspected successfully.
 
 **Execution evidence:** add the actual terminal or Compass screenshot to `docs/images/mongodb/01-collections-created.png` and the index screenshot to `docs/images/mongodb/02-indexes.png`.
 
@@ -1357,8 +1371,8 @@ dotnet test Web.Fiap.Carbono.sln
 
 ## Appendix B — Completion checklist
 
-- [ ] Exactly five MongoDB ESG collections exist.
-- [ ] Validators and indexes are applied.
+- [x] Exactly five MongoDB ESG collections exist.
+- [x] Validators and indexes are applied.
 - [ ] Each collection contains at least ten permanent documents.
 - [ ] CRUD is executed and evidenced for every collection.
 - [ ] At least three meaningful activity-document shapes are demonstrated.
