@@ -8,6 +8,8 @@ using Web.Fiap.Carbono.Config.MongoDb;
 using Web.Fiap.Carbono.Config.Security;
 using Web.Fiap.Carbono.Data.Contexts;
 using Web.Fiap.Carbono.Data.MongoDb;
+using Web.Fiap.Carbono.Data.MongoDb.Repositories;
+using Web.Fiap.Carbono.Data.MongoDb.Repositories.Interfaces;
 using Web.Fiap.Carbono.Data.Repository;
 using Web.Fiap.Carbono.Data.Repository.Implementations;
 using Web.Fiap.Carbono.Data.Repository.Interfaces;
@@ -77,6 +79,27 @@ builder.Services.AddSingleton<IMongoDatabase>(
 );
 
 builder.Services.AddSingleton<MongoDbContext>();
+
+builder.Services.AddScoped<
+    IMongoEmpresaRepository,
+    MongoEmpresaRepository
+>();
+builder.Services.AddScoped<
+    IMongoProdutoRepository,
+    MongoProdutoRepository
+>();
+builder.Services.AddScoped<
+    IMongoFornecedorRepository,
+    MongoFornecedorRepository
+>();
+builder.Services.AddScoped<
+    IMongoFatorEmissaoRepository,
+    MongoFatorEmissaoRepository
+>();
+builder.Services.AddScoped<
+    IMongoEmissaoCarbonoRepository,
+    MongoEmissaoCarbonoRepository
+>();
 
 #endregion
 

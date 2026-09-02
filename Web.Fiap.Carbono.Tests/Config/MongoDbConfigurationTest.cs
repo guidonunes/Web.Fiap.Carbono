@@ -5,6 +5,8 @@ using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Web.Fiap.Carbono.Config.MongoDb;
 using Web.Fiap.Carbono.Data.MongoDb;
+using Web.Fiap.Carbono.Data.MongoDb.Repositories;
+using Web.Fiap.Carbono.Data.MongoDb.Repositories.Interfaces;
 
 namespace Web.Fiap.Carbono.Tests.Config;
 
@@ -78,6 +80,29 @@ public sealed class MongoDbConfigurationTest(
             collectionNames
         );
         Assert.Equal(5, collectionNames.Distinct().Count());
+    }
+
+    [Fact]
+    public void ShouldResolveAllFiveMongoDbRepositories()
+    {
+        using var scope = factory.Services.CreateScope();
+        var services = scope.ServiceProvider;
+
+        Assert.IsType<MongoEmpresaRepository>(
+            services.GetRequiredService<IMongoEmpresaRepository>()
+        );
+        Assert.IsType<MongoProdutoRepository>(
+            services.GetRequiredService<IMongoProdutoRepository>()
+        );
+        Assert.IsType<MongoFornecedorRepository>(
+            services.GetRequiredService<IMongoFornecedorRepository>()
+        );
+        Assert.IsType<MongoFatorEmissaoRepository>(
+            services.GetRequiredService<IMongoFatorEmissaoRepository>()
+        );
+        Assert.IsType<MongoEmissaoCarbonoRepository>(
+            services.GetRequiredService<IMongoEmissaoCarbonoRepository>()
+        );
     }
 
     [Theory]

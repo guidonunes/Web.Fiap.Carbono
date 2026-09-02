@@ -691,19 +691,19 @@ Replace EF Core persistence behavior with repository methods based on `IMongoCol
 
 ### Tasks
 
-- [ ] Implement `EmpresaRepository`.
-- [ ] Implement `ProdutoRepository`.
-- [ ] Implement `FornecedorRepository`.
-- [ ] Implement `FatorEmissaoRepository`.
-- [ ] Implement `EmissaoCarbonoRepository`.
-- [ ] Implement asynchronous create, get-by-ID, list, update, and delete methods for every repository.
-- [ ] Parse and validate `ObjectId` values before querying.
-- [ ] Implement pagination with `Skip`, `Limit`, and a stable sort.
-- [ ] Return domain-appropriate not-found results rather than silently accepting missing documents.
-- [ ] Catch duplicate-key errors and translate them into the application's domain error format.
-- [ ] Use projections for queries that do not need complete documents.
-- [ ] Add cancellation-token support to driver calls.
-- [ ] Avoid a generic repository that hides filters, projections, and aggregation pipelines.
+- [x] Implement `EmpresaRepository`.
+- [x] Implement `ProdutoRepository`.
+- [x] Implement `FornecedorRepository`.
+- [x] Implement `FatorEmissaoRepository`.
+- [x] Implement `EmissaoCarbonoRepository`.
+- [x] Implement asynchronous create, get-by-ID, list, update, and delete methods for every repository.
+- [x] Parse and validate `ObjectId` values before querying.
+- [x] Implement pagination with `Skip`, `Limit`, and a stable sort.
+- [x] Return domain-appropriate not-found results rather than silently accepting missing documents.
+- [x] Catch duplicate-key errors and translate them into the application's domain error format.
+- [x] Use projections for queries that do not need complete documents.
+- [x] Add cancellation-token support to driver calls.
+- [x] Avoid a generic repository that hides filters, projections, and aggregation pipelines.
 
 Expected common operations:
 
@@ -727,16 +727,18 @@ GetCompanyDashboardAsync
 
 ### Verification
 
-- [ ] Each repository can create, read, update, and delete an isolated test document.
-- [ ] Invalid IDs produce a controlled `400` or `404`, according to the established API convention.
-- [ ] Duplicate CNPJ and compound-key violations produce controlled errors.
-- [ ] Pagination remains one-based and limits `pageSize` to 1–50.
+- [x] Each repository can create, read, update, and delete an isolated test document.
+- [x] Invalid IDs produce a controlled `400` or `404`, according to the established API convention.
+- [x] Duplicate CNPJ and compound-key violations produce controlled errors.
+- [x] Pagination remains one-based and limits `pageSize` to 1–50.
 
 ### Exit gate
 
-- [ ] All five repositories are registered through dependency injection.
-- [ ] CRUD repository tests pass against a real disposable MongoDB instance.
-- [ ] No new code depends on EF Core for MongoDB operations.
+- [x] All five repositories are registered through dependency injection.
+- [x] CRUD repository tests pass against a real disposable MongoDB instance.
+- [x] No new code depends on EF Core for MongoDB operations.
+
+Verified on 2026-09-01 with a disposable `mongo:8.0.29-noble` Testcontainers fixture bound to loopback and removed automatically after the run. Repository integration coverage exercises CRUD for all five collections, malformed `ObjectId` validation, unique CNPJ and compound-key conflicts, one-based stable pagination with the 1–50 page-size limit, decimal-safe product footprint and dashboard totals, and deterministic supplier ranking with display-data resolution. Solution restore and build succeeded with zero warnings, and all 25 tests passed.
 
 ## Phase 9 — Add CRUD services and API endpoints
 
