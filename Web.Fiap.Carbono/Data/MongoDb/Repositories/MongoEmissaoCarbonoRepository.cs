@@ -151,6 +151,82 @@ public sealed class MongoEmissaoCarbonoRepository
         return count == 1;
     }
 
+    public Task<bool> ExistsByEmpresaIdAsync(
+        string empresaId,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var objectId = MongoRepositoryRules.ParseObjectId(
+            empresaId,
+            nameof(empresaId)
+        );
+
+        return ExistsAsync(
+            Builders<EmissaoCarbonoDocument>.Filter.Eq(
+                emissao => emissao.EmpresaId,
+                objectId
+            ),
+            cancellationToken
+        );
+    }
+
+    public Task<bool> ExistsByProdutoIdAsync(
+        string produtoId,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var objectId = MongoRepositoryRules.ParseObjectId(
+            produtoId,
+            nameof(produtoId)
+        );
+
+        return ExistsAsync(
+            Builders<EmissaoCarbonoDocument>.Filter.Eq(
+                emissao => emissao.ProdutoId,
+                objectId
+            ),
+            cancellationToken
+        );
+    }
+
+    public Task<bool> ExistsByFornecedorIdAsync(
+        string fornecedorId,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var objectId = MongoRepositoryRules.ParseObjectId(
+            fornecedorId,
+            nameof(fornecedorId)
+        );
+
+        return ExistsAsync(
+            Builders<EmissaoCarbonoDocument>.Filter.Eq(
+                emissao => emissao.FornecedorId,
+                objectId
+            ),
+            cancellationToken
+        );
+    }
+
+    public Task<bool> ExistsByFatorEmissaoIdAsync(
+        string fatorEmissaoId,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var objectId = MongoRepositoryRules.ParseObjectId(
+            fatorEmissaoId,
+            nameof(fatorEmissaoId)
+        );
+
+        return ExistsAsync(
+            Builders<EmissaoCarbonoDocument>.Filter.Eq(
+                emissao => emissao.FatorEmissaoId,
+                objectId
+            ),
+            cancellationToken
+        );
+    }
+
     public async Task<MongoPagedResult<EmissaoCarbonoDocument>>
         GetPaginatedAsync(
             int pageNumber,
@@ -749,6 +825,20 @@ public sealed class MongoEmissaoCarbonoRepository
             .FirstOrDefaultAsync(cancellationToken);
 
         return result;
+    }
+
+    private async Task<bool> ExistsAsync(
+        FilterDefinition<EmissaoCarbonoDocument> filter,
+        CancellationToken cancellationToken
+    )
+    {
+        var count = await _emissoes.CountDocumentsAsync(
+            filter,
+            new CountOptions { Limit = 1 },
+            cancellationToken
+        );
+
+        return count == 1;
     }
 
     private static SortDefinition<EmissaoCarbonoDocument>

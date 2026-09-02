@@ -748,19 +748,19 @@ Expose complete CRUD operations for the five collections while preserving the ex
 
 ### Tasks
 
-- [ ] Add service methods containing domain validation and business rules.
-- [ ] Add CRUD controllers for companies.
-- [ ] Add CRUD controllers for products.
-- [ ] Add CRUD controllers for suppliers.
-- [ ] Add CRUD controllers for emission factors.
-- [ ] Extend the emission controller with update and delete operations if they are included in the API demonstration.
-- [ ] Keep controllers responsible for HTTP concerns only.
-- [ ] Validate parent references when creating products and emissions.
-- [ ] Prevent creating emissions with inactive or out-of-validity factors.
-- [ ] Apply `ADMIN` or `ANALISTA_ESG` authorization consistently.
-- [ ] Restrict destructive operations to `ADMIN`.
-- [ ] Preserve the global JSON error format.
-- [ ] Add Swagger descriptions and response types.
+- [x] Add service methods containing domain validation and business rules.
+- [x] Add CRUD controllers for companies.
+- [x] Add CRUD controllers for products.
+- [x] Add CRUD controllers for suppliers.
+- [x] Add CRUD controllers for emission factors.
+- [x] Extend the emission controller with update and delete operations if they are included in the API demonstration. They are not included in the Phase 9 REST demonstration; emission mutations remain service-only and protected as `CRUD-TEMP` operations until the emission API is migrated.
+- [x] Keep controllers responsible for HTTP concerns only.
+- [ ] Validate parent references when creating products and emissions. Product-company validation is implemented; emission creation remains pending in Phase 10.
+- [ ] Prevent creating emissions with inactive or out-of-validity factors. This remains pending with the Phase 10 calculation workflow.
+- [x] Apply `ADMIN` or `ANALISTA_ESG` authorization consistently.
+- [x] Restrict destructive operations to `ADMIN`.
+- [x] Preserve the global JSON error format.
+- [x] Add Swagger descriptions and response types.
 
 Suggested endpoints:
 
@@ -797,9 +797,13 @@ For the academic CRUD demonstration, hard-delete isolated `CRUD-TEMP` documents.
 ### Exit gate
 
 - [ ] CRUD works through both `mongosh` and the REST API.
-- [ ] Reference validation and authorization are enforced.
-- [ ] Swagger documents the new endpoints.
-- [ ] API errors follow the existing response contract.
+- [x] Reference validation and authorization are enforced for the Phase 9 REST resources.
+- [x] Swagger documents the new endpoints.
+- [x] API errors follow the existing response contract.
+
+Verified on 2026-09-02 with a disposable `mongo:8.0.29-noble` integration fixture. REST CRUD passed for `empresas`, `produtos`, `fornecedores`, and `fatores_emissao`; tests also verified public reads, JWT role enforcement, `ADMIN`-only destructive operations and factor changes, missing product-company references, referenced-record protection, duplicate-key conflicts, malformed `ObjectId` handling, flexible-field preservation, the global JSON error contract, and Swagger descriptions/security metadata. Solution restore succeeded with two `NU1900` vulnerability-audit warnings because `api.nuget.org` access was denied in the execution environment, the solution build succeeded with zero warnings, and all 29 tests passed.
+
+Phase 9 remains visibly incomplete because emission creation still belongs to Phase 10. Parent-reference and active/valid-factor checks cannot be claimed for the REST emission workflow until that workflow exists, and the first exit-gate item remains unchecked until emission CRUD is available through the migrated REST API. No Phase 10 calculation behavior was implemented as part of this review.
 
 ## Phase 10 — Migrate the emission-calculation workflow
 

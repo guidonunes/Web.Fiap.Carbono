@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
 using Web.Fiap.Carbono.Config.MongoDb;
 using Web.Fiap.Carbono.Config.Security;
+using Web.Fiap.Carbono.Config.Swagger;
 using Web.Fiap.Carbono.Data.Contexts;
 using Web.Fiap.Carbono.Data.MongoDb;
 using Web.Fiap.Carbono.Data.MongoDb.Repositories;
@@ -17,6 +19,8 @@ using Web.Fiap.Carbono.Mapping;
 using Web.Fiap.Carbono.Middlewares;
 using Web.Fiap.Carbono.Services.Implementations;
 using Web.Fiap.Carbono.Services.Interfaces;
+using Web.Fiap.Carbono.Services.MongoDb;
+using Web.Fiap.Carbono.Services.MongoDb.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -179,7 +183,49 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    var xmlDocumentation = Path.Combine(
+        AppContext.BaseDirectory,
+        $"{typeof(Program).Assembly.GetName().Name}.xml"
+    );
+
+    options.IncludeXmlComments(xmlDocumentation);
+    options.AddSecurityDefinition(
+        "Bearer",
+        new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Description =
+                "Informe o JWT no formato: Bearer {token}.",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT"
+        }
+    );
+    options.OperationFilter<AuthorizationOperationFilter>();
+});
+
+builder.Services.AddScoped<
+    IMongoEmpresaService,
+    MongoEmpresaService>();
+
+builder.Services.AddScoped<
+    IMongoProdutoService,
+    MongoProdutoService>();
+
+builder.Services.AddScoped<
+    IMongoFornecedorService,
+    MongoFornecedorService>();
+
+builder.Services.AddScoped<
+    IMongoFatorEmissaoService,
+    MongoFatorEmissaoService>();
+
+builder.Services.AddScoped<
+    IMongoEmissaoCarbonoService,
+    MongoEmissaoCarbonoService>();
 
 var app = builder.Build();
 
@@ -194,6 +240,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

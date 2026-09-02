@@ -15,9 +15,10 @@ This repository contains a backend API only; it does not include a web or mobile
 - Rank suppliers using the emissions associated with the stages they operate.
 - Produce a company-level ESG summary with totals, counts, monthly emissions, average emissions per product, and the highest-emitting product and supplier.
 - Validate request data, IDs, pagination, active emission factors, and database constraints.
+- Expose MongoDB-backed CRUD endpoints for companies, products, suppliers, and emission factors during the migration transition.
 - Return consistent JSON errors through global exception handling.
 - Expose Swagger/OpenAPI documentation in the Development environment.
-- Run integration-style API tests against an isolated EF Core InMemory database.
+- Run API tests against isolated EF Core InMemory and disposable MongoDB databases.
 
 The emission calculation is:
 
@@ -51,10 +52,12 @@ The code uses a layered controller-service-repository architecture. The classes 
 ```mermaid
 flowchart LR
     Client[HTTP client] --> Controller[Controllers]
-    Controller --> Service[Services<br/>validation and business rules]
-    Service --> Repository[Repositories<br/>queries and persistence]
-    Repository --> EF[EF Core DatabaseContext]
-    EF --> Oracle[(Oracle Database)]
+    Controller --> OracleService[Oracle services]
+    OracleService --> OracleRepository[EF Core repositories]
+    OracleRepository --> Oracle[(Oracle Database)]
+    Controller --> MongoService[MongoDB CRUD services]
+    MongoService --> MongoRepository[MongoDB repositories]
+    MongoRepository --> Mongo[(MongoDB)]
     Controller --> Mapper[AutoMapper]
     Mapper --> DTO[ViewModels / DTOs]
 ```
@@ -67,6 +70,8 @@ flowchart LR
 | `Data/Contexts/` | Oracle table, relationship, index, and constraint mapping |
 | `Data/MongoDb/` | MongoDB database and five-collection provider used by the migration |
 | `Models/` | Database-backed domain entities |
+| `Models/Documents/` | MongoDB document and embedded snapshot models |
+| `Dtos/MongoDb/` | MongoDB CRUD request and response contracts |
 | `ViewModel/` | API input and output models |
 | `Mapping/` | Domain-to-response transformations and aggregate calculations |
 | `Config/Security/` | JWT settings |
@@ -77,11 +82,11 @@ flowchart LR
 
 Dependencies are registered with ASP.NET Core's built-in dependency injection container in [`Program.cs`](Web.Fiap.Carbono/Program.cs).
 
-The application is currently in a transitional state. Oracle repositories remain the active persistence implementation, while one reusable MongoDB client, database, and five-collection context are registered for the later migration phases. MongoDB is not yet used by controllers, services, or repositories.
+The application is currently in a transitional state. The existing emission calculation and analytics routes still use Oracle. The company, product, supplier, and emission-factor CRUD routes use MongoDB through dedicated services and repositories. A single reusable MongoDB client and the exact five-collection context are registered; Oracle has not yet been removed or replaced for the remaining workflows.
 
 ## Database
 
-The active API data provider is **Oracle Database**, accessed through Entity Framework Core and Oracle's EF Core provider. The connection is configured under `ConnectionStrings:OracleConnection`. MongoDB is configured under `MongoDb`, but does not replace Oracle persistence during Phase 6.
+Oracle remains the active provider for the existing emission calculation and analytics API, accessed through Entity Framework Core and Oracle's EF Core provider. MongoDB is configured under `MongoDb` and is active for the Phase 9 master-data CRUD endpoints. This is an intentional migration transition rather than a completed Oracle replacement.
 
 The schema is created by the `CreateCarbonEmissionSchema` EF Core migration. All application tables use the `EC_` prefix:
 
@@ -124,6 +129,18 @@ All routes use the `/api` prefix. Except for emission creation, the current read
 | `GET` | `/api/produtos-carbono/{idProduto}/pegada` | Public | Return a product footprint and totals by stage |
 | `GET` | `/api/fornecedores-carbono/ranking?pageNumber=1&pageSize=10` | Public | Return paginated supplier emission summaries |
 | `GET` | `/api/dashboard-carbono/empresas/{idEmpresa}/resumo` | Public | Return a company's aggregated carbon dashboard |
+| `POST`, `PUT` | `/api/empresas`, `/api/empresas/{id}` | `ADMIN` or `ANALISTA_ESG` | Create or replace a MongoDB company document |
+| `GET` | `/api/empresas`, `/api/empresas/{id}` | Public | List or retrieve MongoDB company documents |
+| `DELETE` | `/api/empresas/{id}` | `ADMIN` | Hard-delete `CRUD-TEMP` data or apply the documented governance policy |
+| `POST`, `PUT` | `/api/produtos`, `/api/produtos/{id}` | `ADMIN` or `ANALISTA_ESG` | Create or replace a MongoDB product after validating its company |
+| `GET` | `/api/produtos`, `/api/produtos/{id}` | Public | List or retrieve MongoDB product documents |
+| `DELETE` | `/api/produtos/{id}` | `ADMIN` | Delete an unreferenced `CRUD-TEMP` product or deactivate a permanent one |
+| `POST`, `PUT` | `/api/fornecedores`, `/api/fornecedores/{id}` | `ADMIN` or `ANALISTA_ESG` | Create or replace a MongoDB supplier |
+| `GET` | `/api/fornecedores`, `/api/fornecedores/{id}` | Public | List or retrieve MongoDB supplier documents |
+| `DELETE` | `/api/fornecedores/{id}` | `ADMIN` | Delete an unreferenced `CRUD-TEMP` supplier or deactivate a permanent one |
+| `POST`, `PUT` | `/api/fatores-emissao`, `/api/fatores-emissao/{id}` | `ADMIN` | Create or replace a versioned MongoDB emission factor |
+| `GET` | `/api/fatores-emissao`, `/api/fatores-emissao/{id}` | Public | List or retrieve MongoDB emission factors |
+| `DELETE` | `/api/fatores-emissao/{id}` | `ADMIN` | Delete an unreferenced `CRUD-TEMP` factor or deactivate a permanent one |
 
 Pagination starts at page 1. `pageSize` must be between 1 and 50. A paginated response has this shape:
 
@@ -137,7 +154,7 @@ Pagination starts at page 1. `pageSize` must be between 1 and 50. A paginated re
 }
 ```
 
-The API currently exposes analytics and emission-record operations. It does not expose CRUD endpoints for companies, products, batches, suppliers, stages, or emission factors; those records must already exist in the database before an emission can be calculated.
+MongoDB CRUD is currently exposed for the four master-data resources listed above. Production batches and supply-chain stages remain embedded in emission documents rather than becoming separate MongoDB collections. MongoDB emission creation and the migrated calculation workflow remain Phase 10 work; the existing `/api/emissoes-carbono` routes still use Oracle.
 
 ## Authentication
 
@@ -259,9 +276,9 @@ Run all tests from the repository root:
 dotnet test Web.Fiap.Carbono.sln
 ```
 
-The tests start the real ASP.NET Core application through `WebApplicationFactory`, replace Oracle with a uniquely named EF Core InMemory database, and seed a controlled company/product/supplier/emission graph. They cover the public analytics endpoints, valid emission reads, invalid pagination, and rejection of unauthenticated emission creation. Phase 6 tests also verify MongoDB settings binding, singleton reuse, startup validation, and the exact five collection names without connecting to or mutating a developer database.
+The legacy API tests start the real ASP.NET Core application through `WebApplicationFactory`, replace Oracle with a uniquely named EF Core InMemory database, and seed a controlled company/product/supplier/emission graph. They cover the public analytics endpoints, valid emission reads, invalid pagination, and rejection of unauthenticated emission creation.
 
-The InMemory provider is useful for deterministic API tests but does not validate Oracle- or MongoDB-specific persistence behavior, types, indexes, or constraints. The Phase 6 configuration tests are not substitutes for the disposable MongoDB integration tests required in a later phase.
+MongoDB repository and Phase 9 REST integration tests use disposable MongoDB 8.0.29 containers instead of a developer's permanent database. They cover repository CRUD and aggregations, unique constraints, pagination, MongoDB-backed REST CRUD, cross-document references, JWT roles, destructive-operation policy, global errors, Swagger metadata, and preservation of flexible fields. The complete suite currently contains 29 passing tests.
 
 ## Docker
 

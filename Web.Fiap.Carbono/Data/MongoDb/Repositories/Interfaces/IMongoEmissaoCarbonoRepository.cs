@@ -65,4 +65,20 @@ public interface IMongoEmissaoCarbonoRepository
             string empresaId,
             CancellationToken cancellationToken
         );
+
+    Task<bool> ExistsByEmpresaIdAsync(
+        string empresaId,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> ExistsByProdutoIdAsync(
+        string produtoId,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> ExistsByFornecedorIdAsync(
+        string fornecedorId,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> ExistsByFatorEmissaoIdAsync(
+        string fatorEmissaoId,
+        CancellationToken cancellationToken = default);
 }

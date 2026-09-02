@@ -39,4 +39,8 @@ public interface IMongoProdutoRepository
         string id,
         CancellationToken cancellationToken
     );
+
+    Task<bool> ExistsByEmpresaIdAsync(
+        string empresaId,
+        CancellationToken cancellationToken = default);
 }

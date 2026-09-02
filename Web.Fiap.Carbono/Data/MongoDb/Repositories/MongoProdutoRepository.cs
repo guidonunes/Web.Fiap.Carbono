@@ -181,4 +181,22 @@ public sealed class MongoProdutoRepository
             );
         }
     }
+
+    public async Task<bool> ExistsByEmpresaIdAsync(
+        string empresaId,
+        CancellationToken cancellationToken = default)
+    {
+        var objectId = MongoRepositoryRules.ParseObjectId(
+            empresaId,
+            nameof(empresaId)
+        );
+
+        var count = await _produtos.CountDocumentsAsync(
+            produto => produto.EmpresaId == objectId,
+            new CountOptions { Limit = 1 },
+            cancellationToken
+        );
+
+        return count == 1;
+    }
 }
