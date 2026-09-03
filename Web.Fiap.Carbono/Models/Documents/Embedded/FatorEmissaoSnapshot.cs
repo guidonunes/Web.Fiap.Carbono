@@ -26,8 +26,10 @@ public sealed class FatorEmissaoSnapshot
     public int Versao { get; init; }
 
     [BsonElement("fonteReferencia")]
+    [BsonIgnoreIfNull]
     public string? FonteReferencia { get; init; }
 
     [BsonElement("metodologia")]
+    [BsonIgnoreIfNull]
     public string? Metodologia { get; init; }
 }

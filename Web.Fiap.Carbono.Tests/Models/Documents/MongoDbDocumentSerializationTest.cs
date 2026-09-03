@@ -97,6 +97,35 @@ public sealed class MongoDbDocumentSerializationTest
     }
 
     [Fact]
+    public void EmissaoCarbonoDocument_ShouldOmitNullOptionalFields()
+    {
+        var bson = new EmissaoCarbonoDocument().ToBsonDocument();
+        var etapa = new EtapaSnapshot
+        {
+            Nome = "Energia",
+            Ordem = 1,
+            Categoria = "ENERGIA"
+        }.ToBsonDocument();
+        var fator = new FatorEmissaoSnapshot
+        {
+            Codigo = "FE-ENERGIA-001",
+            Nome = "Energia",
+            Valor = 0.0817m,
+            UnidadeBase = "kWh",
+            Escopo = "ESCOPO_2",
+            Versao = 1
+        }.ToBsonDocument();
+
+        Assert.False(etapa.Contains("local"));
+        Assert.False(fator.Contains("fonteReferencia"));
+        Assert.False(fator.Contains("metodologia"));
+        Assert.False(bson.Contains("legacyId"));
+        Assert.False(bson.Contains("observacao"));
+        Assert.False(bson.Contains("revisadoEm"));
+        Assert.False(bson.Contains("revisadoPor"));
+    }
+
+    [Fact]
     public void MongoDbDocumentMapper_ShouldReturnDtosWithoutMongoDriverTypes()
     {
         var empresa = CreateEmpresa().ToResponse();

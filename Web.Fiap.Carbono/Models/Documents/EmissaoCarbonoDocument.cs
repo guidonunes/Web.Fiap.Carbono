@@ -11,6 +11,7 @@ public sealed class EmissaoCarbonoDocument
     public ObjectId Id { get; init; }
 
     [BsonElement("legacyId")]
+    [BsonIgnoreIfNull]
     public int? LegacyId { get; init; }
 
     // Deterministic business key used by the seed and CRUD demo.
@@ -56,9 +57,11 @@ public sealed class EmissaoCarbonoDocument
     public string MetodoCalculo { get; init; } = string.Empty;
 
     [BsonElement("fonteEmissao")]
+    [BsonIgnoreIfNull]
     public string? FonteEmissao { get; init; }
 
     [BsonElement("observacao")]
+    [BsonIgnoreIfNull]
     public string? Observacao { get; init; }
 
     [BsonElement("calculadoPor")]
@@ -69,10 +72,12 @@ public sealed class EmissaoCarbonoDocument
     public DateTime DataEmissao { get; init; }
 
     [BsonElement("revisadoEm")]
+    [BsonIgnoreIfNull]
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime? RevisadoEm { get; init; }
 
     [BsonElement("revisadoPor")]
+    [BsonIgnoreIfNull]
     public string? RevisadoPor { get; init; }
 
     [BsonElement("criadoEm")]

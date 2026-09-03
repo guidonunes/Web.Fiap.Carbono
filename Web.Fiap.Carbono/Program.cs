@@ -223,6 +223,8 @@ builder.Services.AddScoped<
     IMongoFatorEmissaoService,
     MongoFatorEmissaoService>();
 
+builder.Services.AddSingleton(TimeProvider.System);
+
 builder.Services.AddScoped<
     IMongoEmissaoCarbonoService,
     MongoEmissaoCarbonoService>();

@@ -127,6 +127,51 @@ public sealed class MongoApiFixture : IAsyncLifetime
         {
             await Database.CreateCollectionAsync(name);
         }
+
+        await ApplyEmissionNullabilityValidatorAsync();
+    }
+
+    private Task ApplyEmissionNullabilityValidatorAsync()
+    {
+        var stringRule = new BsonDocument("bsonType", "string");
+
+        var schema = new BsonDocument
+        {
+            ["bsonType"] = "object",
+            ["properties"] = new BsonDocument
+            {
+                ["etapa"] = new BsonDocument
+                {
+                    ["bsonType"] = "object",
+                    ["properties"] = new BsonDocument
+                    {
+                        ["local"] = stringRule
+                    }
+                },
+                ["fatorAplicado"] = new BsonDocument
+                {
+                    ["bsonType"] = "object",
+                    ["properties"] = new BsonDocument
+                    {
+                        ["fonteReferencia"] = stringRule,
+                        ["metodologia"] = stringRule
+                    }
+                },
+                ["fonteEmissao"] = stringRule,
+                ["observacao"] = stringRule
+            }
+        };
+
+        return Database.RunCommandAsync<BsonDocument>(
+            new BsonDocument
+            {
+                ["collMod"] =
+                    MongoDbContext.EmissoesCarbonoCollectionName,
+                ["validator"] =
+                    new BsonDocument("$jsonSchema", schema),
+                ["validationLevel"] = "strict",
+                ["validationAction"] = "error"
+            });
     }
 
     private async Task CreateUniqueIndexesAsync()

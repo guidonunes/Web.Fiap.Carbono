@@ -825,7 +825,7 @@ Preserve the main business rule while replacing the relational stage lookup with
 - [ ] Store the authenticated user in `calculadoPor`.
 - [ ] Store calculation and creation timestamps in UTC.
 - [ ] Return `201 Created` with a `Location` header.
-- [ ] Preserve `422` for valid input that violates an emission business rule.
+- [x] Preserve `422` for valid input that violates an emission business rule.
 
 Target flow:
 

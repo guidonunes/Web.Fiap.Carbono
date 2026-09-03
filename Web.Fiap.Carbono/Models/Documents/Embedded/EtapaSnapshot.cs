@@ -15,5 +15,6 @@ public sealed class EtapaSnapshot
     public string Categoria { get; init; } = string.Empty;
 
     [BsonElement("local")]
+    [BsonIgnoreIfNull]
     public string? Local { get; init; }
 }
