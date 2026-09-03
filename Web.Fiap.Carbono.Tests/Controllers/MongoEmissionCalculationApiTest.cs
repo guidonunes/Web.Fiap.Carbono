@@ -51,12 +51,25 @@ public sealed class MongoEmissionCalculationApiTest(
         var readResponse = await client.GetAsync(response.Headers.Location);
         Assert.Equal(HttpStatusCode.OK, readResponse.StatusCode);
 
-        var persistedCount = await fixture.Database
-            .GetCollection<EmissaoCarbonoDocument>(
+        var persisted = await fixture.Database
+            .GetCollection<BsonDocument>(
                 MongoDbContext.EmissoesCarbonoCollectionName)
-            .CountDocumentsAsync(document => document.Id == ObjectId.Parse(body.Id));
+            .Find(Builders<BsonDocument>.Filter.Eq(
+                "_id",
+                ObjectId.Parse(body.Id)))
+            .SingleAsync();
 
-        Assert.Equal(1, persistedCount);
+        var activity = persisted["dadosAtividade"].AsBsonDocument;
+        Assert.Equal("ENERGIA", activity["tipo"].AsString);
+        Assert.Equal(BsonType.Decimal128, activity["consumoKwh"].BsonType);
+        Assert.Equal(
+            1500m,
+            Decimal128.ToDecimal(activity["consumoKwh"].AsDecimal128));
+        Assert.Equal("Rede elétrica", activity["fonteEnergia"].AsString);
+        Assert.Equal(
+            20m,
+            Decimal128.ToDecimal(
+                activity["percentualRenovavel"].AsDecimal128));
     }
 
     [Fact]
@@ -114,6 +127,27 @@ public sealed class MongoEmissionCalculationApiTest(
     }
 
     [Fact]
+    public async Task Calculate_WithNotYetValidFactor_ReturnsUnprocessableEntityAndPersistsNothing()
+    {
+        await fixture.ClearAsync();
+        var references = await SeedReferencesAsync(
+            activeFactor: true,
+            notYetValidFactor: true);
+        using var client = await AuthenticatedClientAsync();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/emissoes-carbono/calcular",
+            CalculationPayload(references));
+
+        await AssertErrorAsync(
+            response,
+            HttpStatusCode.UnprocessableEntity,
+            "somente é válido a partir");
+
+        await AssertNoEmissionPersistedAsync();
+    }
+
+    [Fact]
     public async Task Calculate_WithIncompatibleUnit_ReturnsUnprocessableEntityAndPersistsNothing()
     {
         await fixture.ClearAsync();
@@ -134,6 +168,204 @@ public sealed class MongoEmissionCalculationApiTest(
         await AssertNoEmissionPersistedAsync();
     }
 
+    [Fact]
+    public async Task Calculate_WithTransportActivity_PersistsFlexibleActivityData()
+    {
+        await AssertSupportedActivityAsync(
+            new ActivityScenario(
+                Category: "TRANSPORTE",
+                Unit: "ton_km",
+                ActivityQuantity: 5000m,
+                FactorValue: 0.1200m,
+                ExpectedEmission: 600.0000m,
+                ActivityData: new
+                {
+                    tipo = "TRANSPORTE",
+                    distanciaKm = 500m,
+                    cargaToneladas = 10m,
+                    combustivel = "DIESEL",
+                    modal = "RODOVIARIO"
+                },
+                DecimalFields: new Dictionary<string, decimal>
+                {
+                    ["distanciaKm"] = 500m,
+                    ["cargaToneladas"] = 10m
+                },
+                StringFields: new Dictionary<string, string>
+                {
+                    ["combustivel"] = "DIESEL",
+                    ["modal"] = "RODOVIARIO"
+                }));
+    }
+
+    [Fact]
+    public async Task Calculate_WithRawMaterialActivity_PersistsFlexibleActivityData()
+    {
+        await AssertSupportedActivityAsync(
+            new ActivityScenario(
+                Category: "MATERIA_PRIMA",
+                Unit: "kg",
+                ActivityQuantity: 450m,
+                FactorValue: 0.7200m,
+                ExpectedEmission: 324.0000m,
+                ActivityData: new
+                {
+                    tipo = "MATERIA_PRIMA",
+                    material = "ALUMINIO_RECICLADO",
+                    pesoKg = 450m,
+                    percentualReciclado = 80m,
+                    origem = "Fornecedor homologado"
+                },
+                DecimalFields: new Dictionary<string, decimal>
+                {
+                    ["pesoKg"] = 450m,
+                    ["percentualReciclado"] = 80m
+                },
+                StringFields: new Dictionary<string, string>
+                {
+                    ["material"] = "ALUMINIO_RECICLADO",
+                    ["origem"] = "Fornecedor homologado"
+                }));
+    }
+
+    [Fact]
+    public async Task Calculate_WithWasteActivity_PersistsFlexibleActivityData()
+    {
+        await AssertSupportedActivityAsync(
+            new ActivityScenario(
+                Category: "RESIDUO",
+                Unit: "kg",
+                ActivityQuantity: 180m,
+                FactorValue: 0.4500m,
+                ExpectedEmission: 81.0000m,
+                ActivityData: new
+                {
+                    tipo = "RESIDUO",
+                    classe = "CLASSE_II",
+                    pesoKg = 180m,
+                    tipoResiduo = "EMBALAGEM",
+                    tratamento = "RECICLAGEM",
+                    distanciaDestinoKm = 35m,
+                    percentualReciclavel = 90m
+                },
+                DecimalFields: new Dictionary<string, decimal>
+                {
+                    ["pesoKg"] = 180m,
+                    ["distanciaDestinoKm"] = 35m,
+                    ["percentualReciclavel"] = 90m
+                },
+                StringFields: new Dictionary<string, string>
+                {
+                    ["classe"] = "CLASSE_II",
+                    ["tipoResiduo"] = "EMBALAGEM",
+                    ["tratamento"] = "RECICLAGEM"
+                }));
+    }
+
+    [Theory]
+    [InlineData(MissingReference.Product, "Produto não encontrado.")]
+    [InlineData(MissingReference.Company, "A empresa associada ao produto não foi encontrada.")]
+    [InlineData(MissingReference.Supplier, "Fornecedor não encontrado.")]
+    [InlineData(MissingReference.Factor, "Fator de emissão não encontrado.")]
+    public async Task Calculate_WithMissingReference_ReturnsNotFoundAndPersistsNothing(
+        MissingReference missingReference,
+        string expectedMessage)
+    {
+        await fixture.ClearAsync();
+        var references = await SeedReferencesAsync(
+            activeFactor: true,
+            omitCompany: missingReference == MissingReference.Company);
+        using var client = await AuthenticatedClientAsync();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/emissoes-carbono/calcular",
+            CalculationPayload(
+                references,
+                productIdOverride: missingReference == MissingReference.Product
+                    ? ObjectId.GenerateNewId().ToString()
+                    : null,
+                supplierIdOverride: missingReference == MissingReference.Supplier
+                    ? ObjectId.GenerateNewId().ToString()
+                    : null,
+                factorIdOverride: missingReference == MissingReference.Factor
+                    ? ObjectId.GenerateNewId().ToString()
+                    : null));
+
+        await AssertErrorAsync(
+            response,
+            HttpStatusCode.NotFound,
+            expectedMessage);
+
+        await AssertNoEmissionPersistedAsync();
+    }
+
+    [Theory]
+    [InlineData(PublicObjectId.Product, "produtoId")]
+    [InlineData(PublicObjectId.Supplier, "fornecedorId")]
+    [InlineData(PublicObjectId.Factor, "fatorEmissaoId")]
+    public async Task Calculate_WithMalformedObjectId_ReturnsBadRequestAndPersistsNothing(
+        PublicObjectId publicObjectId,
+        string expectedField)
+    {
+        await fixture.ClearAsync();
+        var references = await SeedReferencesAsync(activeFactor: true);
+        using var client = await AuthenticatedClientAsync();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/emissoes-carbono/calcular",
+            CalculationPayload(
+                references,
+                productIdOverride: publicObjectId == PublicObjectId.Product
+                    ? "invalid-object-id"
+                    : null,
+                supplierIdOverride: publicObjectId == PublicObjectId.Supplier
+                    ? "invalid-object-id"
+                    : null,
+                factorIdOverride: publicObjectId == PublicObjectId.Factor
+                    ? "invalid-object-id"
+                    : null));
+
+        await AssertErrorAsync(
+            response,
+            HttpStatusCode.BadRequest,
+            expectedField);
+
+        await AssertNoEmissionPersistedAsync();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task Calculate_WithNonPositiveQuantity_ReturnsValidationErrorAndPersistsNothing(
+        int activityQuantity)
+    {
+        await fixture.ClearAsync();
+        var references = await SeedReferencesAsync(activeFactor: true);
+        using var client = await AuthenticatedClientAsync();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/emissoes-carbono/calcular",
+            CalculationPayload(
+                references,
+                activityQuantity: activityQuantity));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        using var json = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
+
+        Assert.Equal(
+            (int)HttpStatusCode.BadRequest,
+            json.RootElement.GetProperty("status").GetInt32());
+        Assert.Equal(
+            "One or more validation errors occurred.",
+            json.RootElement.GetProperty("title").GetString());
+        Assert.True(json.RootElement.GetProperty("errors").EnumerateObject().Any());
+        Assert.True(json.RootElement.TryGetProperty("traceId", out _));
+
+        await AssertNoEmissionPersistedAsync();
+    }
+
     private async Task AssertNoEmissionPersistedAsync()
     {
         var emissionCount = await fixture.Database
@@ -142,6 +374,62 @@ public sealed class MongoEmissionCalculationApiTest(
             .CountDocumentsAsync(FilterDefinition<EmissaoCarbonoDocument>.Empty);
 
         Assert.Equal(0, emissionCount);
+    }
+
+    private async Task AssertSupportedActivityAsync(
+        ActivityScenario scenario)
+    {
+        await fixture.ClearAsync();
+        var references = await SeedReferencesAsync(
+            activeFactor: true,
+            factorCategory: scenario.Category,
+            factorUnit: scenario.Unit,
+            factorValue: scenario.FactorValue);
+        using var client = await AuthenticatedClientAsync();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/emissoes-carbono/calcular",
+            CalculationPayload(
+                references,
+                activityUnit: scenario.Unit,
+                activityQuantity: scenario.ActivityQuantity,
+                stageCategory: scenario.Category,
+                activityData: scenario.ActivityData));
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.NotNull(response.Headers.Location);
+
+        var body = await response.Content
+            .ReadFromJsonAsync<EmissaoCarbonoMongoResponseViewModel>();
+
+        Assert.NotNull(body);
+        Assert.Equal(scenario.ExpectedEmission, body.QuantidadeEmitidaKgCO2e);
+        Assert.Equal(scenario.Category, body.Etapa.Categoria);
+        Assert.Equal(scenario.FactorValue, body.FatorAplicado.Valor);
+
+        var persisted = await fixture.Database
+            .GetCollection<BsonDocument>(
+                MongoDbContext.EmissoesCarbonoCollectionName)
+            .Find(Builders<BsonDocument>.Filter.Eq(
+                "_id",
+                ObjectId.Parse(body.Id)))
+            .SingleAsync();
+
+        var activity = persisted["dadosAtividade"].AsBsonDocument;
+        Assert.Equal(scenario.Category, activity["tipo"].AsString);
+
+        foreach (var field in scenario.DecimalFields)
+        {
+            Assert.Equal(BsonType.Decimal128, activity[field.Key].BsonType);
+            Assert.Equal(
+                field.Value,
+                Decimal128.ToDecimal(activity[field.Key].AsDecimal128));
+        }
+
+        foreach (var field in scenario.StringFields)
+        {
+            Assert.Equal(field.Value, activity[field.Key].AsString);
+        }
     }
 
     [Fact]
@@ -186,7 +474,12 @@ public sealed class MongoEmissionCalculationApiTest(
     private async Task<ReferenceIds> SeedReferencesAsync(
         bool activeFactor,
         bool includeOptionalFactorFields = true,
-        bool expiredFactor = false)
+        bool expiredFactor = false,
+        bool notYetValidFactor = false,
+        bool omitCompany = false,
+        string factorCategory = "ENERGIA",
+        string factorUnit = "kWh",
+        decimal factorValue = 0.0817m)
     {
         var now = DateTime.UtcNow;
         var companyId = ObjectId.GenerateNewId();
@@ -194,20 +487,23 @@ public sealed class MongoEmissionCalculationApiTest(
         var supplierId = ObjectId.GenerateNewId();
         var factorId = ObjectId.GenerateNewId();
 
-        await fixture.Database
-            .GetCollection<EmpresaDocument>(
-                MongoDbContext.EmpresasCollectionName)
-            .InsertOneAsync(new EmpresaDocument
-            {
-                Id = companyId,
-                Codigo = "EMP-CALCULO-API",
-                RazaoSocial = "Empresa cálculo API",
-                Cnpj = "61000000000101",
-                Ativa = true,
-                CriadoEm = now,
-                AtualizadoEm = now,
-                SchemaVersion = 1
-            });
+        if (!omitCompany)
+        {
+            await fixture.Database
+                .GetCollection<EmpresaDocument>(
+                    MongoDbContext.EmpresasCollectionName)
+                .InsertOneAsync(new EmpresaDocument
+                {
+                    Id = companyId,
+                    Codigo = "EMP-CALCULO-API",
+                    RazaoSocial = "Empresa cálculo API",
+                    Cnpj = "61000000000101",
+                    Ativa = true,
+                    CriadoEm = now,
+                    AtualizadoEm = now,
+                    SchemaVersion = 1
+                });
+        }
 
         await fixture.Database
             .GetCollection<ProdutoDocument>(
@@ -247,10 +543,10 @@ public sealed class MongoEmissionCalculationApiTest(
             {
                 Id = factorId,
                 Codigo = "FE-ENERGIA-CALCULO-API",
-                Nome = "Energia elétrica API",
-                Categoria = "ENERGIA",
-                Valor = 0.0817m,
-                UnidadeBase = "kWh",
+                Nome = "Fator de emissão API",
+                Categoria = factorCategory,
+                Valor = factorValue,
+                UnidadeBase = factorUnit,
                 Escopo = "ESCOPO_2",
                 Versao = 1,
                 FonteReferencia = includeOptionalFactorFields
@@ -259,7 +555,9 @@ public sealed class MongoEmissionCalculationApiTest(
                 Metodologia = includeOptionalFactorFields
                     ? "Atividade multiplicada pelo fator"
                     : null,
-                ValidoDe = now.AddYears(-1),
+                ValidoDe = notYetValidFactor
+                    ? now.AddDays(1)
+                    : now.AddYears(-1),
                 ValidoAte = expiredFactor
                     ? now.AddDays(-1)
                     : now.AddYears(1),
@@ -300,14 +598,31 @@ public sealed class MongoEmissionCalculationApiTest(
     private static object CalculationPayload(
         ReferenceIds references,
         bool includeOptionalEmissionFields = true,
-        string activityUnit = "kWh")
+        string activityUnit = "kWh",
+        decimal activityQuantity = 1500m,
+        string stageCategory = "ENERGIA",
+        object? activityData = null,
+        string? productIdOverride = null,
+        string? supplierIdOverride = null,
+        string? factorIdOverride = null)
     {
+        activityData ??= new
+        {
+            tipo = "ENERGIA",
+            consumoKwh = 1500m,
+            fonteEnergia = "Rede elétrica",
+            percentualRenovavel = 20m
+        };
+
         return new
         {
-            produtoId = references.ProductId.ToString(),
-            fornecedorId = references.SupplierId.ToString(),
-            fatorEmissaoId = references.FactorId.ToString(),
-            quantidadeAtividade = 1500m,
+            produtoId = productIdOverride
+                ?? references.ProductId.ToString(),
+            fornecedorId = supplierIdOverride
+                ?? references.SupplierId.ToString(),
+            fatorEmissaoId = factorIdOverride
+                ?? references.FactorId.ToString(),
+            quantidadeAtividade = activityQuantity,
             unidadeAtividade = activityUnit,
             lote = new
             {
@@ -320,15 +635,9 @@ public sealed class MongoEmissionCalculationApiTest(
             {
                 nome = "Consumo de energia",
                 ordem = 1,
-                categoria = "ENERGIA"
+                categoria = stageCategory
             },
-            dadosAtividade = new
-            {
-                tipo = "ENERGIA",
-                consumoKwh = 1500m,
-                fonteEnergia = "Rede elétrica",
-                percentualRenovavel = 20m
-            },
+            dadosAtividade = activityData,
             fonteEmissao = includeOptionalEmissionFields
                 ? "Energia elétrica"
                 : null,
@@ -367,4 +676,29 @@ public sealed class MongoEmissionCalculationApiTest(
         ObjectId ProductId,
         ObjectId SupplierId,
         ObjectId FactorId);
+
+    private sealed record ActivityScenario(
+        string Category,
+        string Unit,
+        decimal ActivityQuantity,
+        decimal FactorValue,
+        decimal ExpectedEmission,
+        object ActivityData,
+        IReadOnlyDictionary<string, decimal> DecimalFields,
+        IReadOnlyDictionary<string, string> StringFields);
+
+    public enum MissingReference
+    {
+        Product,
+        Company,
+        Supplier,
+        Factor
+    }
+
+    public enum PublicObjectId
+    {
+        Product,
+        Supplier,
+        Factor
+    }
 }

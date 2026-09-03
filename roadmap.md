@@ -755,8 +755,8 @@ Expose complete CRUD operations for the five collections while preserving the ex
 - [x] Add CRUD controllers for emission factors.
 - [x] Extend the emission controller with update and delete operations if they are included in the API demonstration. They are not included in the Phase 9 REST demonstration; emission mutations remain service-only and protected as `CRUD-TEMP` operations until the emission API is migrated.
 - [x] Keep controllers responsible for HTTP concerns only.
-- [ ] Validate parent references when creating products and emissions. Product-company validation is implemented; emission creation remains pending in Phase 10.
-- [ ] Prevent creating emissions with inactive or out-of-validity factors. This remains pending with the Phase 10 calculation workflow.
+- [x] Validate parent references when creating products and emissions.
+- [x] Prevent creating emissions with inactive or out-of-validity factors.
 - [x] Apply `ADMIN` or `ANALISTA_ESG` authorization consistently.
 - [x] Restrict destructive operations to `ADMIN`.
 - [x] Preserve the global JSON error format.
@@ -803,7 +803,7 @@ For the academic CRUD demonstration, hard-delete isolated `CRUD-TEMP` documents.
 
 Verified on 2026-09-02 with a disposable `mongo:8.0.29-noble` integration fixture. REST CRUD passed for `empresas`, `produtos`, `fornecedores`, and `fatores_emissao`; tests also verified public reads, JWT role enforcement, `ADMIN`-only destructive operations and factor changes, missing product-company references, referenced-record protection, duplicate-key conflicts, malformed `ObjectId` handling, flexible-field preservation, the global JSON error contract, and Swagger descriptions/security metadata. Solution restore succeeded with two `NU1900` vulnerability-audit warnings because `api.nuget.org` access was denied in the execution environment, the solution build succeeded with zero warnings, and all 29 tests passed.
 
-Phase 9 remains visibly incomplete because emission creation still belongs to Phase 10. Parent-reference and active/valid-factor checks cannot be claimed for the REST emission workflow until that workflow exists, and the first exit-gate item remains unchecked until emission CRUD is available through the migrated REST API. No Phase 10 calculation behavior was implemented as part of this review.
+Phase 9 remains visibly incomplete only because full emission CRUD is not yet available through the migrated REST API: MongoDB emission creation and retrieval are implemented, but update and delete remain service-only operations for the isolated `CRUD-TEMP-EMISSAO` demonstration. Phase 10 now verifies product, derived-company, supplier, and factor references and rejects inactive, expired, and not-yet-valid factors before persistence.
 
 ## Phase 10 — Migrate the emission-calculation workflow
 
@@ -813,18 +813,18 @@ Preserve the main business rule while replacing the relational stage lookup with
 
 ### Tasks
 
-- [ ] Redesign the calculation request to receive `produtoId`, `fornecedorId`, `fatorEmissaoId`, `lote`, `etapa`, `quantidadeAtividade`, `dadosAtividade`, `fonteEmissao`, and `observacao`.
-- [ ] Load the product and derive `empresaId` from it.
-- [ ] Validate that the company, product, supplier, and factor exist.
-- [ ] Validate that the factor is active.
-- [ ] Validate the factor's effective date.
-- [ ] Validate activity quantity and unit compatibility.
-- [ ] Calculate `kgCO2e` with decimal arithmetic.
-- [ ] Copy the current factor into `fatorAplicado`.
-- [ ] Embed `lote` and `etapa` in the emission document.
-- [ ] Store the authenticated user in `calculadoPor`.
-- [ ] Store calculation and creation timestamps in UTC.
-- [ ] Return `201 Created` with a `Location` header.
+- [x] Redesign the calculation request to receive `produtoId`, `fornecedorId`, `fatorEmissaoId`, `lote`, `etapa`, `quantidadeAtividade`, `dadosAtividade`, `fonteEmissao`, and `observacao`.
+- [x] Load the product and derive `empresaId` from it.
+- [x] Validate that the company, product, supplier, and factor exist.
+- [x] Validate that the factor is active.
+- [x] Validate the factor's effective date.
+- [x] Validate activity quantity and unit compatibility.
+- [x] Calculate `kgCO2e` with decimal arithmetic.
+- [x] Copy the current factor into `fatorAplicado`.
+- [x] Embed `lote` and `etapa` in the emission document.
+- [x] Store the authenticated user in `calculadoPor`.
+- [x] Store calculation and creation timestamps in UTC.
+- [x] Return `201 Created` with a `Location` header.
 - [x] Preserve `422` for valid input that violates an emission business rule.
 
 Target flow:
@@ -841,22 +841,24 @@ request
 
 ### Verification scenarios
 
-- [ ] Valid transport emission.
-- [ ] Valid energy emission.
-- [ ] Valid raw-material emission.
-- [ ] Inactive factor.
-- [ ] Expired factor.
-- [ ] Negative or zero activity quantity.
-- [ ] Missing company, product, supplier, or factor.
-- [ ] Invalid ObjectId.
-- [ ] Unauthenticated request.
-- [ ] Exact decimal calculation.
+- [x] Valid transport emission.
+- [x] Valid energy emission.
+- [x] Valid raw-material emission.
+- [x] Inactive factor.
+- [x] Expired factor.
+- [x] Negative or zero activity quantity.
+- [x] Missing company, product, supplier, or factor.
+- [x] Invalid ObjectId.
+- [x] Unauthenticated request.
+- [x] Exact decimal calculation.
 
 ### Exit gate
 
-- [ ] The calculation is correct for every supported activity structure.
-- [ ] The created document contains an immutable applied-factor snapshot.
-- [ ] The endpoint maintains the expected status and error behavior.
+- [x] The calculation is correct for every supported activity structure.
+- [x] The created document contains an immutable applied-factor snapshot.
+- [x] The endpoint maintains the expected status and error behavior.
+
+Verified on 2026-09-03 with a disposable MongoDB 8.0.29 integration environment. API tests cover successful energy, transport, raw-material, and waste calculations; exact `decimal`/BSON `Decimal128` results; variant-specific `dadosAtividade` persistence; product, derived-company, supplier, and factor reference failures; malformed public ObjectIds; zero and negative quantities; inactive, expired, not-yet-valid, and unit-incompatible factors; unauthenticated access; `201 Created` with a resolvable `Location`; and omission of nullable optional BSON fields. Service tests also verify UTC timestamps, authenticated-user attribution, and preservation of the immutable applied-factor snapshot after the source factor changes. Solution restore and build passed with zero warnings, the 19 calculation API scenarios passed, and the complete suite passed 87/87 tests.
 
 ## Phase 11 — Implement MongoDB analytics
 
