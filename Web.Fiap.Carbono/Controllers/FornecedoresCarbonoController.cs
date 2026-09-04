@@ -1,61 +1,44 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Web.Fiap.Carbono.Services.Interfaces;
-using Web.Fiap.Carbono.ViewModel;
+using Web.Fiap.Carbono.Data.MongoDb.Repositories;
+using Web.Fiap.Carbono.Dtos.MongoDb.Analytics;
+using Web.Fiap.Carbono.Services.MongoDb.Interfaces;
 
 namespace Web.Fiap.Carbono.Controllers;
 
 [ApiController]
 [Route("api/fornecedores-carbono")]
 [Tags("Carbon Suppliers")]
-public class FornecedoresCarbonoController : ControllerBase
+[Produces("application/json")]
+public sealed class FornecedoresCarbonoController : ControllerBase
 {
-    private readonly IFornecedorCarbonoService _fornecedorCarbonoService;
-    private readonly IMapper _mapper;
+    private readonly IMongoFornecedorService _fornecedorService;
 
     public FornecedoresCarbonoController(
-        IFornecedorCarbonoService fornecedorCarbonoService,
-        IMapper mapper)
+        IMongoFornecedorService fornecedorService)
     {
-        _fornecedorCarbonoService = fornecedorCarbonoService;
-        _mapper = mapper;
+        _fornecedorService = fornecedorService;
     }
 
+    /// <summary>
+    /// Retorna o ranking de fornecedores por emissões.
+    /// </summary>
     [HttpGet("ranking")]
-    public async Task<ActionResult<PaginationViewModel<FornecedorRankingCarbonoViewModel>>> GetRanking(
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
+    [ProducesResponseType(
+        typeof(MongoPagedResult<FornecedorRankingMongoResponse>),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<
+            MongoPagedResult<FornecedorRankingMongoResponse>>>
+        GetRanking(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var fornecedores = await _fornecedorCarbonoService
-                .GetFornecedoresComEmissoesPagedAsync(pageNumber, pageSize);
+        var response = await _fornecedorService.GetRankingAsync(
+            pageNumber,
+            pageSize,
+            cancellationToken);
 
-            var totalItems = await _fornecedorCarbonoService
-                .CountFornecedoresComEmissoesAsync();
-
-            var fornecedoresViewModel = _mapper
-                .Map<IEnumerable<FornecedorRankingCarbonoViewModel>>(fornecedores)
-                .OrderByDescending(f => f.TotalCo2e)
-                .ToList();
-
-            var result = new PaginationViewModel<FornecedorRankingCarbonoViewModel>
-            {
-                Items = fornecedoresViewModel,
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                TotalItems = totalItems,
-                TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
-            };
-
-            return Ok(result);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
-        }
+        return Ok(response);
     }
 }

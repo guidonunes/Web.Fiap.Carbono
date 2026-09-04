@@ -15,7 +15,7 @@ This repository contains a backend API only; it does not include a web or mobile
 - Rank suppliers using the emissions associated with the stages they operate.
 - Produce a company-level ESG summary with totals, counts, monthly emissions, average emissions per product, and the highest-emitting product and supplier.
 - Validate request data, IDs, pagination, active emission factors, and database constraints.
-- Expose MongoDB-backed CRUD endpoints for companies, products, suppliers, and emission factors during the migration transition.
+- Expose MongoDB-backed CRUD endpoints for companies, products, suppliers, and emission factors, plus MongoDB-backed emission calculation and analytics during the migration transition.
 - Return consistent JSON errors through global exception handling.
 - Expose Swagger/OpenAPI documentation in the Development environment.
 - Run API tests against isolated EF Core InMemory and disposable MongoDB databases.
@@ -34,13 +34,13 @@ The API stores the result with the unit `kgCO2e`. It does not perform unit conve
 |---|---|
 | Runtime and language | .NET 8, C# |
 | Web framework | ASP.NET Core Web API |
-| Database | Oracle Database (active) and MongoDB 8 (migration target) |
-| Data access | Entity Framework Core 8 with `Oracle.EntityFrameworkCore`; `MongoDB.Driver` configured for the transition |
+| Database | Oracle Database and MongoDB 8 in a transitional hybrid configuration |
+| Data access | Entity Framework Core 8 with `Oracle.EntityFrameworkCore` for the retained Oracle reads; `MongoDB.Driver` for migrated persistence and analytics |
 | Schema management | EF Core migrations |
 | Object mapping | AutoMapper |
 | Authentication | JWT Bearer tokens signed with HMAC-SHA256 |
 | API documentation | Swagger/OpenAPI through Swashbuckle |
-| Tests | xUnit, `Microsoft.AspNetCore.Mvc.Testing`, EF Core InMemory, Coverlet |
+| Tests | xUnit, `Microsoft.AspNetCore.Mvc.Testing`, Testcontainers for MongoDB, EF Core InMemory for retained Oracle paths, Coverlet |
 | Packaging | Multi-stage Linux Docker image |
 
 Important package versions are declared in [the API project file](Web.Fiap.Carbono/Web.Fiap.Carbono.csproj). The repository pins the .NET 8 SDK family in [`global.json`](global.json).
@@ -55,7 +55,7 @@ flowchart LR
     Controller --> OracleService[Oracle services]
     OracleService --> OracleRepository[EF Core repositories]
     OracleRepository --> Oracle[(Oracle Database)]
-    Controller --> MongoService[MongoDB CRUD services]
+    Controller --> MongoService[MongoDB domain and analytics services]
     MongoService --> MongoRepository[MongoDB repositories]
     MongoRepository --> Mongo[(MongoDB)]
     Controller --> Mapper[AutoMapper]
@@ -71,7 +71,7 @@ flowchart LR
 | `Data/MongoDb/` | MongoDB database and five-collection provider used by the migration |
 | `Models/` | Database-backed domain entities |
 | `Models/Documents/` | MongoDB document and embedded snapshot models |
-| `Dtos/MongoDb/` | MongoDB CRUD request and response contracts |
+| `Dtos/MongoDb/` | MongoDB CRUD, emission-calculation, and analytics contracts |
 | `ViewModel/` | API input and output models |
 | `Mapping/` | Domain-to-response transformations and aggregate calculations |
 | `Config/Security/` | JWT settings |
@@ -82,11 +82,11 @@ flowchart LR
 
 Dependencies are registered with ASP.NET Core's built-in dependency injection container in [`Program.cs`](Web.Fiap.Carbono/Program.cs).
 
-The application is currently in a transitional state. The existing emission calculation and analytics routes still use Oracle. The company, product, supplier, and emission-factor CRUD routes use MongoDB through dedicated services and repositories. A single reusable MongoDB client and the exact five-collection context are registered; Oracle has not yet been removed or replaced for the remaining workflows.
+The application is currently in a transitional hybrid state. Company, product, supplier, and emission-factor CRUD, emission calculation, emission lookup by MongoDB ID, and the three analytics routes use MongoDB through dedicated services and repositories. The legacy paginated emission list and integer-ID emission lookup still use Oracle. A single reusable MongoDB client and the exact five-collection context are registered; Oracle and Entity Framework Core remain recoverable until the Phase 14 cutover gate is satisfied.
 
 ## Database
 
-Oracle remains the active provider for the existing emission calculation and analytics API, accessed through Entity Framework Core and Oracle's EF Core provider. MongoDB is configured under `MongoDb` and is active for the Phase 9 master-data CRUD endpoints. This is an intentional migration transition rather than a completed Oracle replacement.
+Oracle remains active for the legacy paginated emission list and integer-ID emission lookup, accessed through Entity Framework Core and Oracle's EF Core provider. MongoDB is configured under `MongoDb` and is active for master-data CRUD, MongoDB emission calculation and lookup, and product, supplier, and company analytics. This is an intentional migration transition rather than a completed Oracle replacement.
 
 The schema is created by the `CreateCarbonEmissionSchema` EF Core migration. All application tables use the `EC_` prefix:
 
@@ -125,10 +125,11 @@ All routes use the `/api` prefix. Except for emission creation, the current read
 | `POST` | `/api/auth/login` | Public | Validate a demonstration user and issue a JWT |
 | `GET` | `/api/emissoes-carbono?pageNumber=1&pageSize=10` | Public | List emissions, newest first |
 | `GET` | `/api/emissoes-carbono/{idEmissao}` | Public | Retrieve one emission and its stage/factor details |
-| `POST` | `/api/emissoes-carbono/calcular` | `ADMIN` or `ANALISTA_ESG` | Calculate and persist an emission |
-| `GET` | `/api/produtos-carbono/{idProduto}/pegada` | Public | Return a product footprint and totals by stage |
-| `GET` | `/api/fornecedores-carbono/ranking?pageNumber=1&pageSize=10` | Public | Return paginated supplier emission summaries |
-| `GET` | `/api/dashboard-carbono/empresas/{idEmpresa}/resumo` | Public | Return a company's aggregated carbon dashboard |
+| `GET` | `/api/emissoes-carbono/mongodb/{id}` | Public | Retrieve one MongoDB emission by `ObjectId` |
+| `POST` | `/api/emissoes-carbono/calcular` | `ADMIN` or `ANALISTA_ESG` | Calculate and persist a MongoDB emission |
+| `GET` | `/api/produtos-carbono/{idProduto}/pegada` | Public | Return a MongoDB product footprint and totals by stage |
+| `GET` | `/api/fornecedores-carbono/ranking?pageNumber=1&pageSize=10` | Public | Return paginated MongoDB supplier emission summaries |
+| `GET` | `/api/dashboard-carbono/empresas/{idEmpresa}/resumo` | Public | Return a company's MongoDB aggregated carbon dashboard |
 | `POST`, `PUT` | `/api/empresas`, `/api/empresas/{id}` | `ADMIN` or `ANALISTA_ESG` | Create or replace a MongoDB company document |
 | `GET` | `/api/empresas`, `/api/empresas/{id}` | Public | List or retrieve MongoDB company documents |
 | `DELETE` | `/api/empresas/{id}` | `ADMIN` | Hard-delete `CRUD-TEMP` data or apply the documented governance policy |
@@ -154,7 +155,7 @@ Pagination starts at page 1. `pageSize` must be between 1 and 50. A paginated re
 }
 ```
 
-MongoDB CRUD is currently exposed for the four master-data resources listed above. Production batches and supply-chain stages remain embedded in emission documents rather than becoming separate MongoDB collections. MongoDB emission creation and the migrated calculation workflow remain Phase 10 work; the existing `/api/emissoes-carbono` routes still use Oracle.
+MongoDB CRUD is exposed for the four master-data resources listed above. Production batches and supply-chain stages remain embedded in emission documents rather than becoming separate MongoDB collections. The calculation route creates immutable MongoDB emission events, while the dedicated `/mongodb/{id}` route reads them. The legacy paginated emission route and integer-ID lookup remain Oracle-backed until the final cutover.
 
 ## Authentication
 
@@ -183,15 +184,35 @@ curl --request POST http://localhost:5269/api/emissoes-carbono/calcular \
   --header "Authorization: Bearer YOUR_TOKEN" \
   --header "Content-Type: application/json" \
   --data '{
-    "idEtapa": 1,
-    "idFator": 1,
-    "quantidadeAtividade": 100,
-    "fonteEmissao": "Diesel",
-    "observacao": "Monthly transport activity"
+    "produtoId": "YOUR_PRODUCT_OBJECT_ID",
+    "fornecedorId": "YOUR_SUPPLIER_OBJECT_ID",
+    "fatorEmissaoId": "YOUR_FACTOR_OBJECT_ID",
+    "lote": {
+      "codigo": "LOTE-EXEMPLO",
+      "quantidadeProduzida": 1000,
+      "unidade": "unidades",
+      "dataProducao": "2026-09-04T00:00:00Z"
+    },
+    "etapa": {
+      "nome": "Consumo de energia",
+      "ordem": 1,
+      "categoria": "ENERGIA",
+      "local": "São Paulo"
+    },
+    "quantidadeAtividade": 1500,
+    "unidadeAtividade": "kWh",
+    "dadosAtividade": {
+      "tipo": "ENERGIA",
+      "consumoKwh": 1500,
+      "fonteEnergia": "REDE_NACIONAL",
+      "percentualRenovavel": 25
+    },
+    "fonteEmissao": "Energia elétrica",
+    "observacao": "Exemplo de cálculo MongoDB"
   }'
 ```
 
-A successful calculation returns `201 Created`, including the created emission and a `Location` header for its resource.
+A successful calculation returns `201 Created`, including the created emission and a `Location` header for its MongoDB resource. Replace all three `YOUR_*_OBJECT_ID` values with coherent seeded document IDs, and ensure that `unidadeAtividade` and `quantidadeAtividade` match the selected factor and activity data.
 
 > The built-in users and plain-text demonstration passwords are suitable only for this academic sample. A production deployment should use a persistent identity store, hashed passwords, secret management, HTTPS-only token handling, and an appropriate token-revocation strategy.
 
@@ -235,7 +256,28 @@ docker compose up -d mongodb
 docker compose ps
 ```
 
-### 3. Restore and build
+### 3. Initialize the MongoDB demonstration database
+
+Run the scripts in order. The seed creates at least ten coherent persistent documents in each of the five collections; the CRUD demonstration creates and removes only explicitly named `CRUD-TEMP` records; and the aggregation script is read-only.
+
+```bash
+mongosh "mongodb://localhost:27017/fiap_carbono" \
+  --file database/mongodb/01-create-collections.js
+
+mongosh "mongodb://localhost:27017/fiap_carbono" \
+  --file database/mongodb/02-create-indexes.js
+
+mongosh "mongodb://localhost:27017/fiap_carbono" \
+  --file database/mongodb/03-seed.js
+
+mongosh "mongodb://localhost:27017/fiap_carbono" \
+  --file database/mongodb/04-crud-demo.js
+
+mongosh "mongodb://localhost:27017/fiap_carbono" \
+  --file database/mongodb/05-aggregation-queries.js
+```
+
+### 4. Restore and build
 
 From the repository root:
 
@@ -244,7 +286,7 @@ dotnet restore Web.Fiap.Carbono.sln
 dotnet build Web.Fiap.Carbono.sln
 ```
 
-### 4. Apply the Oracle schema
+### 5. Apply the Oracle schema
 
 ```bash
 dotnet ef database update \
@@ -254,7 +296,7 @@ dotnet ef database update \
 
 The migration creates the schema only; it does not seed production data.
 
-### 5. Run the API
+### 6. Run the API
 
 ```bash
 dotnet run --project Web.Fiap.Carbono/Web.Fiap.Carbono.csproj
@@ -276,9 +318,9 @@ Run all tests from the repository root:
 dotnet test Web.Fiap.Carbono.sln
 ```
 
-The legacy API tests start the real ASP.NET Core application through `WebApplicationFactory`, replace Oracle with a uniquely named EF Core InMemory database, and seed a controlled company/product/supplier/emission graph. They cover the public analytics endpoints, valid emission reads, invalid pagination, and rejection of unauthenticated emission creation.
+The retained Oracle-path API tests start the real ASP.NET Core application through `WebApplicationFactory`, replace Oracle with a uniquely named EF Core InMemory database, and cover the legacy emission list and integer-ID lookup without requiring a developer Oracle database.
 
-MongoDB repository and Phase 9 REST integration tests use disposable MongoDB 8.0.29 containers instead of a developer's permanent database. They cover repository CRUD and aggregations, unique constraints, pagination, MongoDB-backed REST CRUD, cross-document references, JWT roles, destructive-operation policy, global errors, Swagger metadata, and preservation of flexible fields. The complete suite currently contains 29 passing tests.
+MongoDB repository, service, and API integration tests use disposable MongoDB 8.0.29 containers instead of a developer's permanent database. They cover master-data CRUD, unique constraints, pagination, cross-document references, JWT roles, destructive-operation policy, all four flexible activity variants, decimal emission calculation, applied-factor snapshots, analytics pipelines, global errors, and Swagger metadata. The complete suite passed 87/87 tests on 2026-09-04.
 
 ## Docker
 
@@ -299,6 +341,8 @@ docker run --rm --publish 8080:8080 \
   --env Jwt__Issuer="Web.Fiap.Carbono" \
   --env Jwt__Audience="Web.Fiap.Carbono.Users" \
   --env Jwt__ExpirationMinutes="60" \
+  --env MongoDb__ConnectionString="YOUR_MONGODB_CONNECTION_STRING" \
+  --env MongoDb__DatabaseName="fiap_carbono" \
   web-fiap-carbono
 ```
 

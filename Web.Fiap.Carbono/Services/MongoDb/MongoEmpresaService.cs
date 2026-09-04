@@ -1,6 +1,7 @@
 using MongoDB.Bson;
 using Web.Fiap.Carbono.Data.MongoDb.Repositories.Exceptions;
 using Web.Fiap.Carbono.Data.MongoDb.Repositories.Interfaces;
+using Web.Fiap.Carbono.Dtos.MongoDb.Analytics;
 using Web.Fiap.Carbono.Dtos.MongoDb.Empresas;
 using Web.Fiap.Carbono.Models.Documents;
 using Web.Fiap.Carbono.Models.Documents.Embedded;
@@ -13,15 +14,18 @@ public sealed class MongoEmpresaService : IMongoEmpresaService
 {
     private readonly IMongoEmpresaRepository _empresaRepository;
     private readonly IMongoProdutoRepository _produtoRepository;
+    private readonly IMongoFornecedorRepository _fornecedorRepository;
     private readonly IMongoEmissaoCarbonoRepository _emissaoRepository;
 
     public MongoEmpresaService(
         IMongoEmpresaRepository empresaRepository,
         IMongoProdutoRepository produtoRepository,
+        IMongoFornecedorRepository fornecedorRepository,
         IMongoEmissaoCarbonoRepository emissaoRepository)
     {
         _empresaRepository = empresaRepository;
         _produtoRepository = produtoRepository;
+        _fornecedorRepository = fornecedorRepository;
         _emissaoRepository = emissaoRepository;
     }
 
@@ -255,6 +259,91 @@ public sealed class MongoEmpresaService : IMongoEmpresaService
             throw new NotFoundException("Empresa não encontrada.");
         }
     }
+
+    public async Task<DashboardEmpresaMongoResponse> GetDashboardAsync(
+      string empresaId,
+      CancellationToken cancellationToken = default)
+  {
+      var empresa = await GetByIdAsync(
+          empresaId,
+          cancellationToken);
+
+      var dashboard =
+          await _emissaoRepository.GetCompanyDashboardAsync(
+              empresa.Id.ToString(),
+              cancellationToken);
+
+      if (dashboard is null)
+      {
+          return new DashboardEmpresaMongoResponse
+          {
+              IdEmpresa = empresa.Id.ToString(),
+              NomeEmpresa =
+                  empresa.NomeFantasia ?? empresa.RazaoSocial,
+              Unidade = "kgCO2e"
+          };
+      }
+
+      var produtoMaisEmissor =
+          dashboard.PorProduto.FirstOrDefault();
+
+      var fornecedorMaisEmissor =
+          dashboard.PorFornecedor.FirstOrDefault();
+
+      var produtoTask = produtoMaisEmissor is null
+          ? Task.FromResult<ProdutoDocument?>(null)
+          : _produtoRepository.GetByIdAsync(
+              produtoMaisEmissor.ProdutoId.ToString(),
+              cancellationToken);
+
+      var fornecedorTask = fornecedorMaisEmissor is null
+          ? Task.FromResult<FornecedorDocument?>(null)
+          : _fornecedorRepository.GetByIdAsync(
+              fornecedorMaisEmissor.FornecedorId.ToString(),
+              cancellationToken);
+
+      await Task.WhenAll(produtoTask, fornecedorTask);
+
+      var produto = await produtoTask;
+      var fornecedor = await fornecedorTask;
+
+      var quantidadeProdutos = dashboard.PorProduto.Count;
+
+      return new DashboardEmpresaMongoResponse
+      {
+          IdEmpresa = empresa.Id.ToString(),
+          NomeEmpresa =
+              empresa.NomeFantasia ?? empresa.RazaoSocial,
+          TotalCo2e = dashboard.TotalKgCO2e,
+          Unidade = "kgCO2e",
+          QuantidadeProdutos = quantidadeProdutos,
+          QuantidadeEmissoes =
+              dashboard.QuantidadeEmissoes,
+          MediaEmissaoPorProduto =
+              quantidadeProdutos == 0
+                  ? 0m
+                  : dashboard.TotalKgCO2e / quantidadeProdutos,
+          ProdutoMaisEmissor = produto?.Nome,
+          FornecedorMaisEmissor =
+              fornecedor?.NomeFantasia
+              ?? fornecedor?.RazaoSocial,
+          EmissoesPorMes = dashboard.PorMes
+              .Select(item => new EmissaoPorMesMongoResponse
+              {
+                  Ano = item.Ano,
+                  Mes = item.Mes,
+                  TotalCo2e = item.TotalKgCO2e
+              })
+              .ToList(),
+          EmissoesPorEscopo = dashboard.PorEscopo
+              .Select(item => new EmissaoPorEscopoMongoResponse
+              {
+                  Escopo = item.Escopo,
+                  TotalCo2e = item.TotalKgCO2e
+              })
+              .ToList()
+      };
+  }
 
     private static void ValidateCompany(EmpresaDocument document)
     {

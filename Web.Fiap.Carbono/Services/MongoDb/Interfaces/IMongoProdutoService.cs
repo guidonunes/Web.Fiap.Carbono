@@ -1,3 +1,4 @@
+using Web.Fiap.Carbono.Dtos.MongoDb.Analytics;
 using Web.Fiap.Carbono.Dtos.MongoDb.Produtos;
 using Web.Fiap.Carbono.Models.Documents;
 
@@ -23,5 +24,9 @@ public interface IMongoProdutoService
 
     Task DeleteAsync(
         string id,
+        CancellationToken cancellationToken = default);
+
+    Task<ProdutoPegadaMongoResponse> GetFootprintAsync(
+        string produtoId,
         CancellationToken cancellationToken = default);
 }

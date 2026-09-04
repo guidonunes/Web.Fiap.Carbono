@@ -1,3 +1,4 @@
+using Web.Fiap.Carbono.Dtos.MongoDb.Analytics;
 using Web.Fiap.Carbono.Dtos.MongoDb.Empresas;
 using Web.Fiap.Carbono.Models.Documents;
 
@@ -24,4 +25,9 @@ public interface IMongoEmpresaService
     Task DeleteAsync(
         string id,
         CancellationToken cancellationToken = default);
+
+    Task<DashboardEmpresaMongoResponse> GetDashboardAsync(
+        string empresaId,
+        CancellationToken cancellationToken = default);
+
 }

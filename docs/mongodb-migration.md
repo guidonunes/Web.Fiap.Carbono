@@ -4,9 +4,9 @@
 
 This document defines and records the migration of **Web.Fiap.Carbono** from Oracle Database and Entity Framework Core to MongoDB. It is also the technical report for the FIAP MongoDB challenge.
 
-The target architecture and commands are defined here before implementation. Sections marked as **execution evidence** must be completed only after the corresponding scripts and API operations have been run. Do not present planned results as completed work.
+The target architecture and commands are recorded alongside the implementation state verified through Phase 11. Sections marked as **execution evidence** remain incomplete until the corresponding scripts and API operations have been run and captured. Do not present planned or uncaptured results as completed work.
 
-Oracle remains the active persistence provider. The [Oracle API baseline](oracle-baseline.md) records observable responses and representative totals for comparison with the future MongoDB implementation. Its calculation request succeeded with `201 Created`, persisted emission `41`, and returned `122.55 kgCO2e`; detailed evidence and the remaining aggregate-refresh status are maintained in the baseline report.
+The application currently uses a transitional hybrid persistence model. MongoDB is active for company, product, supplier, and emission-factor CRUD; emission calculation and MongoDB emission lookup; and the product-footprint, supplier-ranking, and company-dashboard endpoints. Oracle remains active for the legacy paginated emission list and integer-ID emission lookup until the Phase 14 removal gate is satisfied. The [Oracle API baseline](oracle-baseline.md) records the comparison responses and representative totals. Its calculation request succeeded with `201 Created`, persisted emission `41`, and returned `122.55 kgCO2e`; detailed evidence and the remaining aggregate-refresh status are maintained in the baseline report.
 
 ### Local MongoDB environment status
 
@@ -14,7 +14,7 @@ Phase 2 was verified on 2026-08-31 using the course-supported `mongo:8.0.29-nobl
 
 Docker reported the container as healthy. A direct `mongosh` connection to `mongodb://localhost:27017/fiap_carbono` returned `{ ok: 1 }` with `fiap_carbono` as the database context, and MongoDB Compass connected successfully through port `27017`. The safe example settings are stored in `.env.example`, while the local `.env` is ignored and untracked.
 
-This environment is isolated from the running application at this phase. Oracle remains the active API persistence provider; no MongoDB driver or application persistence configuration has been added yet.
+At the Phase 2 checkpoint, this environment was isolated from the running application: Oracle was still the only API persistence provider and the MongoDB driver had not yet been added. Later phases connected the application to MongoDB while retaining the limited Oracle paths described above.
 
 ## 1. Project overview
 
@@ -199,7 +199,7 @@ Example:
 {
   _id: ObjectId("..."),
   empresaId: ObjectId("..."),
-  codigo: "PROD-001",
+  codigo: "PRO-001",
   nome: "Garrafa Circular 750 ml",
   categoria: "EMBALAGEM",
   unidadeFuncional: "UNIDADE",
@@ -717,13 +717,13 @@ mongosh "mongodb://localhost:27017/fiap_carbono" \
   --file database/mongodb/03-seed.js
 ```
 
-Use deterministic business keys such as `EMP-001`, `PROD-001`, `FOR-001`, and `FE-ENERGIA-001`. The script should resolve generated `ObjectId` references from these keys instead of hard-coding unrelated IDs.
+Use deterministic business keys such as `EMP-001`, `PRO-001`, `FOR-001`, and `FE-ENERGIA-001`. The script should resolve generated `ObjectId` references from these keys instead of hard-coding unrelated IDs.
 
 Recommended pattern:
 
 ```javascript
 const empresa = db.empresas.findOne({ codigo: "EMP-001" })
-const produto = db.produtos.findOne({ empresaId: empresa._id, codigo: "PROD-001" })
+const produto = db.produtos.findOne({ empresaId: empresa._id, codigo: "PRO-001" })
 const fornecedor = db.fornecedores.findOne({ codigo: "FOR-001" })
 const fator = db.fatores_emissao.findOne({ codigo: "FE-TRANS-DIESEL", versao: 1 })
 
@@ -993,35 +993,34 @@ The committed pipelines must live in `database/mongodb/05-aggregation-queries.js
 
 ### 13.1 Product footprint
 
-This pipeline returns total emissions by supply-chain category for a selected product.
+This pipeline returns the total and supply-chain-category breakdown for the selected product from the same event set. The executable script resolves the product and company display data separately.
 
 ```javascript
-const produtoIdPegada = db.produtos.findOne({ codigo: "PROD-001" })._id
+const produtoIdPegada = db.produtos.findOne({ codigo: "PRO-001" })._id
 
 db.emissoes_carbono.aggregate([
   { $match: { produtoId: produtoIdPegada } },
   {
-    $group: {
-      _id: "$etapa.categoria",
-      totalKgCO2e: { $sum: "$quantidadeEmitidaKgCO2e" },
-      quantidadeRegistros: { $sum: 1 }
-    }
-  },
-  { $sort: { totalKgCO2e: -1 } },
-  {
-    $group: {
-      _id: null,
-      totalProdutoKgCO2e: { $sum: "$totalKgCO2e" },
-      porCategoria: {
-        $push: {
-          categoria: "$_id",
-          totalKgCO2e: "$totalKgCO2e",
-          quantidadeRegistros: "$quantidadeRegistros"
+    $facet: {
+      total: [
+        {
+          $group: {
+            _id: null,
+            totalKgCO2e: { $sum: "$quantidadeEmitidaKgCO2e" }
+          }
         }
-      }
+      ],
+      porEtapa: [
+        {
+          $group: {
+            _id: "$etapa.categoria",
+            totalKgCO2e: { $sum: "$quantidadeEmitidaKgCO2e" }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]
     }
-  },
-  { $project: { _id: 0, totalProdutoKgCO2e: 1, porCategoria: 1 } }
+  }
 ])
 ```
 
@@ -1033,12 +1032,9 @@ db.emissoes_carbono.aggregate([
     $group: {
       _id: "$fornecedorId",
       totalKgCO2e: { $sum: "$quantidadeEmitidaKgCO2e" },
-      quantidadeRegistros: { $sum: 1 }
+      quantidadeEmissoes: { $sum: 1 }
     }
   },
-  { $sort: { totalKgCO2e: -1, _id: 1 } },
-  { $skip: 0 },
-  { $limit: 10 },
   {
     $lookup: {
       from: "fornecedores",
@@ -1047,15 +1043,40 @@ db.emissoes_carbono.aggregate([
       as: "fornecedor"
     }
   },
-  { $unwind: "$fornecedor" },
   {
-    $project: {
-      _id: 0,
-      fornecedorId: "$_id",
-      codigo: "$fornecedor.codigo",
-      nome: "$fornecedor.nomeFantasia",
-      totalKgCO2e: 1,
-      quantidadeRegistros: 1
+    $set: {
+      codigoFornecedor: { $arrayElemAt: ["$fornecedor.codigo", 0] },
+      nomeFantasiaFornecedor: {
+        $arrayElemAt: ["$fornecedor.nomeFantasia", 0]
+      },
+      razaoSocialFornecedor: {
+        $arrayElemAt: ["$fornecedor.razaoSocial", 0]
+      }
+    }
+  },
+  { $sort: { totalKgCO2e: -1, _id: 1 } },
+  {
+    $facet: {
+      items: [
+        { $skip: 0 },
+        { $limit: 10 },
+        {
+          $project: {
+            _id: 0,
+            idFornecedor: "$_id",
+            codigoFornecedor: 1,
+            nomeFornecedor: {
+              $ifNull: [
+                "$nomeFantasiaFornecedor",
+                "$razaoSocialFornecedor"
+              ]
+            },
+            totalCo2e: "$totalKgCO2e",
+            quantidadeEmissoes: 1
+          }
+        }
+      ],
+      total: [{ $count: "totalItems" }]
     }
   }
 ])
@@ -1075,10 +1096,25 @@ db.emissoes_carbono.aggregate([
           $group: {
             _id: null,
             totalKgCO2e: { $sum: "$quantidadeEmitidaKgCO2e" },
-            quantidadeRegistros: { $sum: 1 }
+            quantidadeEmissoes: { $sum: 1 },
+            produtos: { $addToSet: "$produtoId" }
           }
         },
-        { $project: { _id: 0 } }
+        {
+          $project: {
+            _id: 0,
+            totalKgCO2e: 1,
+            quantidadeEmissoes: 1,
+            quantidadeProdutos: { $size: "$produtos" },
+            mediaEmissaoPorProduto: {
+              $cond: [
+                { $eq: [{ $size: "$produtos" }, 0] },
+                NumberDecimal("0"),
+                { $divide: ["$totalKgCO2e", { $size: "$produtos" }] }
+              ]
+            }
+          }
+        }
       ],
       porMes: [
         {
@@ -1099,7 +1135,7 @@ db.emissoes_carbono.aggregate([
             totalKgCO2e: { $sum: "$quantidadeEmitidaKgCO2e" }
           }
         },
-        { $sort: { totalKgCO2e: -1 } }
+        { $sort: { totalKgCO2e: -1, _id: 1 } }
       ],
       porFornecedor: [
         {
@@ -1108,7 +1144,7 @@ db.emissoes_carbono.aggregate([
             totalKgCO2e: { $sum: "$quantidadeEmitidaKgCO2e" }
           }
         },
-        { $sort: { totalKgCO2e: -1 } }
+        { $sort: { totalKgCO2e: -1, _id: 1 } }
       ],
       porEscopo: [
         {
@@ -1126,11 +1162,25 @@ db.emissoes_carbono.aggregate([
 
 `$facet` is appropriate here because all summaries share the same company filter while producing different analytical views.
 
+### 13.4 Phase 11 implementation status
+
+Phase 11 was verified on 2026-09-04 against a disposable MongoDB 8.0.29 environment and a separate clean database initialized by `01-create-collections.js`, `02-create-indexes.js`, and `03-seed.js`. The API and `05-aggregation-queries.js` produced equivalent Decimal128 results. The clean database retained 10 companies, 10 products, 10 suppliers, 10 factors, and 15 emissions after the read-only aggregation script.
+
+The verified clean-seed values were:
+
+- product `PRO-001`: `172.9500 kgCO2e`, comprising `122.5500` for `ENERGIA` and `50.4000` for `TRANSPORTE`;
+- supplier order: `FOR-005`, `FOR-009`, `FOR-003`, `FOR-002`, `FOR-008`, and `FOR-001`;
+- company `EMP-001`: `172.9500 kgCO2e`, 2 emissions, 1 product, and an average of `172.9500 kgCO2e` per product;
+- company `EMP-001` highest emitters: product `PRO-001` and supplier `FOR-002`;
+- company `EMP-001` January 2026 total: `172.9500 kgCO2e`.
+
+The product-footprint, supplier-ranking, and company-dashboard API tests passed with deterministic sorting, one-based pagination, monthly and scope facets, and display-data resolution. The complete solution suite passed 87/87 tests. Screenshot evidence remains pending and is not represented as captured.
+
 ## 14. API migration
 
 ### 14.1 Persistence configuration
 
-Add the official MongoDB .NET driver and configure:
+The implementation uses the official MongoDB .NET driver and this configuration shape:
 
 ```json
 {
@@ -1148,7 +1198,7 @@ MongoDb__ConnectionString
 MongoDb__DatabaseName
 ```
 
-Create one application-wide `MongoClient`. Expose typed collections through `MongoDbContext`, and use dedicated repositories for MongoDB filters, updates, paging, and aggregation pipelines.
+One application-wide `MongoClient` is registered. `MongoDbContext` exposes typed collections, and dedicated repositories keep MongoDB filters, updates, paging, and aggregation pipelines explicit.
 
 #### Phase 6 implementation status
 
@@ -1241,7 +1291,11 @@ The service must:
 10. save the emission document;
 11. return `201 Created` and a resource location.
 
-The existing `422 Unprocessable Entity` behavior for an inactive factor should be retained.
+The implementation returns `422 Unprocessable Entity` for inactive, expired, not-yet-valid, or unit-incompatible factors.
+
+#### Phase 10 implementation status
+
+Phase 10 was verified on 2026-09-03 with a disposable MongoDB 8.0.29 integration environment. The calculation endpoint supports `TRANSPORTE`, `ENERGIA`, `MATERIA_PRIMA`, and `RESIDUO`; uses `decimal` and BSON Decimal128 values; validates all parent references and factor eligibility; preserves the embedded applied-factor snapshot; and returns `201 Created` with a resolvable MongoDB resource location. The verified suite also covers malformed ObjectIds, missing references, zero or negative quantities, authentication, UTC audit metadata, and the flexible `dadosAtividade` structure for every supported activity type.
 
 ### 14.4 Analytics compatibility
 
@@ -1255,7 +1309,7 @@ GET /api/fornecedores-carbono/ranking
 GET /api/dashboard-carbono/empresas/{id}/resumo
 ```
 
-Internally, EF Core queries are replaced by MongoDB filters and aggregation pipelines.
+The three analytics routes now use MongoDB filters and aggregation pipelines. The legacy emission pagination and integer-ID lookup remain Oracle-backed until the final cutover.
 
 ## 15. Testing and reconciliation
 
@@ -1286,6 +1340,8 @@ dotnet restore Web.Fiap.Carbono.sln
 dotnet build Web.Fiap.Carbono.sln
 dotnet test Web.Fiap.Carbono.sln
 ```
+
+As of the Phase 11 verification on 2026-09-04, the complete solution suite passed 87/87 tests. MongoDB persistence, service, and API integration tests use disposable MongoDB 8.0.29 containers; retained Oracle emission-read tests still use isolated EF Core InMemory registration. Final Phase 13 reconciliation of the complete test matrix remains a separate roadmap task.
 
 ### 15.2 Oracle data migration
 
@@ -1402,10 +1458,10 @@ dotnet test Web.Fiap.Carbono.sln
 - [x] Each collection contains at least ten permanent documents.
 - [ ] CRUD is executed and evidenced for every collection.
 - [x] At least three meaningful activity-document shapes are demonstrated.
-- [ ] Emission calculations use decimal arithmetic and preserve factor snapshots.
-- [ ] Product, supplier, and company aggregations return correct results.
-- [ ] MongoDB integration tests pass.
+- [x] Emission calculations use decimal arithmetic and preserve factor snapshots.
+- [x] Product, supplier, and company aggregations return correct results.
+- [x] MongoDB integration tests pass through the verified Phase 11 scope.
 - [ ] Oracle data is reconciled or the seed-only approach is documented.
 - [ ] Screenshots are inserted with captions.
 - [ ] No credentials or personal data appear in the report.
-- [ ] README commands match committed scripts.
+- [x] README commands match committed scripts.

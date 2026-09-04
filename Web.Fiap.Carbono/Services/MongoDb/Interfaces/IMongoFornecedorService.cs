@@ -1,3 +1,5 @@
+using Web.Fiap.Carbono.Data.MongoDb.Repositories;
+using Web.Fiap.Carbono.Dtos.MongoDb.Analytics;
 using Web.Fiap.Carbono.Dtos.MongoDb.Fornecedores;
 using Web.Fiap.Carbono.Models.Documents;
 
@@ -24,4 +26,11 @@ public interface IMongoFornecedorService
     Task DeleteAsync(
         string id,
         CancellationToken cancellationToken = default);
+
+    Task<MongoPagedResult<FornecedorRankingMongoResponse>>
+        GetRankingAsync(
+            int pageNumber,
+            int pageSize,
+            CancellationToken cancellationToken = default);
+
 }

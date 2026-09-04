@@ -7,6 +7,8 @@ using Web.Fiap.Carbono.Models.Documents;
 using Web.Fiap.Carbono.Models.Documents.Embedded;
 using Web.Fiap.Carbono.Services.MongoDb.Exceptions;
 using Web.Fiap.Carbono.Services.MongoDb.Interfaces;
+using Web.Fiap.Carbono.Data.MongoDb.Repositories;
+using Web.Fiap.Carbono.Dtos.MongoDb.Analytics;
 
 namespace Web.Fiap.Carbono.Services.MongoDb;
 
@@ -191,6 +193,39 @@ public sealed class MongoFornecedorService : IMongoFornecedorService
         {
             throw new NotFoundException("Fornecedor não encontrado.");
         }
+    }
+
+    public async Task<
+            MongoPagedResult<FornecedorRankingMongoResponse>>
+        GetRankingAsync(
+            int pageNumber,
+            int pageSize,
+            CancellationToken cancellationToken = default)
+    {
+        var ranking = await _emissaoRepository.GetSupplierRankingAsync(
+            pageNumber,
+            pageSize,
+            cancellationToken);
+
+        var items = ranking.Items
+            .Select(item => new FornecedorRankingMongoResponse
+            {
+                IdFornecedor = item.FornecedorId.ToString(),
+                CodigoFornecedor = item.Codigo,
+                NomeFornecedor =
+                    item.Nome
+                    ?? item.Codigo
+                    ?? item.FornecedorId.ToString(),
+                TotalCo2e = item.TotalKgCO2e,
+                QuantidadeEmissoes = item.QuantidadeEmissoes
+            })
+            .ToList();
+
+        return new MongoPagedResult<FornecedorRankingMongoResponse>(
+            items,
+            ranking.TotalItems,
+            ranking.PageNumber,
+            ranking.PageSize);
     }
 
     private static FornecedorDocument BuildDocument(

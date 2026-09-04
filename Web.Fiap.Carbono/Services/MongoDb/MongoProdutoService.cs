@@ -1,6 +1,7 @@
 using MongoDB.Bson;
 using Web.Fiap.Carbono.Data.MongoDb.Repositories.Exceptions;
 using Web.Fiap.Carbono.Data.MongoDb.Repositories.Interfaces;
+using Web.Fiap.Carbono.Dtos.MongoDb.Analytics;
 using Web.Fiap.Carbono.Dtos.MongoDb.Common;
 using Web.Fiap.Carbono.Dtos.MongoDb.Produtos;
 using Web.Fiap.Carbono.Models.Documents;
@@ -192,6 +193,44 @@ public sealed class MongoProdutoService : IMongoProdutoService
         {
             throw new NotFoundException("Produto não encontrado.");
         }
+    }
+
+    public async Task<ProdutoPegadaMongoResponse> GetFootprintAsync(
+        string produtoId,
+        CancellationToken cancellationToken = default)
+    {
+        var produto = await GetByIdAsync(
+            produtoId,
+            cancellationToken);
+
+        var empresa = await _empresaRepository.GetByIdAsync(
+                          produto.EmpresaId.ToString(),
+                          cancellationToken)
+                      ?? throw new NotFoundException(
+                          "A empresa vinculada ao produto não foi encontrada.");
+
+        var pegada = await _emissaoRepository.GetProductFootprintAsync(
+            produto.Id.ToString(),
+            cancellationToken);
+
+        return new ProdutoPegadaMongoResponse
+        {
+            IdProduto = produto.Id.ToString(),
+            NomeProduto = produto.Nome,
+            NomeEmpresa =
+                empresa.NomeFantasia ?? empresa.RazaoSocial,
+            TotalCo2e = pegada?.TotalKgCO2e ?? 0m,
+            Unidade = "kgCO2e",
+            EmissoesPorEtapa = pegada is null
+                ? Array.Empty<EmissaoPorEtapaMongoResponse>()
+                : pegada.PorEtapa
+                    .Select(item => new EmissaoPorEtapaMongoResponse
+                    {
+                        TipoEtapa = item.Categoria,
+                        TotalCo2e = item.TotalKgCO2e
+                    })
+                    .ToList()
+        };
     }
 
     private async Task EnsureCompanyExistsAsync(

@@ -868,11 +868,11 @@ Rebuild the three existing analytics features with aggregation pipelines.
 
 ### 11.1 Product footprint
 
-- [ ] Match emissions by `produtoId`.
-- [ ] Sum the total `quantidadeEmitidaKgCO2e`.
-- [ ] Group totals by stage category.
-- [ ] Return the product identity and breakdown.
-- [ ] Preserve the existing endpoint when practical:
+- [x] Match emissions by `produtoId`.
+- [x] Sum the total `quantidadeEmitidaKgCO2e`.
+- [x] Group totals by stage category.
+- [x] Return the product identity and breakdown.
+- [x] Preserve the existing endpoint when practical:
 
 ```text
 GET /api/produtos-carbono/{idProduto}/pegada
@@ -880,12 +880,12 @@ GET /api/produtos-carbono/{idProduto}/pegada
 
 ### 11.2 Supplier ranking
 
-- [ ] Group emissions by `fornecedorId`.
-- [ ] Sum emissions per supplier.
-- [ ] Join supplier display data only when required.
-- [ ] Sort by total emissions descending.
-- [ ] Apply stable pagination.
-- [ ] Preserve the existing endpoint:
+- [x] Group emissions by `fornecedorId`.
+- [x] Sum emissions per supplier.
+- [x] Join supplier display data only when required.
+- [x] Sort by total emissions descending.
+- [x] Apply stable pagination.
+- [x] Preserve the existing endpoint:
 
 ```text
 GET /api/fornecedores-carbono/ranking?pageNumber=1&pageSize=10
@@ -893,16 +893,16 @@ GET /api/fornecedores-carbono/ranking?pageNumber=1&pageSize=10
 
 ### 11.3 Company dashboard
 
-- [ ] Match emissions by `empresaId`.
-- [ ] Use `$facet` to calculate multiple summaries in one pipeline.
-- [ ] Calculate the overall emission total.
-- [ ] Calculate total emission count.
-- [ ] Calculate monthly emissions.
-- [ ] Calculate average emissions per product.
-- [ ] Identify the highest-emitting product.
-- [ ] Identify the highest-emitting supplier.
-- [ ] Add totals by GHG scope if useful for the report.
-- [ ] Preserve the existing endpoint:
+- [x] Match emissions by `empresaId`.
+- [x] Use `$facet` to calculate multiple summaries in one pipeline.
+- [x] Calculate the overall emission total.
+- [x] Calculate total emission count.
+- [x] Calculate monthly emissions.
+- [x] Calculate average emissions per product.
+- [x] Identify the highest-emitting product.
+- [x] Identify the highest-emitting supplier.
+- [x] Add totals by GHG scope if useful for the report.
+- [x] Preserve the existing endpoint:
 
 ```text
 GET /api/dashboard-carbono/empresas/{idEmpresa}/resumo
@@ -910,28 +910,39 @@ GET /api/dashboard-carbono/empresas/{idEmpresa}/resumo
 
 ### 11.4 Reusable demonstration script
 
-- [ ] Add equivalent raw MongoDB pipelines to `database/mongodb/05-aggregation-queries.js`.
-- [ ] Print readable results for screenshots.
-- [ ] Comment each pipeline stage in the script.
+- [x] Add equivalent raw MongoDB pipelines to `database/mongodb/05-aggregation-queries.js`.
+- [x] Print readable results for screenshots.
+- [x] Comment each pipeline stage in the script.
 
 ### Verification
 
 Compare MongoDB results with manual calculations from the deterministic seed:
 
-- [ ] Product total.
-- [ ] Breakdown by stage.
-- [ ] Supplier ranking order.
-- [ ] Company total.
-- [ ] Monthly series.
-- [ ] Highest-emitting product.
-- [ ] Highest-emitting supplier.
+- [x] Product total.
+- [x] Breakdown by stage.
+- [x] Supplier ranking order.
+- [x] Company total.
+- [x] Monthly series.
+- [x] Highest-emitting product.
+- [x] Highest-emitting supplier.
 
 ### Exit gate
 
-- [ ] All three analytics endpoints return correct results.
-- [ ] Raw aggregation scripts produce equivalent results.
-- [ ] Results match manual seed calculations.
-- [ ] Pagination behavior remains compatible with the current API.
+- [x] All three analytics endpoints return correct results.
+- [x] Raw aggregation scripts produce equivalent results.
+- [x] Results match manual seed calculations.
+- [x] Pagination behavior remains compatible with the current API.
+
+Verified on 2026-09-04 with MongoDB 8.0.29. The three public API
+endpoints and their repository pipelines passed against disposable MongoDB
+fixtures, including Decimal128 totals, deterministic supplier ordering,
+one-based pagination, monthly and scope facets, and highest-emitter display
+resolution. A separate temporary MongoDB instance was initialized with
+`01-create-collections.js`, `02-create-indexes.js`, and `03-seed.js` before
+running the read-only `05-aggregation-queries.js`. The clean dataset retained
+10 companies, 10 products, 10 suppliers, 10 factors, and 15 emissions, and the
+script matched the documented manual totals and ordering. The solution built
+with zero warnings and errors, and the complete suite passed 87/87 tests.
 
 ## Phase 12 — Migrate existing Oracle data
 

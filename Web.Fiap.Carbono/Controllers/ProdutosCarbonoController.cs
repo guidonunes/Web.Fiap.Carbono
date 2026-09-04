@@ -1,51 +1,41 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Web.Fiap.Carbono.Services.Interfaces;
-using Web.Fiap.Carbono.ViewModel;
+using Web.Fiap.Carbono.Dtos.MongoDb.Analytics;
+using Web.Fiap.Carbono.Services.MongoDb.Interfaces;
 
 namespace Web.Fiap.Carbono.Controllers;
 
 [ApiController]
 [Route("api/produtos-carbono")]
 [Tags("Carbon Products")]
-public class ProdutosCarbonoController : ControllerBase
+[Produces("application/json")]
+public sealed class ProdutosCarbonoController : ControllerBase
 {
-    private readonly IProdutoCarbonoService _produtoCarbonoService;
-    private readonly IMapper _mapper;
+    private readonly IMongoProdutoService _produtoService;
 
     public ProdutosCarbonoController(
-        IProdutoCarbonoService produtoCarbonoService,
-        IMapper mapper)
+        IMongoProdutoService produtoService)
     {
-        _produtoCarbonoService = produtoCarbonoService;
-        _mapper = mapper;
+        _produtoService = produtoService;
     }
 
-    [HttpGet("{idProduto:int}/pegada")]
-    public async Task<ActionResult<ProdutoPegadaCarbonoViewModel>> GetPegadaCarbono(int idProduto)
+    /// <summary>
+    /// Retorna a pegada de carbono agregada de um produto.
+    /// </summary>
+    [HttpGet("{idProduto}/pegada")]
+    [ProducesResponseType(
+        typeof(ProdutoPegadaMongoResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProdutoPegadaMongoResponse>>
+        GetPegadaCarbono(
+            [FromRoute] string idProduto,
+            CancellationToken cancellationToken)
     {
-        try
-        {
-            var produto = await _produtoCarbonoService.GetProdutoComEmissoesAsync(idProduto);
+        var response = await _produtoService.GetFootprintAsync(
+            idProduto,
+            cancellationToken);
 
-            if (produto is null)
-            {
-                return NotFound(new
-                {
-                    message = "Produto não encontrado."
-                });
-            }
-
-            var produtoViewModel = _mapper.Map<ProdutoPegadaCarbonoViewModel>(produto);
-
-            return Ok(produtoViewModel);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
-        }
+        return Ok(response);
     }
 }

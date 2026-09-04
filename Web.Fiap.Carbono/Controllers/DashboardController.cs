@@ -1,51 +1,41 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Web.Fiap.Carbono.Services.Interfaces;
-using Web.Fiap.Carbono.ViewModel;
+using Web.Fiap.Carbono.Dtos.MongoDb.Analytics;
+using Web.Fiap.Carbono.Services.MongoDb.Interfaces;
 
 namespace Web.Fiap.Carbono.Controllers;
 
 [ApiController]
 [Route("api/dashboard-carbono")]
 [Tags("Carbon Dashboard")]
-public class DashboardCarbonoController : ControllerBase
+[Produces("application/json")]
+public sealed class DashboardCarbonoController : ControllerBase
 {
-    private readonly IDashboardCarbonoService _dashboardCarbonoService;
-    private readonly IMapper _mapper;
+    private readonly IMongoEmpresaService _empresaService;
 
     public DashboardCarbonoController(
-        IDashboardCarbonoService dashboardCarbonoService,
-        IMapper mapper)
+        IMongoEmpresaService empresaService)
     {
-        _dashboardCarbonoService = dashboardCarbonoService;
-        _mapper = mapper;
+        _empresaService = empresaService;
     }
 
-    [HttpGet("empresas/{idEmpresa:int}/resumo")]
-    public async Task<ActionResult<DashboardCarbonoViewModel>> GetResumoEmpresa(int idEmpresa)
+    /// <summary>
+    /// Retorna o resumo de emissões de uma empresa.
+    /// </summary>
+    [HttpGet("empresas/{idEmpresa}/resumo")]
+    [ProducesResponseType(
+        typeof(DashboardEmpresaMongoResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<DashboardEmpresaMongoResponse>>
+        GetResumoEmpresa(
+            [FromRoute] string idEmpresa,
+            CancellationToken cancellationToken)
     {
-        try
-        {
-            var empresa = await _dashboardCarbonoService.GetEmpresaComDadosCarbonoAsync(idEmpresa);
+        var response = await _empresaService.GetDashboardAsync(
+            idEmpresa,
+            cancellationToken);
 
-            if (empresa is null)
-            {
-                return NotFound(new
-                {
-                    message = "Empresa não encontrada."
-                });
-            }
-
-            var dashboardViewModel = _mapper.Map<DashboardCarbonoViewModel>(empresa);
-
-            return Ok(dashboardViewModel);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
-        }
+        return Ok(response);
     }
 }
