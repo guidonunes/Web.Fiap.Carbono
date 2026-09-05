@@ -16,6 +16,11 @@ public interface IMongoEmissaoCarbonoRepository
         CancellationToken cancellationToken
     );
 
+    Task<EmissaoCarbonoDocument?> GetByLegacyIdAsync(
+        int legacyId,
+        CancellationToken cancellationToken
+    );
+
     Task<EmissaoCarbonoDocument?> GetByCodigoAsync(
         string codigo,
         CancellationToken cancellationToken

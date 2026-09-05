@@ -1251,6 +1251,15 @@ fatores-emissao
 emissoes-carbono
 ```
 
+The emission CRUD demonstration creates events through calculation and exposes
+these protected mutation routes for the isolated `CRUD-TEMP-EMISSAO` record:
+
+```text
+GET    /api/emissoes-carbono/mongodb/{id}
+PUT    /api/emissoes-carbono/mongodb/{id}
+DELETE /api/emissoes-carbono/mongodb/{id}
+```
+
 Authorization policy:
 
 | Operation | Roles |
@@ -1341,7 +1350,11 @@ dotnet build Web.Fiap.Carbono.sln
 dotnet test Web.Fiap.Carbono.sln
 ```
 
-As of the Phase 11 verification on 2026-09-04, the complete solution suite passed 87/87 tests. MongoDB persistence, service, and API integration tests use disposable MongoDB 8.0.29 containers; retained Oracle emission-read tests still use isolated EF Core InMemory registration. Final Phase 13 reconciliation of the complete test matrix remains a separate roadmap task.
+The historical Phase 11 checkpoint recorded 87/87 tests. Phase 13 now runs the
+repository, service, API, and migration integration tests against disposable
+MongoDB 8.0.29 containers; no EF Core InMemory persistence substitute remains.
+The complete post-Phase-13 suite passed 105/105 tests. Oracle remains in the
+application only until the later removal gate.
 
 ### 15.2 Oracle data migration
 

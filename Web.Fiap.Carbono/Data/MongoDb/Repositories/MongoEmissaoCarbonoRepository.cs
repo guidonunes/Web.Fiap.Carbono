@@ -59,6 +59,15 @@ public sealed class MongoEmissaoCarbonoRepository
         return emissao;
     }
 
+    public async Task<EmissaoCarbonoDocument?> GetByLegacyIdAsync(
+        int legacyId,
+        CancellationToken cancellationToken)
+    {
+        return await _emissoes
+            .Find(emissao => emissao.LegacyId == legacyId)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<EmissaoCarbonoDocument?> GetByCodigoAsync(
         string codigo,
         CancellationToken cancellationToken

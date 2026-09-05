@@ -119,6 +119,23 @@ public sealed class MongoEmissaoCarbonoService
                    "Emissão de carbono não encontrada.");
     }
 
+    public async Task<EmissaoCarbonoDocument> GetByLegacyIdAsync(
+        int legacyId,
+        CancellationToken cancellationToken = default)
+    {
+        if (legacyId <= 0)
+        {
+            throw new BadRequestException(
+                "idEmissao deve ser maior que zero.");
+        }
+
+        return await _repository.GetByLegacyIdAsync(
+                   legacyId,
+                   cancellationToken)
+               ?? throw new NotFoundException(
+                   "Emissão de carbono não encontrada.");
+    }
+
     public Task<MongoPagedResult<EmissaoCarbonoDocument>>
         GetPaginatedAsync(
             int pageNumber,
@@ -146,6 +163,7 @@ public sealed class MongoEmissaoCarbonoService
     public async Task<EmissaoCarbonoDocument> UpdateAuditAsync(
         string id,
         string observacao,
+        string revisadoPor,
         CancellationToken cancellationToken = default)
     {
         var document = await GetByIdAsync(id, cancellationToken);
@@ -159,6 +177,7 @@ public sealed class MongoEmissaoCarbonoService
                 "Emissões calculadas são registros históricos imutáveis.");
         }
 
+        var revisionTimestamp = GetCalculationTimestampUtc();
         var revised = new EmissaoCarbonoDocument
         {
             Id = document.Id,
@@ -183,10 +202,10 @@ public sealed class MongoEmissaoCarbonoService
                 1000),
             CalculadoPor = document.CalculadoPor,
             DataEmissao = document.DataEmissao,
-            RevisadoEm = document.RevisadoEm,
-            RevisadoPor = document.RevisadoPor,
+            RevisadoEm = revisionTimestamp,
+            RevisadoPor = EmissaoCalculationRules.ValidateCalculatedBy(revisadoPor),
             CriadoEm = document.CriadoEm,
-            AtualizadoEm = DateTime.UtcNow,
+            AtualizadoEm = revisionTimestamp,
             SchemaVersion = document.SchemaVersion
         };
 

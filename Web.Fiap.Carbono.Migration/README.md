@@ -154,7 +154,7 @@ timezone conversion, dry-run isolation, idempotency, conflicting documents,
 recovery from a real partial batch failure, and reconciliation failures. Run:
 
 Verification on 2026-09-05: restore and build succeeded with zero warnings or
-errors, 20/20 focused migration tests passed, and the full suite passed 107/107.
+errors, 20/20 focused migration tests passed, and the full suite passed 105/105.
 
 ```bash
 dotnet test Web.Fiap.Carbono.sln --filter 'FullyQualifiedName~Web.Fiap.Carbono.Tests.Migration'

@@ -10,6 +10,10 @@ public interface IMongoEmissaoCarbonoService
         string id,
         CancellationToken cancellationToken = default);
 
+    Task<EmissaoCarbonoDocument> GetByLegacyIdAsync(
+        int legacyId,
+        CancellationToken cancellationToken = default);
+
     Task<MongoPagedResult<EmissaoCarbonoDocument>> GetPaginatedAsync(
         int pageNumber,
         int pageSize,
@@ -18,6 +22,7 @@ public interface IMongoEmissaoCarbonoService
     Task<EmissaoCarbonoDocument> UpdateAuditAsync(
         string id,
         string observacao,
+        string revisadoPor,
         CancellationToken cancellationToken = default);
 
     Task DeleteTemporaryAsync(

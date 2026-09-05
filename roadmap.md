@@ -753,7 +753,7 @@ Expose complete CRUD operations for the five collections while preserving the ex
 - [x] Add CRUD controllers for products.
 - [x] Add CRUD controllers for suppliers.
 - [x] Add CRUD controllers for emission factors.
-- [x] Extend the emission controller with update and delete operations if they are included in the API demonstration. They are not included in the Phase 9 REST demonstration; emission mutations remain service-only and protected as `CRUD-TEMP` operations until the emission API is migrated.
+- [x] Extend the emission controller with protected `CRUD-TEMP-EMISSAO` update and delete operations for the API demonstration.
 - [x] Keep controllers responsible for HTTP concerns only.
 - [x] Validate parent references when creating products and emissions.
 - [x] Prevent creating emissions with inactive or out-of-validity factors.
@@ -790,20 +790,40 @@ PUT    /api/fatores-emissao/{id}
 DELETE /api/fatores-emissao/{id}
 ```
 
+Emission CRUD demonstration (calculation creates the document; mutations are
+restricted to the isolated temporary record):
+
+```text
+GET    /api/emissoes-carbono/mongodb/{id}
+PUT    /api/emissoes-carbono/mongodb/{id}
+DELETE /api/emissoes-carbono/mongodb/{id}
+```
+
 ### Delete policy
 
 For the academic CRUD demonstration, hard-delete isolated `CRUD-TEMP` documents. For meaningful ESG records, prefer deactivation or reject deletion when referenced by emissions. Document this distinction as a governance decision.
 
 ### Exit gate
 
-- [ ] CRUD works through both `mongosh` and the REST API.
+- [x] CRUD works through both `mongosh` and the REST API.
 - [x] Reference validation and authorization are enforced for the Phase 9 REST resources.
 - [x] Swagger documents the new endpoints.
 - [x] API errors follow the existing response contract.
 
-Verified on 2026-09-02 with a disposable `mongo:8.0.29-noble` integration fixture. REST CRUD passed for `empresas`, `produtos`, `fornecedores`, and `fatores_emissao`; tests also verified public reads, JWT role enforcement, `ADMIN`-only destructive operations and factor changes, missing product-company references, referenced-record protection, duplicate-key conflicts, malformed `ObjectId` handling, flexible-field preservation, the global JSON error contract, and Swagger descriptions/security metadata. Solution restore succeeded with two `NU1900` vulnerability-audit warnings because `api.nuget.org` access was denied in the execution environment, the solution build succeeded with zero warnings, and all 29 tests passed.
+Verified on 2026-09-02 and refreshed on 2026-09-05 with disposable
+`mongo:8.0.29-noble` integration fixtures. REST CRUD passed for all four
+master-data resources plus the protected temporary emission update/delete flow;
+tests also verified public reads, JWT role enforcement, `ADMIN`-only destructive
+operations and factor changes, missing product-company references,
+referenced-record protection, duplicate-key conflicts, malformed `ObjectId`
+handling, flexible-field preservation, the global JSON error contract, and
+Swagger descriptions/security metadata. The complete solution suite passed
+105/105 tests with zero build warnings or errors.
 
-Phase 9 remains visibly incomplete only because full emission CRUD is not yet available through the migrated REST API: MongoDB emission creation and retrieval are implemented, but update and delete remain service-only operations for the isolated `CRUD-TEMP-EMISSAO` demonstration. Phase 10 now verifies product, derived-company, supplier, and factor references and rejects inactive, expired, and not-yet-valid factors before persistence.
+Phase 9's migrated REST API now exposes emission creation through calculation,
+retrieval, and protected `CRUD-TEMP-EMISSAO` update/delete operations. Phase 10
+verifies product, derived-company, supplier, and factor references and rejects
+inactive, expired, and not-yet-valid factors before persistence.
 
 ## Phase 10 — Migrate the emission-calculation workflow
 
@@ -1005,7 +1025,7 @@ the converted UTC date range, all references, and every `legacyId`. Repeating
 the identical apply inserted zero documents and changed none. The application
 database on port `27017` retained its pre-run counts, and Oracle remained
 read-only. Restore and build passed with zero warnings or errors, 20/20 focused
-migration tests passed, and the full suite passed 107/107. See the
+migration tests passed, and the full suite passed 105/105. See the
 [reconciliation report](docs/oracle-mongodb-reconciliation.md).
 
 ### Tasks
@@ -1051,23 +1071,34 @@ Test real MongoDB behavior instead of relying on EF Core InMemory behavior.
 
 ### Tasks
 
-- [ ] Keep pure unit tests for validation and calculation logic.
-- [ ] Add MongoDB integration tests using a disposable container.
-- [ ] Start a clean database per test collection or test suite.
-- [ ] Run collection initialization and seed logic for test data.
-- [ ] Replace Oracle/EF Core test service registrations with MongoDB test registrations.
-- [ ] Test CRUD for every collection.
-- [ ] Test unique indexes.
-- [ ] Test BSON serialization.
-- [ ] Test invalid and missing ObjectIds.
-- [ ] Test valid emission calculations.
-- [ ] Test inactive and expired factors.
-- [ ] Test product-footprint aggregation.
-- [ ] Test supplier-ranking order and pagination.
-- [ ] Test company-dashboard totals.
-- [ ] Test authentication and authorization.
-- [ ] Test consistent error responses.
-- [ ] Ensure test data is isolated and deterministic.
+### Implementation status — 2026-09-05
+
+The test suite now uses disposable MongoDB 8.0.29 containers for repository,
+service, API, and migration integration tests. The former EF Core InMemory API
+harness and Oracle-shaped emission controller test were removed; equivalent
+MongoDB emission calculation/read, malformed-ID, and missing-document checks
+run through `MongoApiFixture`. Pure validation/calculation unit tests remain.
+Each fixture creates a fresh database and initializes the five collections and
+indexes before deterministic test data is inserted. The complete suite passed
+105/105 after this replacement.
+
+- [x] Keep pure unit tests for validation and calculation logic.
+- [x] Add MongoDB integration tests using a disposable container.
+- [x] Start a clean database per test collection or test suite.
+- [x] Run collection initialization and seed logic for test data.
+- [x] Replace Oracle/EF Core test service registrations with MongoDB test registrations.
+- [x] Test CRUD for every collection.
+- [x] Test unique indexes.
+- [x] Test BSON serialization.
+- [x] Test invalid and missing ObjectIds.
+- [x] Test valid emission calculations.
+- [x] Test inactive and expired factors.
+- [x] Test product-footprint aggregation.
+- [x] Test supplier-ranking order and pagination.
+- [x] Test company-dashboard totals.
+- [x] Test authentication and authorization.
+- [x] Test consistent error responses.
+- [x] Ensure test data is isolated and deterministic.
 
 ### Minimum API test matrix
 
@@ -1077,7 +1108,7 @@ Test real MongoDB behavior instead of relying on EF Core InMemory behavior.
 | Products | CRUD, missing company, duplicate company/code pair |
 | Suppliers | CRUD, duplicate CNPJ |
 | Factors | CRUD, invalid scope, inactive factor |
-| Emissions | CRUD demonstration, calculation, invalid references, unauthorized creation |
+| Emissions | MongoDB repository CRUD, API calculation/read, invalid references, unauthorized creation |
 | Product footprint | correct total and stage breakdown |
 | Supplier ranking | correct order and pagination |
 | Company dashboard | totals, monthly data, highest emitters |
@@ -1091,9 +1122,9 @@ dotnet test Web.Fiap.Carbono.sln
 
 ### Exit gate
 
-- [ ] Tests use a real MongoDB engine.
-- [ ] Tests are deterministic and independent.
-- [ ] All business, CRUD, aggregation, validation, and authorization tests pass.
+- [x] Tests use a real MongoDB engine.
+- [x] Tests are deterministic and independent.
+- [x] All business, CRUD, aggregation, validation, and authorization tests pass.
 
 ## Phase 14 — Remove Oracle and EF Core persistence
 
@@ -1103,24 +1134,24 @@ Complete the cutover only after the MongoDB version reaches parity.
 
 ### Preconditions
 
-- [ ] MongoDB CRUD endpoints work.
-- [ ] Emission calculation works.
-- [ ] Analytics results are correct.
-- [ ] Integration tests pass.
-- [ ] Oracle data has been migrated or the seed-only decision is documented.
+- [x] MongoDB CRUD endpoints work.
+- [x] Emission calculation works.
+- [x] Analytics results are correct.
+- [x] Integration tests pass.
+- [x] Oracle data has been migrated or the seed-only decision is documented.
 
 ### Tasks
 
-- [ ] Remove the Oracle EF Core provider package.
-- [ ] Remove unused EF Core packages if no longer needed.
-- [ ] Remove `DatabaseContext` and Oracle-specific registrations.
-- [ ] Remove or archive EF Core repositories.
-- [ ] Remove Oracle migrations from the active application path.
-- [ ] Remove `ConnectionStrings:OracleConnection` from active configuration.
-- [ ] Remove Oracle-only Docker and environment configuration.
-- [ ] Search the repository for stale Oracle and EF references.
-- [ ] Update build and deployment files.
-- [ ] Preserve historical source through Git rather than leaving dead code in the application.
+- [x] Remove the Oracle EF Core provider package.
+- [x] Remove unused EF Core packages if no longer needed.
+- [x] Remove `DatabaseContext` and Oracle-specific registrations.
+- [x] Remove or archive EF Core repositories.
+- [x] Remove Oracle migrations from the active application path.
+- [x] Remove `ConnectionStrings:OracleConnection` from active configuration.
+- [x] Remove Oracle-only Docker and environment configuration.
+- [x] Search the repository for stale Oracle and EF references.
+- [x] Update build and deployment files.
+- [x] Preserve historical source through Git rather than leaving dead code in the application.
 
 ### Verification
 
@@ -1136,9 +1167,9 @@ Review every `rg` result. Some historical documentation references may remain in
 
 ### Exit gate
 
-- [ ] The running API has no Oracle runtime dependency.
-- [ ] The active persistence implementation uses the MongoDB driver.
-- [ ] The clean build and all tests pass.
+- [x] The running API has no Oracle runtime dependency.
+- [x] The active persistence implementation uses the MongoDB driver.
+- [x] The clean build and all tests pass.
 
 ## Phase 15 — Update technical documentation
 

@@ -17,6 +17,71 @@ public sealed class MongoEmissionCalculationApiTest(
     MongoApiFixture fixture)
 {
     [Fact]
+    public async Task LegacyEmissionRoutes_ReadFromMongo()
+    {
+        await fixture.ClearAsync();
+        var references = await SeedReferencesAsync(activeFactor: true);
+        using var client = await AuthenticatedClientAsync();
+        var created = await client.PostAsJsonAsync(
+            "/api/emissoes-carbono/calcular",
+            CalculationPayload(references));
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var body = await created.Content
+            .ReadFromJsonAsync<EmissaoCarbonoMongoResponseViewModel>();
+        Assert.NotNull(body);
+
+        await fixture.Database
+            .GetCollection<EmissaoCarbonoDocument>(
+                MongoDbContext.EmissoesCarbonoCollectionName)
+            .UpdateOneAsync(
+                item => item.Id == ObjectId.Parse(body.Id),
+                Builders<EmissaoCarbonoDocument>.Update.Set(
+                    item => item.LegacyId,
+                    41));
+
+        var paged = await client.GetAsync(
+            "/api/emissoes-carbono?pageNumber=1&pageSize=10");
+        Assert.Equal(HttpStatusCode.OK, paged.StatusCode);
+
+        var byLegacyId = await client.GetAsync(
+            "/api/emissoes-carbono/41");
+        Assert.Equal(HttpStatusCode.OK, byLegacyId.StatusCode);
+        var legacyBody = await byLegacyId.Content
+            .ReadFromJsonAsync<EmissaoCarbonoMongoResponseViewModel>();
+        Assert.NotNull(legacyBody);
+        Assert.Equal(41, legacyBody.LegacyId);
+    }
+
+    [Fact]
+    public async Task GetById_ReturnsPersistedMongoEmissionAndValidatesObjectId()
+    {
+        await fixture.ClearAsync();
+        var references = await SeedReferencesAsync(activeFactor: true);
+        using var client = await AuthenticatedClientAsync();
+        var created = await client.PostAsJsonAsync(
+            "/api/emissoes-carbono/calcular",
+            CalculationPayload(references));
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var body = await created.Content
+            .ReadFromJsonAsync<EmissaoCarbonoMongoResponseViewModel>();
+        Assert.NotNull(body);
+
+        var response = await client.GetAsync($"/api/emissoes-carbono/mongodb/{body.Id}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var read = await response.Content
+            .ReadFromJsonAsync<EmissaoCarbonoMongoResponseViewModel>();
+        Assert.NotNull(read);
+        Assert.Equal(body.Id, read.Id);
+        Assert.Equal(body.QuantidadeEmitidaKgCO2e, read.QuantidadeEmitidaKgCO2e);
+
+        var malformed = await client.GetAsync("/api/emissoes-carbono/mongodb/not-an-object-id");
+        Assert.Equal(HttpStatusCode.BadRequest, malformed.StatusCode);
+        var missing = await client.GetAsync(
+            $"/api/emissoes-carbono/mongodb/{ObjectId.GenerateNewId()}");
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+    }
+
+    [Fact]
     public async Task Calculate_WithAnalystToken_ReturnsCreatedAndResolvableLocation()
     {
         await fixture.ClearAsync();

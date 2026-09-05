@@ -1,6 +1,5 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -8,17 +7,12 @@ using MongoDB.Driver;
 using Web.Fiap.Carbono.Config.MongoDb;
 using Web.Fiap.Carbono.Config.Security;
 using Web.Fiap.Carbono.Config.Swagger;
-using Web.Fiap.Carbono.Data.Contexts;
 using Web.Fiap.Carbono.Data.MongoDb;
 using Web.Fiap.Carbono.Data.MongoDb.Repositories;
 using Web.Fiap.Carbono.Data.MongoDb.Repositories.Interfaces;
-using Web.Fiap.Carbono.Data.Repository;
-using Web.Fiap.Carbono.Data.Repository.Implementations;
-using Web.Fiap.Carbono.Data.Repository.Interfaces;
-using Web.Fiap.Carbono.Mapping;
 using Web.Fiap.Carbono.Middlewares;
-using Web.Fiap.Carbono.Services.Implementations;
 using Web.Fiap.Carbono.Services.Interfaces;
+using Web.Fiap.Carbono.Services.Implementations;
 using Web.Fiap.Carbono.Services.MongoDb;
 using Web.Fiap.Carbono.Services.MongoDb.Interfaces;
 
@@ -153,30 +147,7 @@ builder.Services.AddAuthorization();
 
 #endregion
 
-#region DATA BASE INITIALIZATION
-
-var connectionString = builder.Configuration.GetConnectionString("OracleConnection");
-builder.Services.AddDbContext<DatabaseContext>(opt => opt.UseOracle(connectionString)
-);
-
-#endregion
-
-#region AutoMapper
-builder.Services.AddAutoMapper(cfg =>
-{
-    cfg.AddProfile<MappingProfile>();
-});
-
-builder.Services.AddScoped<IEmissaoCarbonoRepository, EmissaoCarbonoRepository>();
-builder.Services.AddScoped<IProdutoCarbonoRepository, ProdutoCarbonoRepository>();
-builder.Services.AddScoped<IFornecedorCarbonoRepository, FornecedorCarbonoRepository>();
-builder.Services.AddScoped<IDashboardCarbonoRepository, DashboardCarbonoRepository>();
-
-builder.Services.AddScoped<IEmissaoCarbonoService, EmissaoCarbonoService>();
-builder.Services.AddScoped<IProdutoCarbonoService, ProdutoCarbonoService>();
-builder.Services.AddScoped<IFornecedorCarbonoService, FornecedorCarbonoService>();
-builder.Services.AddScoped<IDashboardCarbonoService, DashboardCarbonoService>();
-
+#region Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 #endregion
 

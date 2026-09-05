@@ -13,6 +13,7 @@ using Web.Fiap.Carbono.Models.Documents;
 using Web.Fiap.Carbono.Models.Documents.Embedded;
 using Web.Fiap.Carbono.Tests.Config;
 using Web.Fiap.Carbono.ViewModel;
+using Web.Fiap.Carbono.ViewModel.MongoDb;
 
 namespace Web.Fiap.Carbono.Tests.Controllers;
 
@@ -313,6 +314,61 @@ public sealed class MongoCrudApiIntegrationTest(
     }
 
     [Fact]
+    public async Task ShouldUpdateAndDeleteOnlyTemporaryEmissionThroughRest()
+    {
+        using var admin = await AuthenticatedClientAsync("ADMIN");
+        var company = await CreateCompanyAsync(admin);
+        var product = await PostAsync<ProdutoResponse>(
+            admin, "/api/produtos", ProductPayload(company.Id));
+        var supplier = await PostAsync<FornecedorResponse>(
+            admin, "/api/fornecedores", SupplierPayload());
+        var factor = await PostAsync<FatorEmissaoResponse>(
+            admin, "/api/fatores-emissao", FactorPayload());
+
+        var temporary = CreateReferenceEmission(
+            company, product, supplier, factor, "CRUD-TEMP-EMISSAO");
+        await fixture.Database.GetCollection<EmissaoCarbonoDocument>(
+            MongoDbContext.EmissoesCarbonoCollectionName).InsertOneAsync(temporary);
+
+        using var analyst = await AuthenticatedClientAsync("ANALISTA_ESG");
+        var update = await analyst.PutAsJsonAsync(
+            $"/api/emissoes-carbono/mongodb/{temporary.Id}",
+            new { observacao = "Auditoria REST atualizada" });
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+        var updated = await update.Content
+            .ReadFromJsonAsync<EmissaoCarbonoMongoResponseViewModel>();
+        Assert.NotNull(updated);
+        Assert.Equal("Auditoria REST atualizada", updated.Observacao);
+        Assert.Equal("analista@carbono.com", updated.RevisadoPor);
+        Assert.NotNull(updated.RevisadoEm);
+        Assert.Equal(temporary.QuantidadeEmitidaKgCO2e, updated.QuantidadeEmitidaKgCO2e);
+
+        var historical = CreateReferenceEmission(company, product, supplier, factor);
+        await fixture.Database.GetCollection<EmissaoCarbonoDocument>(
+            MongoDbContext.EmissoesCarbonoCollectionName).InsertOneAsync(historical);
+        await AssertErrorAsync(
+            await analyst.PutAsJsonAsync(
+                $"/api/emissoes-carbono/mongodb/{historical.Id}",
+                new { observacao = "Tentativa de alterar histórico" }),
+            HttpStatusCode.Conflict);
+
+        var analystDelete = await analyst.DeleteAsync(
+            $"/api/emissoes-carbono/mongodb/{temporary.Id}");
+        Assert.Equal(HttpStatusCode.Forbidden, analystDelete.StatusCode);
+
+        var delete = await admin.DeleteAsync(
+            $"/api/emissoes-carbono/mongodb/{temporary.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
+        await AssertErrorAsync(
+            await admin.GetAsync($"/api/emissoes-carbono/mongodb/{temporary.Id}"),
+            HttpStatusCode.NotFound);
+
+        var malformed = await admin.DeleteAsync(
+            "/api/emissoes-carbono/mongodb/not-an-object-id");
+        Assert.Equal(HttpStatusCode.BadRequest, malformed.StatusCode);
+    }
+
+    [Fact]
     public async Task ShouldDocumentPhaseNineEndpointsAndAuthorizationInSwagger()
     {
         using var client = fixture.CreateClient();
@@ -363,6 +419,11 @@ public sealed class MongoCrudApiIntegrationTest(
                 .GetProperty("securitySchemes")
                 .TryGetProperty("Bearer", out _)
         );
+        var emissionOperations = paths.GetProperty(
+            "/api/emissoes-carbono/mongodb/{id}");
+        Assert.True(emissionOperations.TryGetProperty("put", out _));
+        Assert.True(emissionOperations.TryGetProperty("delete", out _));
+        Assert.True(emissionOperations.TryGetProperty("get", out _));
     }
 
     private async Task<HttpClient> AuthenticatedClientAsync(string role)
@@ -539,7 +600,8 @@ public sealed class MongoCrudApiIntegrationTest(
         EmpresaResponse company,
         ProdutoResponse product,
         FornecedorResponse supplier,
-        FatorEmissaoResponse factor
+        FatorEmissaoResponse factor,
+        string code = "REFERENCE-EMISSION-PHASE-9"
     )
     {
         var now = new DateTime(
@@ -555,7 +617,7 @@ public sealed class MongoCrudApiIntegrationTest(
         return new EmissaoCarbonoDocument
         {
             Id = ObjectId.GenerateNewId(),
-            Codigo = "REFERENCE-EMISSION-PHASE-9",
+            Codigo = code,
             EmpresaId = ObjectId.Parse(company.Id),
             ProdutoId = ObjectId.Parse(product.Id),
             FornecedorId = ObjectId.Parse(supplier.Id),

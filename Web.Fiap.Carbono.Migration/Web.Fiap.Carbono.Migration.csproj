@@ -8,5 +8,10 @@
   <ItemGroup>
     <ProjectReference Include="../Web.Fiap.Carbono/Web.Fiap.Carbono.csproj" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.22" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.22" />
+    <PackageReference Include="Oracle.EntityFrameworkCore" Version="8.23.90" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../archive/oracle/Data/Contexts/DatabaseContext.cs" Link="Legacy/DatabaseContext.cs" />
   </ItemGroup>
 </Project>
