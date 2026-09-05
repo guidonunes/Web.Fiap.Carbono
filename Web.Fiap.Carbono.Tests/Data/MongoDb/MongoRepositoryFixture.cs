@@ -9,23 +9,14 @@ namespace Web.Fiap.Carbono.Tests.Data.MongoDb;
 
 public sealed class MongoRepositoryFixture : IAsyncLifetime
 {
-    private const int MongoPort = 27018;
+    private const int MongoPort = 27017;
 
     private readonly IContainer _container = new ContainerBuilder(
         "mongo:8.0.29-noble"
     )
-        .WithCreateParameterModifier(parameters =>
-        {
-            parameters.HostConfig!.NetworkMode = "host";
-        })
-        .WithCommand(
-            "mongod",
-            "--bind_ip",
-            "127.0.0.1",
-            "--port",
-            MongoPort.ToString(),
-            "--noauth"
-        )
+        // Port 27018 belongs to the Phase 12 migration target. Tests own a
+        // disposable container on a dynamically allocated port instead.
+        .WithPortBinding(MongoPort, true)
         .WithWaitStrategy(
             Wait.ForUnixContainer().UntilMessageIsLogged(
                 "Waiting for connections"
@@ -40,7 +31,7 @@ public sealed class MongoRepositoryFixture : IAsyncLifetime
     {
         await _container.StartAsync();
         var settings = MongoClientSettings.FromConnectionString(
-            $"mongodb://127.0.0.1:{MongoPort}/?directConnection=true"
+            $"mongodb://{_container.Hostname}:{_container.GetMappedPublicPort(MongoPort)}/?directConnection=true"
         );
         settings.ServerSelectionTimeout = TimeSpan.FromSeconds(10);
         _client = new MongoClient(settings);

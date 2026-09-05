@@ -1360,7 +1360,16 @@ a clean, isolated MongoDB environment so the migrated records are not mixed with
 the existing local seed and Postman data. The migration must not drop or reset a
 shared database automatically.
 
-#### Phase 12 preparation status
+#### Phase 12 migration status
+
+The permanent [migration console tool](../Web.Fiap.Carbono.Migration/README.md)
+was implemented and executed on 2026-09-05. Its inventory reconfirmed the source
+counts and `3085.45 kgCO2e`. The checked-in policy records the reviewed Oracle
+timezone, missing-field defaults, factor versions/categories/validity starts,
+and stage-category mappings. Factor snapshots reconstructed from current Oracle
+factors are explicitly labeled; missing activity measurements and calculation
+users are not invented. Oracle access remained read-only, and the tool remains
+separate from API startup.
 
 On 2026-09-04, a temporary read-only EF Core inventory queried the configured
 Oracle `EC_*` tables directly. It found 5 companies, 5 products, 5 suppliers, 5
@@ -1372,12 +1381,11 @@ Oracle `DATE` range is `2026-06-15T19:59:34` through
 company, product, supplier, and monthly totals are recorded in the
 [Oracle baseline](oracle-baseline.md).
 
-A disposable MongoDB 8.0.29 target was also started on `127.0.0.1:27018` and
-initialized with `01-create-collections.js` and `02-create-indexes.js` only. Its
-`fiap_carbono` database contains exactly the five required collections, their
-validators and indexes, and zero documents in each collection. The persistent
-development MongoDB instance on port `27017` was not modified. No migration
-insert or Oracle write has occurred.
+A clean disposable MongoDB 8.0.29 target was started on `127.0.0.1:27018` and
+initialized with `01-create-collections.js` and `02-create-indexes.js` only. The
+dry run passed, then the migration inserted 5 companies, 5 products, 5 suppliers,
+5 factors, and 9 emissions. The persistent development MongoDB instance on port
+`27017` was not modified, and no Oracle write occurred.
 
 Migrate in dependency order:
 
@@ -1395,14 +1403,14 @@ Compare Oracle and MongoDB results before removing Oracle persistence:
 
 | Check | Oracle value | MongoDB value | Result |
 | --- | ---: | ---: | --- |
-| Company count | 5 | _To record_ | _Pending_ |
-| Product count | 5 | _To record_ | _Pending_ |
-| Supplier count | 5 | _To record_ | _Pending_ |
-| Factor count | 5 | _To record_ | _Pending_ |
-| Emission count | 9 | _To record_ | _Pending_ |
-| Total `kgCO2e` | 3085.45 | _To record_ | _Pending_ |
-| Earliest emission date | `2026-06-15T19:59:34` | _To record_ | _Pending_ |
-| Latest emission date | `2026-08-31T17:03:08` | _To record_ | _Pending_ |
+| Company count | 5 | 5 | Passed |
+| Product count | 5 | 5 | Passed |
+| Supplier count | 5 | 5 | Passed |
+| Factor count | 5 | 5 | Passed |
+| Emission count | 9 | 9 | Passed |
+| Total `kgCO2e` | 3085.45 | 3085.45 | Passed |
+| Earliest emission date | `2026-06-15T19:59:34` local source time | `2026-06-15T22:59:34Z` | Passed after policy conversion |
+| Latest emission date | `2026-08-31T17:03:08` local source time | `2026-08-31T20:03:08Z` | Passed after policy conversion |
 
 Also compare totals by company, product, and supplier. Decimal totals must match exactly at the agreed scale.
 
@@ -1414,8 +1422,13 @@ Also compare totals by company, product, and supplier. Decimal totals must match
 | 4 | 1000.00 | 1000.00 | 536.00 |
 | 5 | 536.00 | 536.00 | 1000.00 |
 
-These are source-side Oracle values only. MongoDB comparisons remain pending
-until the migration documents have been inserted into the isolated target.
+Every grouped company, product, and supplier total matched exactly as MongoDB
+Decimal128 values. Product-to-company and every emission reference had zero
+orphans. Each target collection had the exact Oracle `legacyId` set with no
+duplicates, and every full document matched the deterministic source plan. An
+identical second apply inserted zero documents and changed none. The detailed
+[reconciliation report](oracle-mongodb-reconciliation.md) preserves the commands,
+results, traceability checks, and one-time limitations.
 
 The seed-only alternative is not selected. If a source record is invalid or has
 a broken relationship, report it explicitly and make the partial failure
@@ -1508,7 +1521,7 @@ dotnet test Web.Fiap.Carbono.sln
 - [x] Emission calculations use decimal arithmetic and preserve factor snapshots.
 - [x] Product, supplier, and company aggregations return correct results.
 - [x] MongoDB integration tests pass through the verified Phase 11 scope.
-- [ ] Oracle data is reconciled or the seed-only approach is documented.
+- [x] Oracle data is reconciled or the seed-only approach is documented.
 - [ ] Screenshots are inserted with captions.
 - [ ] No credentials or personal data appear in the report.
 - [x] README commands match committed scripts.

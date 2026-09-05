@@ -5,6 +5,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.Fiap.Carbono", "Web.Fia
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.Fiap.Carbono.Tests", "Web.Fiap.Carbono.Tests\Web.Fiap.Carbono.Tests.csproj", "{45CAD80E-0CA3-40B9-8088-E28C68D5BD68}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.Fiap.Carbono.Migration", "Web.Fiap.Carbono.Migration\Web.Fiap.Carbono.Migration.csproj", "{B3241D06-8449-4350-93E6-B9ECC24BD9F7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -19,5 +21,9 @@ Global
 		{45CAD80E-0CA3-40B9-8088-E28C68D5BD68}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{45CAD80E-0CA3-40B9-8088-E28C68D5BD68}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{45CAD80E-0CA3-40B9-8088-E28C68D5BD68}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3241D06-8449-4350-93E6-B9ECC24BD9F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3241D06-8449-4350-93E6-B9ECC24BD9F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3241D06-8449-4350-93E6-B9ECC24BD9F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3241D06-8449-4350-93E6-B9ECC24BD9F7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

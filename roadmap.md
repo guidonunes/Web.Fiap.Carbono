@@ -985,44 +985,63 @@ Verified on 2026-09-04:
   collections, their validators and indexes, and zero documents in every
   collection. The existing MongoDB instance on port `27017` was not modified.
 
-No migration insert or Oracle write has occurred. The checklist below remains
-open until the one-off migration implementation and its reconciliation are
-verified.
+No Oracle write occurred during Phase 12. The real migration was subsequently
+applied only to the isolated MongoDB target, as recorded below.
+
+### Implementation status — 2026-09-05
+
+`Web.Fiap.Carbono.Migration` implements a separate read-only inventory, dry-run
+planner, deterministic ID mapping, all five document mappings, ordered batch
+inserts with preflight and restart support, and an exact reconciliation command.
+The reviewed policy records the source timezone, defaults, factor decisions, and
+stage-category mappings. Detailed commands and limitations are in the
+[migration tool guide](Web.Fiap.Carbono.Migration/README.md).
+
+On 2026-09-05 the dry run passed against a clean MongoDB 8.0.29 target on port
+`27018`. The real apply then inserted 5 companies, 5 products, 5 suppliers, 5
+factors, and 9 denormalized emissions. Reconciliation passed for every count,
+the exact `3085.45 kgCO2e` Decimal128 total, company/product/supplier totals,
+the converted UTC date range, all references, and every `legacyId`. Repeating
+the identical apply inserted zero documents and changed none. The application
+database on port `27017` retained its pre-run counts, and Oracle remained
+read-only. Restore and build passed with zero warnings or errors, 20/20 focused
+migration tests passed, and the full suite passed 107/107. See the
+[reconciliation report](docs/oracle-mongodb-reconciliation.md).
 
 ### Tasks
 
-- [ ] Create a one-off migration console application or migration service separate from normal API startup.
-- [ ] Read companies and insert `empresas` documents.
-- [ ] Build an Oracle-ID-to-MongoDB-ID mapping.
-- [ ] Read products and translate their company references.
-- [ ] Read suppliers and factors.
-- [ ] Join each emission with its stage, batch, product, company, supplier, and factor.
-- [ ] Produce one denormalized `emissoes_carbono` document per original emission.
-- [ ] Add `legacyId` to migrated documents.
-- [ ] Add a migration timestamp and source identifier if helpful.
-- [ ] Use batched inserts.
-- [ ] Make partial failures visible and recoverable.
-- [ ] Do not silently skip invalid source records.
+- [x] Create a one-off migration console application or migration service separate from normal API startup.
+- [x] Read companies and insert `empresas` documents.
+- [x] Build an Oracle-ID-to-MongoDB-ID mapping.
+- [x] Read products and translate their company references.
+- [x] Read suppliers and factors.
+- [x] Join each emission with its stage, batch, product, company, supplier, and factor.
+- [x] Produce one denormalized `emissoes_carbono` document per original emission.
+- [x] Add `legacyId` to migrated documents.
+- [x] Add a migration timestamp and source identifier if helpful.
+- [x] Use batched inserts.
+- [x] Make partial failures visible and recoverable.
+- [x] Do not silently skip invalid source records.
 
 ### Reconciliation checklist
 
-- [ ] Oracle company rows equal migrated company documents.
-- [ ] Oracle product rows equal migrated product documents.
-- [ ] Oracle supplier rows equal migrated supplier documents.
-- [ ] Oracle factor rows equal migrated factor documents.
-- [ ] Oracle emission rows equal migrated emission documents.
-- [ ] Total `kgCO2e` matches across databases.
-- [ ] Totals per company match.
-- [ ] Totals per product match.
-- [ ] Totals per supplier match.
-- [ ] Minimum and maximum emission dates match.
-- [ ] No MongoDB references are orphaned.
+- [x] Oracle company rows equal migrated company documents.
+- [x] Oracle product rows equal migrated product documents.
+- [x] Oracle supplier rows equal migrated supplier documents.
+- [x] Oracle factor rows equal migrated factor documents.
+- [x] Oracle emission rows equal migrated emission documents.
+- [x] Total `kgCO2e` matches across databases.
+- [x] Totals per company match.
+- [x] Totals per product match.
+- [x] Totals per supplier match.
+- [x] Minimum and maximum emission dates match.
+- [x] No MongoDB references are orphaned.
 
 ### Exit gate
 
-- [ ] The migration is repeatable on a clean target database, or its one-time limitations are documented.
-- [ ] Counts and financial-style decimal totals reconcile exactly.
-- [ ] Every migrated record is traceable through `legacyId`.
+- [x] The migration is repeatable on a clean target database, or its one-time limitations are documented.
+- [x] Counts and financial-style decimal totals reconcile exactly.
+- [x] Every migrated record is traceable through `legacyId`.
 
 ## Phase 13 — Replace persistence integration tests
 

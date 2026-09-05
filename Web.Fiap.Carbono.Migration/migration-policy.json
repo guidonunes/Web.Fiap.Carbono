@@ -1,0 +1,44 @@
+{
+  "sourceId": "oracle-academic-baseline",
+  "oracleTimeZone": "America/Sao_Paulo",
+  "migrationTimestampUtc": "2026-09-05T14:24:54Z",
+  "companyActiveDefault": true,
+  "supplierCreatedAtUtc": "2026-09-05T14:24:54Z",
+  "acceptReconstructedFactorSnapshots": true,
+  "factors": {
+    "1": {
+      "category": "TRANSPORTE",
+      "version": 1,
+      "validFromUtc": "2026-06-15T22:59:34Z",
+      "decisionNote": "Category follows the Diesel source; version 1 and validity start are migration defaults because Oracle has no version or validity columns."
+    },
+    "2": {
+      "category": "ENERGIA",
+      "version": 1,
+      "validFromUtc": "2026-06-15T22:59:34Z",
+      "decisionNote": "Category follows the Energia eletrica source; version 1 and validity start are migration defaults because Oracle has no version or validity columns."
+    },
+    "3": {
+      "category": "TRANSPORTE",
+      "version": 1,
+      "validFromUtc": "2026-06-15T22:59:34Z",
+      "decisionNote": "Category follows the Transporte rodoviario source; version 1 and validity start are migration defaults because Oracle has no version or validity columns."
+    },
+    "4": {
+      "category": "MATERIA_PRIMA",
+      "version": 1,
+      "validFromUtc": "2026-06-15T22:59:34Z",
+      "decisionNote": "Category follows the Materia-prima reciclada source; version 1 and validity start are migration defaults because Oracle has no version or validity columns."
+    },
+    "5": {
+      "category": "MATERIA_PRIMA",
+      "version": 1,
+      "validFromUtc": "2026-06-15T22:59:34Z",
+      "decisionNote": "Category follows the Insumo industrial source; version 1 and validity start are migration defaults because Oracle has no version or validity columns."
+    }
+  },
+  "stageCategories": {
+    "AGRICOLA": "MATERIA_PRIMA",
+    "INSUMOS": "MATERIA_PRIMA"
+  }
+}

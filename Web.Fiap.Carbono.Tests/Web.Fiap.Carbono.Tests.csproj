@@ -25,6 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../Web.Fiap.Carbono.Migration/Web.Fiap.Carbono.Migration.csproj" />
     <ProjectReference Include="..\Web.Fiap.Carbono\Web.Fiap.Carbono.csproj" />
   </ItemGroup>
 

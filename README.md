@@ -312,6 +312,13 @@ Ready-to-run request examples are available in [`Web.Fiap.Carbono.http`](Web.Fia
 
 ## Tests
 
+The separate [Phase 12 migration tool](Web.Fiap.Carbono.Migration/README.md)
+provides a read-only Oracle inventory, dry-run validation, and explicit batched
+import into the isolated MongoDB target on port `27018`. Its reconciliation mode
+compares counts, exact decimal totals, dates, references, and `legacyId` values.
+The tool is not invoked during API startup. The verified result is in the
+[reconciliation report](docs/oracle-mongodb-reconciliation.md).
+
 Run all tests from the repository root:
 
 ```bash
@@ -320,7 +327,10 @@ dotnet test Web.Fiap.Carbono.sln
 
 The retained Oracle-path API tests start the real ASP.NET Core application through `WebApplicationFactory`, replace Oracle with a uniquely named EF Core InMemory database, and cover the legacy emission list and integer-ID lookup without requiring a developer Oracle database.
 
-MongoDB repository, service, and API integration tests use disposable MongoDB 8.0.29 containers instead of a developer's permanent database. They cover master-data CRUD, unique constraints, pagination, cross-document references, JWT roles, destructive-operation policy, all four flexible activity variants, decimal emission calculation, applied-factor snapshots, analytics pipelines, global errors, and Swagger metadata. The complete suite passed 87/87 tests on 2026-09-04.
+MongoDB repository, service, and API integration tests use disposable MongoDB 8.0.29 containers instead of a developer's permanent database. They cover master-data CRUD, unique constraints, pagination, cross-document references, JWT roles, destructive-operation policy, all four flexible activity variants, decimal emission calculation, applied-factor snapshots, analytics pipelines, global errors, and Swagger metadata. Phase 12 adds migration tests covering mapping, validation, batched writes, retry behavior, and reconciliation failures.
+
+Verification on 2026-09-05: solution restore and build passed with zero warnings
+or errors, and the complete suite passed 107/107 tests.
 
 ## Docker
 
