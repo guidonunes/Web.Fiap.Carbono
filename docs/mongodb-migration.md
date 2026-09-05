@@ -1360,6 +1360,25 @@ a clean, isolated MongoDB environment so the migrated records are not mixed with
 the existing local seed and Postman data. The migration must not drop or reset a
 shared database automatically.
 
+#### Phase 12 preparation status
+
+On 2026-09-04, a temporary read-only EF Core inventory queried the configured
+Oracle `EC_*` tables directly. It found 5 companies, 5 products, 5 suppliers, 5
+emission factors, 5 production batches, 5 supply-chain stages, and 9 emissions.
+All 9 emissions produced complete joined graphs, every source-orphan check
+returned zero, and the Oracle emission total was `3085.45 kgCO2e`. The returned
+Oracle `DATE` range is `2026-06-15T19:59:34` through
+`2026-08-31T17:03:08`; no timezone is inferred for those source values. Detailed
+company, product, supplier, and monthly totals are recorded in the
+[Oracle baseline](oracle-baseline.md).
+
+A disposable MongoDB 8.0.29 target was also started on `127.0.0.1:27018` and
+initialized with `01-create-collections.js` and `02-create-indexes.js` only. Its
+`fiap_carbono` database contains exactly the five required collections, their
+validators and indexes, and zero documents in each collection. The persistent
+development MongoDB instance on port `27017` was not modified. No migration
+insert or Oracle write has occurred.
+
 Migrate in dependency order:
 
 1. companies;
@@ -1376,16 +1395,27 @@ Compare Oracle and MongoDB results before removing Oracle persistence:
 
 | Check | Oracle value | MongoDB value | Result |
 | --- | ---: | ---: | --- |
-| Company count | _To record_ | _To record_ | _Pending_ |
-| Product count | _To record_ | _To record_ | _Pending_ |
-| Supplier count | _To record_ | _To record_ | _Pending_ |
-| Factor count | _To record_ | _To record_ | _Pending_ |
-| Emission count | _To record_ | _To record_ | _Pending_ |
-| Total `kgCO2e` | _To record_ | _To record_ | _Pending_ |
-| Earliest emission date | _To record_ | _To record_ | _Pending_ |
-| Latest emission date | _To record_ | _To record_ | _Pending_ |
+| Company count | 5 | _To record_ | _Pending_ |
+| Product count | 5 | _To record_ | _Pending_ |
+| Supplier count | 5 | _To record_ | _Pending_ |
+| Factor count | 5 | _To record_ | _Pending_ |
+| Emission count | 9 | _To record_ | _Pending_ |
+| Total `kgCO2e` | 3085.45 | _To record_ | _Pending_ |
+| Earliest emission date | `2026-06-15T19:59:34` | _To record_ | _Pending_ |
+| Latest emission date | `2026-08-31T17:03:08` | _To record_ | _Pending_ |
 
 Also compare totals by company, product, and supplier. Decimal totals must match exactly at the agreed scale.
+
+| Legacy ID | Company total | Product total | Supplier total |
+| ---: | ---: | ---: | ---: |
+| 1 | 670.20 | 670.20 | 670.20 |
+| 2 | 204.25 | 204.25 | 204.25 |
+| 3 | 675.00 | 675.00 | 675.00 |
+| 4 | 1000.00 | 1000.00 | 536.00 |
+| 5 | 536.00 | 536.00 | 1000.00 |
+
+These are source-side Oracle values only. MongoDB comparisons remain pending
+until the migration documents have been inserted into the isolated target.
 
 The seed-only alternative is not selected. If a source record is invalid or has
 a broken relationship, report it explicitly and make the partial failure

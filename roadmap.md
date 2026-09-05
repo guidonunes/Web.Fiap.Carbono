@@ -311,12 +311,12 @@ dotnet test Web.Fiap.Carbono.sln
 ### Exit gate
 
 - [x] The existing solution builds and tests pass.
-- [ ] Reference responses and totals have been saved.
+- [x] Reference responses and totals have been saved.
 - [x] No MongoDB changes have altered current behavior yet.
 
 ### Academic-scope decision
 
-Phase 0 is complete except for a consistent refresh of the post-calculation aggregate totals. The verified responses, the remaining refresh requirement, and the comparison metrics are recorded in the [Oracle baseline](docs/oracle-baseline.md). The unchecked reference-response-and-total exit item remains visible above and must not be misrepresented as completed.
+Phase 0 is complete for the accepted academic scope. The verified responses and the current post-calculation Oracle inventory are recorded in the [Oracle baseline](docs/oracle-baseline.md). The aggregate refresh was captured through direct read-only Oracle queries because the three analytics API routes now use MongoDB.
 
 | Requirement | Result |
 | --- | --- |
@@ -329,14 +329,14 @@ Phase 0 is complete except for a consistent refresh of the post-calculation aggr
 | Paginated emissions | Post-calculation refresh verified: HTTP 200; page 1 with page size 10 returned 9 records |
 | Single emission | Verified: HTTP 200; emission ID 1 emitted 180 kgCO2e |
 | Emission calculation | Verified: HTTP 201 Created; emission ID 41 persisted with a result of 122.55 kgCO2e |
-| Product footprint | Pre-calculation value: product ID 1 totaled 425.10 kgCO2e; refresh outstanding |
-| Supplier ranking | Pre-calculation value: 5 suppliers; refresh outstanding |
-| Company dashboard | Pre-calculation value: company ID 1 totaled 425.10 kgCO2e and 3 emissions; refresh outstanding |
+| Product footprint | Post-calculation Oracle inventory: product ID 1 totals 670.20 kgCO2e across 5 emissions |
+| Supplier ranking | Post-calculation Oracle inventory: 5 suppliers; totals and deterministic ordering recorded |
+| Company dashboard | Post-calculation Oracle inventory: company ID 1 totals 670.20 kgCO2e, 5 emissions, and 1 product |
 | Status and error documentation | Complete for academic scope; README mappings plus a captured ASP.NET Core HTTP 400 validation response |
-| Saved representative totals | Calculation and pagination are current; post-calculation aggregate totals remain outstanding |
+| Saved representative totals | Current counts, overall total, entity totals, monthly values, and date range are recorded |
 | MongoDB runtime impact | None; the application remains Oracle-only |
 
-The user has explicitly authorized proceeding to Phase 2 because it only configures an isolated MongoDB environment and does not replace Oracle persistence. Emission `41` was intentionally persisted as calculation baseline evidence. This documentation update used only read-only GET requests and created no additional Oracle record. Oracle must remain unchanged until the remaining aggregate metrics are refreshed and MongoDB behavior can be compared against a consistent baseline.
+The user explicitly accepted a real Oracle-to-MongoDB migration. Emission `41` was intentionally persisted as calculation baseline evidence. The post-calculation refresh used only direct read-only Oracle queries and `GET /api/emissoes-carbono/41`; it created no additional Oracle record. Oracle must remain unchanged until MongoDB migration results are reconciled against this baseline.
 
 No JWT, Oracle credential, connection string, or other secret should be added to this documentation.
 
@@ -966,6 +966,28 @@ Postman data. Before any migration write, capture a read-only Oracle inventory
 and the outstanding post-calculation aggregate values needed for reconciliation.
 Do not mark any Phase 12 implementation or exit-gate item complete until the
 corresponding migration or comparison has actually been verified.
+
+### Preparation status
+
+Verified on 2026-09-04:
+
+- a direct read-only Oracle inventory captured 5 companies, 5 products, 5
+  suppliers, 5 factors, 5 batches, 5 stages, and 9 emissions;
+- all 9 emissions resolved complete company, product, supplier, factor, batch,
+  and stage relationships, and every source-orphan check returned zero;
+- the Oracle total is `3085.45 kgCO2e`, with dates from
+  `2026-06-15T19:59:34` through `2026-08-31T17:03:08`;
+- the outstanding product, supplier, company, and monthly aggregate values were
+  refreshed and recorded in `docs/oracle-baseline.md`;
+- a disposable MongoDB 8.0.29 target was started on local port `27018`, then
+  initialized with `01-create-collections.js` and `02-create-indexes.js` only;
+- the isolated `fiap_carbono` target contains exactly the five required
+  collections, their validators and indexes, and zero documents in every
+  collection. The existing MongoDB instance on port `27017` was not modified.
+
+No migration insert or Oracle write has occurred. The checklist below remains
+open until the one-off migration implementation and its reconciliation are
+verified.
 
 ### Tasks
 
