@@ -1345,7 +1345,22 @@ As of the Phase 11 verification on 2026-09-04, the complete solution suite passe
 
 ### 15.2 Oracle data migration
 
-If the Oracle database contains useful records, migrate in dependency order:
+The selected Phase 12 mode is a real Oracle-to-MongoDB migration. This decision
+was accepted on 2026-09-04 because the Oracle database contains meaningful,
+interconnected ESG records suitable for traceable migration and reconciliation.
+Oracle remains the authoritative source for this phase, including baseline
+emission `41`. The deterministic `03-seed.js` dataset remains a test and
+demonstration fixture; it is not a substitute for migrated Oracle data.
+
+Implement the migration as a one-off console application or service that is
+separate from normal API startup. Begin with a read-only inventory/dry run that
+reports source counts, decimal totals, date ranges, and invalid or orphaned
+relationships without writing to MongoDB. Run write-enabled verification against
+a clean, isolated MongoDB environment so the migrated records are not mixed with
+the existing local seed and Postman data. The migration must not drop or reset a
+shared database automatically.
+
+Migrate in dependency order:
 
 1. companies;
 2. products with mapped company IDs;
@@ -1372,7 +1387,9 @@ Compare Oracle and MongoDB results before removing Oracle persistence:
 
 Also compare totals by company, product, and supplier. Decimal totals must match exactly at the agreed scale.
 
-If there is no useful Oracle dataset, state explicitly that the work migrates the domain and application persistence model, and use the coherent MongoDB seed dataset for demonstration.
+The seed-only alternative is not selected. If a source record is invalid or has
+a broken relationship, report it explicitly and make the partial failure
+recoverable rather than silently omitting it or replacing it with seed data.
 
 ### 15.4 Removal gate
 

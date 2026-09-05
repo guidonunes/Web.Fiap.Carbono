@@ -6,7 +6,7 @@ This baseline records observable behavior from the Oracle-backed Web.Fiap.Carbon
 
 ## Environment confirmation
 
-The API was running with Oracle as its active persistence provider, and successful requests executed queries against the Oracle `EC_*` tables. MongoDB had no runtime impact when this baseline was captured, and the application remains Oracle-only.
+The API was running with Oracle as its active persistence provider, and successful requests executed queries against the Oracle `EC_*` tables. MongoDB had no runtime impact when this baseline was captured, and the application was Oracle-only at that historical checkpoint. The current transitional application state is documented in the [project README](../README.md) and [MongoDB migration report](mongodb-migration.md).
 
 ## Build and test results
 

@@ -952,6 +952,21 @@ Transfer existing relational records when a populated Oracle database is availab
 
 If the Oracle instance contains no meaningful data, document that the project performs a structural migration and uses the MongoDB seed as the demonstration dataset.
 
+### Selected migration mode
+
+The real Oracle-to-MongoDB migration mode was accepted on 2026-09-04. The
+Oracle database contains meaningful, interconnected ESG records, including the
+baseline emission `41`, so Oracle will be treated as the authoritative Phase 12
+source. The deterministic `03-seed.js` dataset remains available for tests and
+demonstrations but must not be represented as migrated Oracle data.
+
+The migration must first be exercised against a clean, isolated MongoDB
+environment so migrated records are not mixed with the existing local seed and
+Postman data. Before any migration write, capture a read-only Oracle inventory
+and the outstanding post-calculation aggregate values needed for reconciliation.
+Do not mark any Phase 12 implementation or exit-gate item complete until the
+corresponding migration or comparison has actually been verified.
+
 ### Tasks
 
 - [ ] Create a one-off migration console application or migration service separate from normal API startup.
