@@ -1179,18 +1179,18 @@ Make the repository and FIAP submission independently understandable and reprodu
 
 ### README updates
 
-- [ ] Change the database technology from Oracle to MongoDB.
-- [ ] Replace Oracle setup instructions with MongoDB setup instructions.
-- [ ] Document the five collections.
-- [ ] Document the embedded and referenced relationships.
-- [ ] Document configuration variables.
-- [ ] Document database scripts and their execution order.
-- [ ] Document seed behavior.
-- [ ] Document new CRUD endpoints.
-- [ ] Document aggregation endpoints.
-- [ ] Document how to run integration tests.
-- [ ] Update the architecture diagram.
-- [ ] Remove obsolete Oracle migration instructions.
+- [x] Change the database technology from Oracle to MongoDB.
+- [x] Replace Oracle setup instructions with MongoDB setup instructions.
+- [x] Document the five collections.
+- [x] Document the embedded and referenced relationships.
+- [x] Document configuration variables.
+- [x] Document database scripts and their execution order.
+- [x] Document seed behavior.
+- [x] Document new CRUD endpoints.
+- [x] Document aggregation endpoints.
+- [x] Document how to run integration tests.
+- [x] Update the architecture diagram.
+- [x] Remove obsolete Oracle migration instructions.
 
 ### `docs/mongodb-migration.md` final structure
 
