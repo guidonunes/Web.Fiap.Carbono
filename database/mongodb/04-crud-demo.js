@@ -29,6 +29,12 @@ function printSection(title) {
     print("==================================================");
 }
 
+function printOperation(operation, description) {
+    print("");
+    print(`>>> ${operation}`);
+    print(`Ação: ${description}`);
+}
+
 function assertInsert(result, description) {
     assertCondition(
         result.acknowledged === true,
@@ -207,6 +213,7 @@ const empresaTemporaria = {
 };
 
 // INSERT
+printOperation("CREATE", "Inserir empresa temporária com insertOne");
 const insertEmpresaResult =
     targetDb.empresas.insertOne(empresaTemporaria);
 
@@ -218,6 +225,7 @@ assertInsert(
 printjson(insertEmpresaResult);
 
 // READ
+printOperation("READ", "Consultar empresa inserida com findOne");
 const empresaInserida =
     targetDb.empresas.findOne({
         codigo: TEMP_CODES.empresa
@@ -231,6 +239,7 @@ assertCondition(
 printjson(empresaInserida);
 
 // UPDATE
+printOperation("UPDATE", "Atualizar empresa temporária com updateOne");
 const updateEmpresaResult =
     targetDb.empresas.updateOne(
         {
@@ -253,6 +262,10 @@ assertUpdate(
 printjson(updateEmpresaResult);
 
 // SECOND READ
+printOperation(
+    "READ AFTER UPDATE",
+    "Consultar novamente e confirmar os campos atualizados"
+);
 const empresaAtualizada =
     targetDb.empresas.findOne({
         codigo: TEMP_CODES.empresa
@@ -272,6 +285,7 @@ assertCondition(
 printjson(empresaAtualizada);
 
 // DELETE
+printOperation("DELETE", "Remover empresa temporária com deleteOne");
 const deleteEmpresaResult =
     targetDb.empresas.deleteOne({
         codigo: TEMP_CODES.empresa
@@ -285,6 +299,10 @@ assertDelete(
 printjson(deleteEmpresaResult);
 
 // ABSENCE CHECK
+printOperation(
+    "VERIFY DELETE",
+    "Confirmar com findOne que a empresa temporária foi removida"
+);
 const empresaRemanescente =
     targetDb.empresas.findOne({
         codigo: TEMP_CODES.empresa
@@ -298,6 +316,7 @@ assertCondition(
 print("Final absence check: null");
 
 // COUNT
+printOperation("FINAL COUNT", "Contar empresas permanentes restantes");
 const empresasCount =
     targetDb.empresas.countDocuments();
 
@@ -339,6 +358,7 @@ printjson(empresaProdutoCrud);
 
 
 // 1. INSERT
+printOperation("CREATE", "Inserir produto temporário com insertOne");
 const produtoTemporario = {
     empresaId: empresaProdutoCrud._id,
     codigo: TEMP_CODES.produto,
@@ -384,6 +404,7 @@ printjson(insertProdutoResult);
 
 
 // 2. FIRST FIND
+printOperation("READ", "Consultar produto inserido com findOne");
 const produtoInserido =
     targetDb.produtos.findOne({
         empresaId: empresaProdutoCrud._id,
@@ -407,6 +428,7 @@ printjson(produtoInserido);
 
 
 // 3. UPDATE
+printOperation("UPDATE", "Atualizar produto temporário com updateOne");
 const updateProdutoResult =
     targetDb.produtos.updateOne(
         {
@@ -436,6 +458,10 @@ printjson(updateProdutoResult);
 
 
 // 4. SECOND FIND
+printOperation(
+    "READ AFTER UPDATE",
+    "Consultar novamente e confirmar os campos atualizados"
+);
 const produtoAtualizado =
     targetDb.produtos.findOne({
         empresaId: empresaProdutoCrud._id,
@@ -473,6 +499,7 @@ printjson(produtoAtualizado);
 
 
 // 5. DELETE
+printOperation("DELETE", "Remover produto temporário com deleteOne");
 const deleteProdutoResult =
     targetDb.produtos.deleteOne({
         empresaId: empresaProdutoCrud._id,
@@ -489,6 +516,10 @@ printjson(deleteProdutoResult);
 
 
 // 6. FINAL ABSENCE CHECK
+printOperation(
+    "VERIFY DELETE",
+    "Confirmar com findOne que o produto temporário foi removido"
+);
 const produtoRemanescente =
     targetDb.produtos.findOne({
         empresaId: empresaProdutoCrud._id,
@@ -504,6 +535,7 @@ print("Final absence check: null");
 
 
 // 7. FINAL COUNT
+printOperation("FINAL COUNT", "Contar produtos permanentes restantes");
 const produtosCount =
     targetDb.produtos.countDocuments();
 
@@ -518,6 +550,7 @@ printSection("CRUD — FORNECEDORES");
 
 
 // 1. INSERT
+printOperation("CREATE", "Inserir fornecedor temporário com insertOne");
 const fornecedorTemporario = {
     codigo: TEMP_CODES.fornecedor,
     razaoSocial: "Fornecedor Temporário ESG Ltda.",
@@ -575,6 +608,7 @@ printjson(insertFornecedorResult);
 
 
 // 2. FIRST FIND
+printOperation("READ", "Consultar fornecedor inserido com findOne");
 const fornecedorInserido =
     targetDb.fornecedores.findOne({
         codigo: TEMP_CODES.fornecedor
@@ -595,6 +629,7 @@ printjson(fornecedorInserido);
 
 
 // 3. UPDATE
+printOperation("UPDATE", "Atualizar fornecedor temporário com updateOne");
 const updateFornecedorResult =
     targetDb.fornecedores.updateOne(
         {
@@ -636,6 +671,10 @@ printjson(updateFornecedorResult);
 
 
 // 4. SECOND FIND
+printOperation(
+    "READ AFTER UPDATE",
+    "Consultar novamente e confirmar os campos atualizados"
+);
 const fornecedorAtualizado =
     targetDb.fornecedores.findOne({
         codigo: TEMP_CODES.fornecedor
@@ -684,6 +723,7 @@ printjson(fornecedorAtualizado);
 
 
 // 5. DELETE
+printOperation("DELETE", "Remover fornecedor temporário com deleteOne");
 const deleteFornecedorResult =
     targetDb.fornecedores.deleteOne({
         codigo: TEMP_CODES.fornecedor
@@ -699,6 +739,10 @@ printjson(deleteFornecedorResult);
 
 
 // 6. FINAL ABSENCE CHECK
+printOperation(
+    "VERIFY DELETE",
+    "Confirmar com findOne que o fornecedor temporário foi removido"
+);
 const fornecedorRemanescente =
     targetDb.fornecedores.findOne({
         codigo: TEMP_CODES.fornecedor
@@ -713,6 +757,7 @@ print("Final absence check: null");
 
 
 // 7. FINAL COUNT
+printOperation("FINAL COUNT", "Contar fornecedores permanentes restantes");
 const fornecedoresCount =
     targetDb.fornecedores.countDocuments();
 
@@ -729,6 +774,7 @@ printSection("CRUD — FATORES DE EMISSÃO");
 
 
 // 1. INSERT
+printOperation("CREATE", "Inserir fator temporário com insertOne");
 const fatorTemporario = {
     codigo: TEMP_CODES.fator,
     nome: "Transporte temporário demonstrativo",
@@ -776,6 +822,7 @@ printjson(insertFatorResult);
 
 
 // 2. FIRST FIND
+printOperation("READ", "Consultar fator inserido com findOne");
 const fatorInserido =
     targetDb.fatores_emissao.findOne({
         codigo: TEMP_CODES.fator,
@@ -802,6 +849,7 @@ printjson(fatorInserido);
 
 
 // 3. UPDATE
+printOperation("UPDATE", "Atualizar fator temporário com updateOne");
 const updateFatorResult =
     targetDb.fatores_emissao.updateOne(
         {
@@ -838,6 +886,10 @@ printjson(updateFatorResult);
 
 
 // 4. SECOND FIND
+printOperation(
+    "READ AFTER UPDATE",
+    "Consultar novamente e confirmar os campos atualizados"
+);
 const fatorAtualizado =
     targetDb.fatores_emissao.findOne({
         codigo: TEMP_CODES.fator,
@@ -886,6 +938,7 @@ printjson(fatorAtualizado);
 
 
 // 5. DELETE
+printOperation("DELETE", "Remover fator temporário com deleteOne");
 const deleteFatorResult =
     targetDb.fatores_emissao.deleteOne({
         codigo: TEMP_CODES.fator,
@@ -902,6 +955,10 @@ printjson(deleteFatorResult);
 
 
 // 6. FINAL ABSENCE CHECK
+printOperation(
+    "VERIFY DELETE",
+    "Confirmar com findOne que o fator temporário foi removido"
+);
 const fatorRemanescente =
     targetDb.fatores_emissao.findOne({
         codigo: TEMP_CODES.fator,
@@ -917,6 +974,7 @@ print("Final absence check: null");
 
 
 // 7. FINAL COUNT
+printOperation("FINAL COUNT", "Contar fatores permanentes restantes");
 const fatoresEmissaoCount =
     targetDb.fatores_emissao.countDocuments();
 
@@ -1043,6 +1101,7 @@ print(
 
 
 // 1. INSERT
+printOperation("CREATE", "Inserir emissão temporária com insertOne");
 const emissaoTemporaria = {
     codigo: TEMP_CODES.emissao,
 
@@ -1133,6 +1192,7 @@ printjson(insertEmissaoResult);
 
 
 // 2. FIRST FIND
+printOperation("READ", "Consultar emissão inserida com findOne");
 const emissaoInserida =
     targetDb.emissoes_carbono.findOne({
         codigo: TEMP_CODES.emissao
@@ -1208,6 +1268,10 @@ const fatorVersaoAntesUpdate =
 
 
 // 3. UPDATE ONLY AUDIT METADATA
+printOperation(
+    "UPDATE",
+    "Atualizar somente os metadados de auditoria da emissão"
+);
 const updateEmissaoResult =
     targetDb.emissoes_carbono.updateOne(
         {
@@ -1240,6 +1304,10 @@ printjson(updateEmissaoResult);
 
 
 // 4. SECOND FIND
+printOperation(
+    "READ AFTER UPDATE",
+    "Consultar novamente e confirmar a auditoria atualizada"
+);
 const emissaoAtualizada =
     targetDb.emissoes_carbono.findOne({
         codigo: TEMP_CODES.emissao
@@ -1312,6 +1380,7 @@ printjson(emissaoAtualizada);
 
 
 // 5. DELETE
+printOperation("DELETE", "Remover emissão temporária com deleteOne");
 const deleteEmissaoResult =
     targetDb.emissoes_carbono.deleteOne({
         codigo: TEMP_CODES.emissao
@@ -1327,6 +1396,10 @@ printjson(deleteEmissaoResult);
 
 
 // 6. FINAL ABSENCE CHECK
+printOperation(
+    "VERIFY DELETE",
+    "Confirmar com findOne que a emissão temporária foi removida"
+);
 const emissaoRemanescente =
     targetDb.emissoes_carbono.findOne({
         codigo: TEMP_CODES.emissao
@@ -1341,6 +1414,7 @@ print("Final absence check: null");
 
 
 // 7. FINAL COUNT
+printOperation("FINAL COUNT", "Contar emissões permanentes restantes");
 const emissoesCarbonoCount =
     targetDb.emissoes_carbono.countDocuments();
 
@@ -1477,4 +1551,14 @@ temporaryRecords.forEach(temporaryRecord => {
 print("");
 print("All temporary records were removed successfully.");
 print("All permanent document counts remain unchanged.");
+print("");
+print("CRUD SUMMARY:");
+COLLECTIONS.forEach(collectionName => {
+    print(
+        `${collectionName}: ` +
+        "CREATE OK | READ OK | UPDATE OK | " +
+        "READ AFTER UPDATE OK | DELETE OK | VERIFY DELETE OK"
+    );
+});
+print("");
 print("CRUD demonstration completed successfully.");
