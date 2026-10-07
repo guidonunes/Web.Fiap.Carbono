@@ -12,7 +12,7 @@ Preserve .NET 8, MongoDB, JWT authentication/authorization, existing API behavio
 
 ## Observed starting point — October 6, 2026
 
-These observations come from repository inspection only. No builds, tests, database scripts, container operations, or deployments were executed for this documentation update. All CI/CD tasks and exit gates below remain unverified.
+These observations come from the October 6 repository inspection only. No builds, tests, database scripts, container operations, or deployments were executed for that documentation update. Subsequent Phase 1 evidence is recorded below; the starting-point table is a historical snapshot.
 
 | Component | Observed in the repository | Work still required |
 | --- | --- | --- |
@@ -29,7 +29,7 @@ These observations come from repository inspection only. No builds, tests, datab
 | Documentation/artifacts | README documents MongoDB and manual Docker execution; migration report still contains older hybrid-persistence statements; a prior `Web.Fiap.Carbono.Source.zip` exists | Update current instructions in the assigned phases and create a new verified CI/CD package; do not reuse the old ZIP as proof |
 | Deployment host | No provisioned host or working staging/production deployment verified | Obtain an Ubuntu host, access, capacity, and network connectivity before deployment work |
 
-Historical migration documents record earlier test results. Those results are not a current CI/CD baseline. Record new results in `docs/ci-cd-baseline.md` only when Phase 1 is executed.
+Historical migration documents record earlier test results. Those results are not a current CI/CD baseline. Record actual Phase 1 results in [ci-cd-baseline.md](ci-cd-baseline.md), keeping unverified work separate.
 
 ## Planned architecture
 
@@ -77,10 +77,17 @@ Plan GitHub Secrets for Docker Hub credentials, SSH private key, and sensitive e
 
 **Purpose:** prove the current solution works, then make the required submission layout without changing business behavior.
 
+### Progress — October 7, 2026
+
+The user reported that the pre-reorganization Release test run passed after disabling the VPN. Inspection of `artifacts/test-results/before/baseline.trx` confirms 106 executed tests, all passed, with zero failures or timeouts. The command, timestamps, evidence limits, and reported workaround are recorded in [ci-cd-baseline.md](ci-cd-baseline.md). The VPN's exact effect was not established.
+
+The user also confirmed that `dotnet restore Web.Fiap.Carbono.sln` and `dotnet build Web.Fiap.Carbono.sln --configuration Release --no-restore` passed. Pre-reorganization restore/build/test execution is recorded as successful, with restore/build based on user confirmation and test counts verified from the TRX. Tool versions, console logs, warning counts, and numeric exit codes remain uncaptured. Reorganization and post-move verification are still pending; Phase 1 exit gates remain unchecked.
+
 ### Tasks
 
 - [ ] Inspect `git status`, SDK/Docker prerequisites, and existing test configuration. Ensure clean-checkout tests receive synthetic JWT settings and do not depend on ignored developer files. Preserve unrelated local work.
-- [ ] Run restore, build, and the complete existing tests before moving files; investigate failures and record actual outputs, warnings, failed/skipped tests, and blockers.
+- [x] Run restore, Release build, and the complete existing tests before moving files: restore/build passed per user confirmation; the TRX records 106/106 tests passed after the reported VPN workaround.
+- [ ] Complete the baseline evidence with available console outputs, warning counts, exit codes, and environment details; the earlier timeout's exact cause remains unconfirmed.
 - [ ] Create `docs/ci-cd-baseline.md` during this phase with date, commit/revision, environment/tool versions, commands, exit codes, test counts, and sanitized evidence references. Separate results before and after reorganization.
 - [ ] Move `Web.Fiap.Carbono/` and `Web.Fiap.Carbono.Migration/` under `src/`. Retain `Web.Fiap.Carbono.Tests/`, solution, `global.json`, `database/`, and `archive/` at the root.
 - [ ] Move `Web.Fiap.Carbono/Dockerfile` to root `Dockerfile`; retain repository-root Docker build context and update `COPY`, restore, and working-directory paths.
