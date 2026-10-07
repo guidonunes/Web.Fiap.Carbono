@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This file defines how coding agents must work in the **Web.Fiap.Carbono** repository while the application is migrated from Oracle Database and Entity Framework Core to MongoDB.
+This file defines how coding agents must work in the **Web.Fiap.Carbono** repository during the academic CI/CD assignment, due **October 13, 2026**. The goal is a simple, functional implementation that satisfies every assignment requirement.
 
-The user is completing this project as a learning exercise. Agents must help the user understand and implement the migration incrementally. The default behavior is to inspect, explain, and propose tasks. Do not edit code or files unless the user explicitly asks for implementation.
+The user will implement application and infrastructure changes as a learning exercise. Agents should explain concepts, propose bounded tasks, review changes, and help troubleshoot. The default behavior is to inspect and guide. Do not edit code or files unless the user explicitly asks for implementation. Keep solutions suitable for an academic project; avoid unnecessary infrastructure, application features, and framework upgrades.
 
 These instructions apply to the entire repository unless a more specific `AGENTS.md` exists in a subdirectory. Direct instructions from the user take precedence over this file.
 
@@ -12,41 +12,41 @@ These instructions apply to the entire repository unless a more specific `AGENTS
 
 Web.Fiap.Carbono is a .NET 8 ASP.NET Core Web API that measures and analyzes greenhouse-gas emissions across product supply chains.
 
-The original application uses:
+The current source uses:
 
 - C# and .NET 8;
 - ASP.NET Core Web API;
-- Oracle Database;
-- Entity Framework Core with `Oracle.EntityFrameworkCore`;
+- MongoDB through the official `MongoDB.Driver`;
 - JWT authentication;
-- AutoMapper;
-- xUnit integration-style API tests.
+- explicit document/DTO mapping;
+- xUnit API and persistence integration tests with disposable MongoDB containers.
 
-The target application replaces Oracle persistence with MongoDB while preserving the important API behavior, emission calculation, validation, analytics, authentication, authorization, and error responses.
+Preserve .NET 8, MongoDB, the five-collection design, emission calculation, validation, analytics, authentication, authorization, and error responses. Oracle/EF Core remains in the separate migration utility and archived source, not the active API persistence registrations. Preserve those references without making Oracle a deployment prerequisite.
 
-The FIAP assignment requires:
+The active assignment plans:
 
-- the **Migration** challenge option;
-- exactly five MongoDB ESG domain collections;
-- at least ten persistent documents per collection;
-- complete CRUD operations for every collection;
-- a meaningful flexible-schema demonstration;
-- creation, index, seed, CRUD, and aggregation commands;
-- screenshots proving the executed operations;
-- clear technical documentation.
+- GitHub Actions for pull-request checks and delivery from `master`;
+- Docker Hub images tagged with the commit SHA and promoted by digest;
+- Docker Compose on one Ubuntu host, with separate staging and production projects, each with its own API, MongoDB, volume, network, and environment configuration;
+- automatic staging deployment over SSH, readiness and database-backed smoke checks, then production deployment of the same digest and production verification;
+- failure blocking, non-overlapping deployments, and secrets outside tracked configuration;
+- a complete source ZIP, the required README sections, a PDF or PPT with actual contributors and real evidence, and a verified delivery checklist.
+
+The deployment host is a prerequisite to prepare, not an already provisioned resource. See the active roadmap for dates, ports, deliverables, and exit gates. The previous migration assignment remains historical context; its data and audit rules below remain architectural constraints.
 
 ## Sources of truth
 
 Use the following files in this order:
 
 1. The user's current request.
-2. This `AGENTS.md` file.
-3. `roadmap.md` for phase order, tasks, verification, and exit gates.
-4. `mongodb-migration.md` for the target data model and architectural decisions.
-5. `README.md` for the current application behavior and setup.
-6. The actual source code and passing tests for the implemented state.
+2. This [AGENTS.md](AGENTS.md) file.
+3. [docs/ci-cd-roadmap.md](docs/ci-cd-roadmap.md) for active CI/CD phase order, tasks, verification, and exit gates.
+4. [README.md](README.md) for documented application behavior and setup.
+5. [roadmap.md](roadmap.md) and [docs/mongodb-migration.md](docs/mongodb-migration.md) for migration history and architectural references, not CI/CD sequencing.
 
-Documentation can describe planned work. Never assume a roadmap checkbox or design section proves that code has been implemented. Inspect the repository and run the relevant verification before reporting a phase as complete.
+The actual source, configuration, and observed verification results determine what is implemented. Historical documents contain checkpoint-specific descriptions; the migration report still describes an older hybrid Oracle/MongoDB state that differs from the current API source. Do not reintroduce Oracle or treat historical completion claims as current CI/CD results.
+
+Documentation can describe planned work. Never assume a roadmap checkbox or design section proves that code has been implemented. Inspect the repository and run the relevant verification before reporting a phase as complete. Honor task-specific limits on execution; when verification is prohibited or unavailable, report it as not run. Never invent test results, screenshots, deployment status, contributors, or evidence.
 
 If two project documents conflict:
 
@@ -76,8 +76,11 @@ Examples that authorize guidance and inspection only:
 - “What is wrong with this code?”
 - “Review my implementation.”
 - “Give me the tasks for this phase.”
+- “Explain this workflow.”
+- “Show me a snippet.”
+- “Help me troubleshoot this deployment.”
 
-Read-only commands, test runs, builds, status checks, and repository inspection are allowed when needed to answer accurately. Do not silently fix problems discovered during inspection.
+Requests for explanations, snippets, reviews, or troubleshooting authorize guidance only. Explain the purpose of proposed changes and provide practical verification commands with expected results. Read-only commands, test runs, builds, status checks, and repository inspection are allowed when needed to answer accurately unless the current request restricts them. Do not silently fix problems discovered during inspection or execute deployments as part of guidance.
 
 ### Explicit implementation requirement
 
@@ -86,10 +89,10 @@ Modify the repository only when the user clearly requests a change.
 Examples of explicit authorization:
 
 - “Implement Phase 3.”
-- “Create `03-seed.js`.”
+- “Create the CI workflow.”
 - “Fix the failing repository test.”
-- “Replace the Oracle repository with MongoDB.”
-- “Update `mongodb-migration.md`.”
+- “Complete `docker-compose.yml`.”
+- “Update `docs/ci-cd-roadmap.md`.”
 
 An implementation request authorizes only the named task and the minimum supporting changes required to make it correct and verifiable. It does not authorize future roadmap phases or unrelated refactoring.
 
@@ -107,11 +110,11 @@ Do not ask for a second confirmation when the user's implementation request is a
 
 ### One phase at a time
 
-Follow `roadmap.md` in order unless the user explicitly changes the order.
+Follow [docs/ci-cd-roadmap.md](docs/ci-cd-roadmap.md) in order for CI/CD work unless the user explicitly changes the order. The numbered phases in `roadmap.md` apply only when the user explicitly requests historical migration work.
 
 If the user requests a numbered phase or task:
 
-- resolve its exact scope from `roadmap.md`;
+- resolve its exact scope from the active CI/CD roadmap, or the historical roadmap when migration work is explicitly requested;
 - implement only that scope;
 - satisfy its exit gate before calling it complete;
 - do not begin the next phase automatically.
@@ -124,7 +127,7 @@ Do not change these decisions without explicit user approval.
 
 ### Five ESG collections
 
-The target database is `fiap_carbono` and contains exactly these five domain collections:
+The application database is `fiap_carbono` and contains exactly these five domain collections. Staging and production may use the same database name because each has its own MongoDB instance and storage:
 
 | Collection | Responsibility |
 | --- | --- |
@@ -176,18 +179,30 @@ Use decimal arithmetic. Do not use `double` for emission factors, activity quant
 
 The activity quantity must match the selected factor's base unit. Do not silently perform a unit conversion unless a separately designed and tested conversion rule is explicitly added.
 
-### Oracle removal gate
+### Historical Oracle removal gate
 
-Do not remove Oracle or Entity Framework Core persistence until the MongoDB implementation:
+The earlier migration required the following MongoDB parity conditions before removal of Oracle persistence from the API:
 
-- supports the required CRUD operations;
-- preserves the emission-calculation workflow;
-- implements all required analytics;
-- passes its MongoDB integration tests;
-- passes migration reconciliation or documents the seed-only approach;
-- satisfies the Phase 14 preconditions in `roadmap.md`.
+- support for the required CRUD operations;
+- preservation of the emission-calculation workflow;
+- implementation of all required analytics;
+- passing MongoDB integration tests;
+- passing migration reconciliation or a documented seed-only approach;
+- satisfaction of the historical Phase 14 preconditions in [roadmap.md](roadmap.md).
 
-Keep the previous Oracle implementation recoverable through Git history.
+This gate does not sequence new CI/CD work. Source inspection shows MongoDB registrations in the API and Oracle dependencies in the separate migration utility. Keep the previous Oracle implementation recoverable through Git history and preserve the utility and its linked archive files; do not delete them as unrelated CI/CD cleanup.
+
+### CI/CD boundaries
+
+- Use GitHub Actions, Docker Hub, and Docker Compose on one Ubuntu deployment host.
+- Keep staging and production in distinct Compose projects, with independent API/MongoDB services, volumes, networks, and untracked environment configuration; proposed API host ports are `8081` and `8082`, respectively.
+- Run existing restore/build/tests for pull requests and gate image publication on successful checks for pushes to `master`.
+- Build once, tag with the commit SHA, capture the published digest, verify staging, and promote that same digest to production without rebuilding.
+- Verify readiness and a database-backed API response in both environments; fail subsequent stages when a prerequisite fails.
+- Serialize the full deployment sequence across runs. Do not overlap deployments or cancel a running deployment midway to start another.
+- Keep credentials in GitHub Secrets or untracked environment files. Do not bake secrets into images or expose them in logs or evidence.
+- Initialize a fresh database safely using the existing collection/index/seed scripts in order. Do not rerun the replacing seed on existing data at every startup or deployment; do not mount CRUD demonstration scripts as startup hooks.
+- Do not add Kubernetes, extra hosts, new business features, or framework upgrades to satisfy this assignment.
 
 ## MongoDB data rules
 
@@ -305,7 +320,7 @@ mongosh "mongodb://localhost:27017/fiap_carbono" \
 
 ### Project organization
 
-Follow the repository's existing conventions where they are coherent. The target persistence structure may use:
+Follow the repository's existing conventions where they are coherent. CI/CD Phase 1 plans to move the API and migration utility under `src/`, retain `Web.Fiap.Carbono.Tests/` at the root, and move `Dockerfile` to the root. Those moves require explicit implementation authorization. Preserve namespaces and the internal API structure:
 
 ```text
 Web.Fiap.Carbono/
@@ -402,7 +417,7 @@ GET /api/fornecedores-carbono/ranking
 GET /api/dashboard-carbono/empresas/{id}/resumo
 ```
 
-The five resources must eventually expose CRUD endpoints:
+Preserve the existing resource contracts. Companies, products, suppliers, and factors use these CRUD routes:
 
 ```text
 POST   /api/{resource}
@@ -412,10 +427,12 @@ PUT    /api/{resource}/{id}
 DELETE /api/{resource}/{id}
 ```
 
+Emission creation uses `POST /api/emissoes-carbono/calcular`; ObjectId read/update/delete use `/api/emissoes-carbono/mongodb/{id}`. Preserve the legacy-ID read route and the restrictions on temporary emission mutations. Do not replace these contracts merely to regularize routing for CI/CD.
+
 Authorization baseline:
 
 - reads follow the current public behavior or the explicitly selected policy;
-- create and update require `ADMIN` or `ANALISTA_ESG`;
+- create and update require `ADMIN` or `ANALISTA_ESG`, except factor writes, which currently require `ADMIN`;
 - delete requires `ADMIN`;
 - factor activation or deactivation requires `ADMIN`.
 
@@ -434,7 +451,7 @@ Use the existing global exception middleware instead of duplicating error-respon
 
 ### Emission immutability
 
-The academic assignment requires an update and delete demonstration for `emissoes_carbono`. Use isolated `CRUD-TEMP` records for that evidence.
+The previous migration assignment required an update and delete demonstration for `emissoes_carbono`. Preserve the isolated `CRUD-TEMP` restriction for that evidence and any CI/CD smoke-test mutations.
 
 For normal application behavior, treat calculated emission inputs, result, and `fatorAplicado` as immutable audit data. Corrections should create a replacement, revision, or reversal record with explicit audit metadata rather than silently rewriting history.
 
@@ -491,7 +508,7 @@ Add or preserve tests for:
 
 ### Verification commands
 
-Use focused tests during implementation, then run the full solution verification before declaring a phase complete:
+Use focused tests during application changes, then run full solution verification for a baseline, repository reorganization, or changes crossing application boundaries. Also execute the active phase's container/pipeline/environment checks before declaring it complete:
 
 ```bash
 dotnet restore Web.Fiap.Carbono.sln
@@ -499,9 +516,13 @@ dotnet build Web.Fiap.Carbono.sln
 dotnet test Web.Fiap.Carbono.sln
 ```
 
-If a command cannot run because MongoDB, Docker, Oracle, credentials, or another dependency is unavailable, report the exact blocker. Do not claim the phase passes based only on code inspection.
+The existing API fixture uses Linux host networking and port `27019`; verify runner compatibility and avoid conflicting test runs. Ensure clean-checkout tests receive synthetic JWT configuration without relying on an ignored developer configuration file. Oracle is needed only for explicit real-source migration operations, not normal API deployment or synthetic migration tests.
 
-## Migration and reconciliation
+If a command cannot run because MongoDB, Docker, credentials, or another dependency is unavailable, report the exact blocker. Do not claim the phase passes based only on code inspection. Documentation-only work uses diff and path checks; do not run builds, tests, database scripts, or deployments when the request excludes them.
+
+## Historical migration and reconciliation reference
+
+These rules apply when explicitly working on migration records. They do not require rerunning Oracle migration for CI/CD. Preserve [docs/oracle-baseline.md](docs/oracle-baseline.md) and [docs/oracle-mongodb-reconciliation.md](docs/oracle-mongodb-reconciliation.md) as historical evidence.
 
 When migrating existing Oracle records:
 
@@ -531,21 +552,26 @@ If the Oracle database has no useful data, document that the project migrates th
 Keep these artifacts synchronized with the implementation:
 
 - `README.md` — setup, configuration, architecture, commands, API, and tests;
-- `roadmap.md` — implementation phases and exit gates;
-- `mongodb-migration.md` — technical decision and FIAP report;
+- [docs/ci-cd-roadmap.md](docs/ci-cd-roadmap.md) — active CI/CD phases, exit gates, and submission checklist;
+- `docs/ci-cd-baseline.md` — planned record of actual Phase 1 commands and results; create when that phase is executed;
+- [roadmap.md](roadmap.md) — preserved migration history, not active CI/CD sequencing;
+- [docs/mongodb-migration.md](docs/mongodb-migration.md) — historical migration report and data-model reference;
 - `database/mongodb/*.js` — executable database evidence;
-- `docs/images/mongodb/` — screenshots of executed operations.
+- `docs/images/mongodb/` — historical migration screenshot destination;
+- `docs/images/ci-cd/` — planned destination for real pipeline and environment screenshots.
+
+Make documentation changes only within the requested scope. Leave baseline results and README changes for their assigned implementation phases. The final README must use the title **Projeto - Cidades ESGInteligentes** and the exact sections and delivery checklist specified in the active roadmap.
 
 Do not mark a roadmap checkbox complete merely because a file exists. Mark it complete only after the acceptance condition has been verified.
 
 ### Screenshot rules
 
-- capture actual successful execution;
+- capture actual execution, including successful operations and controlled failures that prove pipeline blocking;
 - show the relevant command and result;
-- keep the database and collection name visible;
+- keep the relevant workflow/run, commit, environment, or database/collection name visible;
 - use readable zoom and crop irrelevant desktop content;
 - do not expose passwords, tokens, connection strings, personal information, or signing keys;
-- use the filenames defined in `roadmap.md` and `mongodb-migration.md`;
+- use the CI/CD evidence filenames in `docs/ci-cd-roadmap.md`; for historical migration evidence, follow `roadmap.md` and `docs/mongodb-migration.md`;
 - add a short explanatory caption below each screenshot;
 - do not generate fake screenshots or placeholder results.
 
@@ -554,7 +580,7 @@ Do not mark a roadmap checkbox complete merely because a file exists. Mark it co
 - inspect `git status` before editing;
 - preserve unrelated user changes;
 - avoid broad formatting or refactoring outside the requested task;
-- do not rewrite or delete Oracle files before the removal gate;
+- preserve the migration utility and linked Oracle archive files during reorganization; do not rewrite or delete historical artifacts as unrelated cleanup;
 - do not edit an already-applied Oracle or MongoDB migration artifact without explaining the consequences;
 - never commit secrets;
 - never add real credentials to examples;
@@ -603,20 +629,17 @@ After an implementation task, report:
 
 Do not call a phase complete if tests fail, required commands were not run, evidence is missing, or an acceptance criterion remains unmet.
 
-## Definition of done for the migration
+## Definition of done for the CI/CD assignment
 
-The full migration is complete only when:
+The assignment is complete only when the active roadmap's exit gates and mandatory delivery checklist are verified:
 
-- the application uses MongoDB as its active persistence layer;
-- exactly five ESG collections are used;
-- every collection contains at least ten coherent persistent documents;
-- CRUD has been executed and evidenced for every collection;
-- flexible activity documents are demonstrated meaningfully;
-- validators and indexes are applied;
-- emission calculation and historical snapshots are correct;
-- all analytics use verified aggregation pipelines;
-- integration tests pass against MongoDB;
-- Oracle data is reconciled or the seed-only decision is documented;
-- Oracle dependencies are removed only after parity;
-- README and migration documentation match the committed implementation;
-- required screenshots are included without exposing secrets.
+- the reorganized .NET 8 solution builds and existing tests pass with disposable MongoDB;
+- the root Dockerfile and `docker-compose.yml` run the API and MongoDB with safe initialization, readiness checks, and persistent storage;
+- staging and production operate independently on the prepared Ubuntu host;
+- pull requests run CI, successful `master` pushes publish a SHA-tagged Docker Hub image, and serialized deployments promote the same digest through verified staging to verified production;
+- failure blocking, database-backed smoke checks, persistence, and isolation have real execution evidence;
+- business behavior, JWT authorization, decimal arithmetic, historical snapshots, and the five-collection design remain preserved;
+- the source ZIP, README, PDF or PPT with actual contributors, real screenshots, and completed delivery checklist match the delivered implementation;
+- no credentials or invented results appear in source, images, logs, or submission artifacts.
+
+The migration's historical definition of done remains in `roadmap.md`; do not mark its outstanding evidence complete on the basis of CI/CD work.
