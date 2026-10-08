@@ -87,9 +87,11 @@ if [ ! -f .env ]; then cp .env.example .env; fi
 openssl rand -hex 32
 ~~~
 
-Copie a chave gerada para `Jwt__SecretKey` no `.env`, substituindo o exemplo. Mantenha a chave privada; não inclua sua saída em prints. O Compose exige um valor não vazio, mas não detecta se você manteve o texto de exemplo. O `.env` é ignorado pelo Git e excluído do contexto da imagem.
+Copie a chave gerada para `Jwt__SecretKey` no `.env`; esse campo está vazio no exemplo, e o Compose rejeita a configuração enquanto ele não for preenchido. Se você já tem uma chave local configurada, mantenha-a. Mantenha a chave privada; não inclua sua saída em prints. O `.env` é ignorado pelo Git e excluído do contexto da imagem.
 
 Configure também `API_PORT` (padrão `8081`), `Jwt__Issuer`, `Jwt__Audience` e `Jwt__ExpirationMinutes` (padrão `60`). O `.env` fornece esses valores ao Compose; ele não é carregado automaticamente por `dotnet run`.
+
+Na entrega, inclua `.env.example`, mas exclua `.env`, `staging.env`, `production.env` e `appsettings.Development.json` do ZIP. As regras do Git e do Docker não filtram automaticamente um ZIP criado por outra ferramenta; confira seu conteúdo na fase de empacotamento. O arquivo histórico `Web.Fiap.Carbono.Source.zip` não representa a entrega CI/CD atual.
 
 ### Iniciar API e banco
 
@@ -108,7 +110,7 @@ curl --fail --silent --show-error --include --max-time 5 \
   http://localhost:8081/api/empresas
 ~~~
 
-O resultado esperado é HTTP `200` e um array JSON contendo uma empresa com `codigo` igual a `EMP-001`. O health check interno exige essas três condições; resposta vazia, erro HTTP ou ausência dessa empresa falham. Ajuste a URL se escolher outra porta.
+O resultado esperado é HTTP `200` e um único array JSON contendo uma empresa com `codigo` igual a `EMP-001`. O health check interno exige essas condições; corpo vazio, múltiplos documentos JSON, erro HTTP ou ausência dessa empresa falham. Ajuste a URL se escolher outra porta.
 
 A API escuta HTTP na porta interna `8080`. O Compose atual usa o ambiente ASP.NET Core padrão `Production`, sem Swagger; não use `/swagger` para verificar disponibilidade. Esse nome de ambiente não significa que houve deploy de produção. MongoDB não publica a porta `27017` no host. Para inspecioná-lo, use:
 

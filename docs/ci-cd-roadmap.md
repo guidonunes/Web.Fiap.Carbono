@@ -135,13 +135,13 @@ Verify all linked files exist and tests discover the real MongoDB scripts. Docke
 
 ### Tasks
 
-- [ ] Rename/consolidate the current MongoDB-only `compose.yaml` into canonical root `docker-compose.yml`; avoid leaving competing default Compose files. Update active commands accordingly.
-- [ ] Define `api` and `mongodb`, API image/build settings, runtime environment variables, a project-scoped network, and a named MongoDB data volume.
-- [ ] Remove the fixed MongoDB container name and unnecessary host database port. Parameterize the API host port; use `8080` inside the API container.
-- [ ] Expand `.env.example` with all required nonsecret runtime/Compose values. Verify actual `.env`, `staging.env`, `production.env`, development settings, and credentials are excluded from Git, the image context, and packaging.
-- [ ] Configure MongoDB readiness and bounded API readiness; make API startup wait for completed fresh-database initialization. Verify HTTP behavior with the existing HTTPS-redirection middleware and chosen container configuration.
+- [x] Rename/consolidate the current MongoDB-only `compose.yaml` into canonical root `docker-compose.yml`; avoid leaving competing default Compose files. Update active commands accordingly.
+- [x] Define `api` and `mongodb`, API image/build settings, runtime environment variables, a project-scoped network, and a named MongoDB data volume.
+- [x] Remove the fixed MongoDB container name and unnecessary host database port. Parameterize the API host port; use `8080` inside the API container.
+- [x] Expand `.env.example` with all required nonsecret runtime/Compose values. Verify Git/image exclusion rules for `.env`, `staging.env`, `production.env`, and development settings, and document packaging exclusions. Final ZIP contents must still be verified in Phase 7; Git/Docker ignore rules alone do not verify a ZIP.
+- [x] Configure MongoDB readiness and bounded API readiness; make API startup wait for completed fresh-database initialization. Verify HTTP behavior with the existing HTTPS-redirection middleware and chosen container configuration.
 - [x] Wire only `01-create-collections.js`, `02-create-indexes.js`, and `03-seed.js` in that order into fresh-volume initialization, for example via Mongo's first-start init directory. Preserve `fiap_carbono`, five domain collections, validators, indexes, and coherent data. Fresh initialization verified in task 13 below.
-- [ ] Ensure database ping success alone cannot race incomplete initialization. Check a known seeded record before accepting API readiness.
+- [x] Ensure database ping success alone cannot race incomplete initialization. Check a known seeded record before accepting API readiness.
 - [x] Document fresh-volume versus existing-volume behavior. The seed replaces matching records: do not rerun it on every deployment. Never drop the database or automatically reset a failed/partially initialized volume. Report initialization failure for deliberate recovery. See the task 10 verification below.
 - [x] Keep `04-crud-demo.js` and `05-aggregation-queries.js` available for manual evidence; do not execute demos as startup hooks. See the task 11 verification below.
 - [x] Document local Compose setup, fresh initialization, existing-volume reuse, readiness checks, restart/recreation, and troubleshooting in README (task 12). Documentation and command syntax checked on October 8, 2026; this does not complete the remaining runtime exit gates.
@@ -320,6 +320,32 @@ Cleanup used `deleteOne` restricted to the exact generated `_id`, temporary code
 | `emissoes_carbono` | 15 | 15 | 15 |
 
 Both services remain healthy on the original ports. The original 55 documents are unchanged, and no database or volume was dropped. Other local projects were not restarted or modified. No application/configuration fixes, image builds, or full solution tests were needed; this task verified the existing persistence configuration and recorded its results. Phase 3 host preparation was not started.
+
+### Phase 2 review — October 8, 2026
+
+The working tree was clean before this review. Source/configuration inspection and the recorded task 13–15 runtime results support completion of the local Compose phase; the earlier unchecked implementation items have now been reconciled. The deployment host, automated pipeline, and final submission package remain later-phase work.
+
+The review found and corrected a readiness defect: `jq -e` returned success for an empty HTTP body and could accept a stream containing multiple JSON documents when the last result passed. The API health check now uses `jq -e -s` and requires exactly one parsed JSON value, which must be an array containing `EMP-001`. HTTP status and the five-second request timeout remain required. Twelve focused simulated response cases passed: valid seeded response, empty body, whitespace, multiple JSON documents, empty array, missing seed, HTML, object, null, redirect, server error, and curl timeout. Temporary response files were removed on every path.
+
+The example JWT signing key is now empty, so copying `.env.example` without configuring a key fails Compose validation instead of accepting a public example key. Missing/empty-key rejection and successful validation with the existing local key were checked without printing that key. The local `.env` was not modified. README configuration and readiness guidance were updated accordingly.
+
+Inspection also confirmed:
+
+- `docker-compose.yml` is the sole root Compose configuration, with the root Dockerfile as the API build definition;
+- both services use the same project-scoped default network; MongoDB has no fixed container name or host port, and uses a named volume;
+- API port overrides `8081` and `8082` render correctly against internal port `8080`;
+- MongoDB connection/database values match the internal service and seeded database; they are deliberately fixed in Compose, as documented in README;
+- secret environment/development files are ignored and untracked, `.env.example` is tracked, and Docker context exclusion patterns cover those secret files and ZIPs;
+- the configured local JWT key was absent from tracked non-archive files. Filename inspection of the historical tracked source ZIP found none of the four secret configuration filenames checked; this was not a complete credential audit or validation of the final submission archive. README now states the required ZIP exclusions and distinguishes that historical ZIP from the future CI/CD delivery.
+
+Only the isolated API was recreated to apply the corrected health check:
+
+```bash
+API_PORT=8084 docker compose -p carbono-task13-20261008 --env-file .env up \
+  -d --no-build --no-deps --force-recreate --wait --wait-timeout 120 api
+```
+
+It became healthy. The actual updated container health-check command exited successfully, and an HTTP request on port `8084` returned `200`, exactly one JSON array, ten companies, and `EMP-001`. MongoDB remained healthy and was not restarted or modified. Diff, shell syntax, and local documentation-link checks passed. No image build or full solution test suite was rerun: the changes affect Compose health validation and documentation, with fresh initialization, outage/recovery, and persistence evidence retained in tasks 13–15.
 
 ### Verification
 

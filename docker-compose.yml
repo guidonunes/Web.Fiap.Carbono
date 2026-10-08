@@ -33,7 +33,7 @@ services:
 
           [ "$$status" = "200" ] || exit 1
 
-          jq -e 'type == "array" and any(.[]; .codigo == "EMP-001")' \
+          jq -e -s 'length == 1 and (.[0] | type == "array" and any(.[]; .codigo == "EMP-001"))' \
             "$$response_file" > /dev/null
       interval: 10s
       timeout: 6s
