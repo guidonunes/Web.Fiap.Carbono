@@ -140,31 +140,211 @@ Verify all linked files exist and tests discover the real MongoDB scripts. Docke
 - [ ] Remove the fixed MongoDB container name and unnecessary host database port. Parameterize the API host port; use `8080` inside the API container.
 - [ ] Expand `.env.example` with all required nonsecret runtime/Compose values. Verify actual `.env`, `staging.env`, `production.env`, development settings, and credentials are excluded from Git, the image context, and packaging.
 - [ ] Configure MongoDB readiness and bounded API readiness; make API startup wait for completed fresh-database initialization. Verify HTTP behavior with the existing HTTPS-redirection middleware and chosen container configuration.
-- [ ] Wire only `01-create-collections.js`, `02-create-indexes.js`, and `03-seed.js` in that order into fresh-volume initialization, for example via Mongo's first-start init directory. Preserve `fiap_carbono`, five domain collections, validators, indexes, and coherent data.
+- [x] Wire only `01-create-collections.js`, `02-create-indexes.js`, and `03-seed.js` in that order into fresh-volume initialization, for example via Mongo's first-start init directory. Preserve `fiap_carbono`, five domain collections, validators, indexes, and coherent data. Fresh initialization verified in task 13 below.
 - [ ] Ensure database ping success alone cannot race incomplete initialization. Check a known seeded record before accepting API readiness.
-- [ ] Document fresh-volume versus existing-volume behavior. The seed replaces matching records: do not rerun it on every deployment. Never drop the database or automatically reset a failed/partially initialized volume. Report initialization failure for deliberate recovery.
-- [ ] Keep `04-crud-demo.js` and `05-aggregation-queries.js` available for manual evidence; do not execute demos as startup hooks.
-- [ ] Verify startup from a newly named development project/volume, then restart/recreate containers without deleting volumes and confirm stored data remains.
+- [x] Document fresh-volume versus existing-volume behavior. The seed replaces matching records: do not rerun it on every deployment. Never drop the database or automatically reset a failed/partially initialized volume. Report initialization failure for deliberate recovery. See the task 10 verification below.
+- [x] Keep `04-crud-demo.js` and `05-aggregation-queries.js` available for manual evidence; do not execute demos as startup hooks. See the task 11 verification below.
+- [x] Document local Compose setup, fresh initialization, existing-volume reuse, readiness checks, restart/recreation, and troubleshooting in README (task 12). Documentation and command syntax checked on October 8, 2026; this does not complete the remaining runtime exit gates.
+- [x] Verify startup from a newly named development project/volume, then restart/recreate containers without deleting volumes and confirm stored data remains. Fresh startup passed in task 13; edited temporary-record persistence passed in task 15.
+
+### Task 10 — preserve existing data without reseeding
+
+The MongoDB image's first-start entrypoint runs the three mounted initialization scripts in filename order for a fresh `/data/db`. When MongoDB storage files already exist, it skips these scripts. This depends on initialized storage, not whether the five domain collections contain records. The API has no seed startup hook, and Compose does not override the MongoDB entrypoint to rerun the seed.
+
+Keep the named volume and the same Compose project name when restarting or recreating an environment. A different project name selects a different project-scoped volume. Do not use `down -v`, delete the volume, or manually rerun `03-seed.js` against existing data: its replacing upserts can overwrite changes even when IDs and counts remain the same.
+
+If first initialization fails, inspect `docker compose -p PROJECT logs --no-color mongodb` and the API health status. Preserve the volume for inspection and deliberate recovery; do not automatically reset it or rerun the seed. A partially initialized volume can already contain storage files, so restarting may skip the scripts without repairing the dataset. The API check requires `EMP-001`, but is not proof that every collection, index, or seed verification completed. Recovery must account for the actual failure and existing data.
+
+**Verified on October 8, 2026:** the existing local `carbono-init-check` project was recreated using:
+
+```bash
+API_PORT=8083 docker compose -p carbono-init-check up \
+  -d --force-recreate --wait --wait-timeout 120
+```
+
+The command exited successfully and both services became healthy. MongoDB's container changed from `8798f3595e52` to `0ac70efb0da2`, retaining volume `carbono-init-check_fiap_carbono_mongodb_data`. Before and after recreation, read-only queries sorted each collection by `_id`, serialized all documents with `EJSON.stringify(..., { relaxed: false })`, and computed SHA-256 hashes. All five hashes matched; all 55 documents were unchanged, including IDs, timestamps, and BSON values. Counts remained:
+
+| Collection | Before | After |
+| --- | --- | --- |
+| `empresas` | 10 | 10 |
+| `produtos` | 10 | 10 |
+| `fornecedores` | 10 | 10 |
+| `fatores_emissao` | 10 | 10 |
+| `emissoes_carbono` | 15 | 15 |
+
+The recreated MongoDB container's logs contained no initialization-script execution or seed-completion messages. No database writes, resets, or manual seed executions were performed during this check. The local API remains on port `8083`. This verifies task 10's existing-volume recreation behavior. Database-outage verification is recorded in task 14 below; temporary-record mutation/persistence is recorded in task 15.
+
+### Task 11 — keep demonstrations out of startup
+
+Keep `database/mongodb/04-crud-demo.js` and `database/mongodb/05-aggregation-queries.js` in the repository for deliberate manual evidence collection. Compose mounts only scripts `01`, `02`, and `03` individually and read-only into `/docker-entrypoint-initdb.d`. Do not replace these mounts with the whole `database/mongodb/` directory, which would include the demonstration scripts in fresh-database initialization.
+
+**Verified on October 8, 2026:** both demonstration files exist in the repository. Inspection found no calls to them in the three initialization scripts, the Dockerfile, or API startup. The following read-only command against the running local MongoDB container exited successfully:
+
+```bash
+docker compose -p carbono-init-check exec -T mongodb \
+  ls -1 /docker-entrypoint-initdb.d
+```
+
+Its complete output was:
+
+```text
+01-create-collections.js
+02-create-indexes.js
+03-seed.js
+```
+
+The demonstration scripts are therefore excluded from the running container's startup directory. Neither demonstration was executed for this check, and no database data was modified.
+
+### Task 13 — verify fresh initialization
+
+**Passed on October 8, 2026.** Before startup, `docker ps -a` showed no containers for `carbono-task13-20261008`, `docker volume ls --filter name=carbono-task13-20261008` returned no volumes, and port `8084` had no listener. The following command built the current API and created a separate local project:
+
+```bash
+API_PORT=8084 docker compose -p carbono-task13-20261008 --env-file .env up \
+  -d --build --wait --wait-timeout 120
+```
+
+The Docker build succeeded; the API build step reported zero warnings/errors. Compose created network `carbono-task13-20261008_default` and volume `carbono-task13-20261008_fiap_carbono_mongodb_data`. Both API and MongoDB became healthy, and the command exited with code `0`. Application image: `web-fiap-carbono:local`, ID `sha256:59623e5f18e5cd07f8d7065b0a8d6f0782e9d7fd23c0708e50623e9266505937`.
+
+The MongoDB log confirmed this order:
+
+```text
+running /docker-entrypoint-initdb.d/01-create-collections.js
+running /docker-entrypoint-initdb.d/02-create-indexes.js
+running /docker-entrypoint-initdb.d/03-seed.js
+Phase 4 seed verification passed.
+MongoDB init process complete; ready for start up.
+```
+
+The seed's historical message says “Phase 4”; it is the seed script's own verification, not completion of CI/CD Phase 4. It follows the script's reference, formula, activity-type, and GHG-scope assertions. The log also reported `formulaMismatchCount: 0`.
+
+A temporary read-only `mongosh` verifier then checked the actual database and exited with code `0`. It required exactly the five domain collections, at least ten documents per collection, JSON Schema validators with `validationLevel: strict` and `validationAction: error`, and zero stored documents failing those validators. It compared all 12 domain index names, ordered keys, unique flags, and partial filters with the requirements in `02-create-indexes.js`, and checked each collection's `_id_` index. It also confirmed exactly one company with `codigo: "EMP-001"`.
+
+| Collection | Documents | Domain indexes | Total indexes including `_id_` |
+| --- | --- | --- | --- |
+| `empresas` | 10 | 2 | 3 |
+| `produtos` | 10 | 1 | 2 |
+| `fornecedores` | 10 | 2 | 3 |
+| `fatores_emissao` | 10 | 1 | 2 |
+| `emissoes_carbono` | 15 | 6 | 7 |
+
+Verified unique constraints include company/supplier CNPJ and code, product company/code, factor code/version, and emission code with the partial filter `{ codigo: { $type: "string" } }`. Emission query indexes cover product/date, company/date, supplier/date, factor reference, and stage category. All 55 stored documents satisfied their collection schemas.
+
+For read-only inspection of this environment, use:
+
+```bash
+docker compose -p carbono-task13-20261008 ps
+docker compose -p carbono-task13-20261008 logs --no-color mongodb
+docker compose -p carbono-task13-20261008 exec -T mongodb \
+  mongosh --quiet fiap_carbono --eval '
+    printjson(db.getCollectionNames().sort().map(name => ({
+      collection: name,
+      count: db.getCollection(name).countDocuments({}),
+      options: db.getCollectionInfos({ name })[0].options,
+      indexes: db.getCollection(name).getIndexes()
+    })));
+  '
+```
+
+The local project remains running on API port `8084` with its volume retained. Reusing this name tests an existing volume, not another fresh initialization. Existing projects and their data were left unchanged. No source/configuration fixes were needed, demonstration scripts were not run, and the full solution test suite was not run for this task. Task 14's database-outage check and task 15's temporary-record persistence check are recorded below.
+
+### Task 14 — database-backed API and bounded outage failure
+
+**Passed on October 8, 2026, 18:55:09–18:56:52 UTC.** Verification used only the isolated local project `carbono-task13-20261008`, API `http://127.0.0.1:8084/api/empresas`, and its existing MongoDB volume. A temporary verifier included a `finally` block to start MongoDB again even if an outage assertion failed. It printed status, counts, and timings without exposing JWT configuration or complete company records.
+
+Before the outage, a read-only MongoDB query retrieved the `_id` of `EMP-001`. The HTTP response was a JSON array of ten companies, and the returned company's `id` matched that MongoDB document. The verifier also executed the API container's actual configured health-check command, obtained from `.Config.Healthcheck.Test`, successfully.
+
+It then ran:
+
+```bash
+docker compose -p carbono-task13-20261008 --env-file .env stop --timeout 10 mongodb
+```
+
+After confirming MongoDB was stopped, it repeated the HTTP probe with `curl --max-time 5` and executed the same container health-check command. The observations were:
+
+| Check | Result | Observed elapsed time |
+| --- | --- | --- |
+| HTTP before outage | Curl exit `0`, HTTP `200`, JSON array with ten companies and matching `EMP-001` | 0.022 s |
+| HTTP during outage | Curl exit `28` (timeout); no HTTP response received | 5.019 s |
+| Actual health-check command during outage | Exit `1` | 5.113 s |
+| Docker API health status | Became `unhealthy`, within the verifier's 120-second limit | 90.825 s after MongoDB stopped |
+| HTTP after recovery | Curl exit `0`, HTTP `200`, ten companies and the same `EMP-001` ID | 0.014 s |
+
+Curl's reported status `000` during the outage means no HTTP response was received; it is not an API status code. The bounded failure is enforced by the client's five-second timeout. A single failed check does not immediately mark the container unhealthy: the configured retry count and interval account for the longer Docker status transition. The retained Docker health log entries showed failed checks exiting `1` after approximately five seconds each.
+
+The verifier restored MongoDB using:
+
+```bash
+docker compose -p carbono-task13-20261008 --env-file .env start mongodb
+```
+
+It waited for both services to become healthy again, revalidated the HTTP response, and reran the actual health-check command successfully. The MongoDB container ID and volume `carbono-task13-20261008_fiap_carbono_mongodb_data` were unchanged. Both services remain running on the original ports; only this project's MongoDB was stopped and started. No application records were written, no volumes were removed, and no seed or demonstration scripts were manually executed.
+
+No application/configuration fixes, image builds, or full solution tests were needed for this task. These results verify local API/readiness failure and recovery; CI/CD stage blocking remains a later pipeline verification. Task 15's temporary-record persistence check is recorded below.
+
+### Task 15 — edited record survives restart and recreation
+
+**Passed on October 8, 2026, 18:58:54–18:59:26 UTC.** Verification used the existing isolated project `carbono-task13-20261008` on API port `8084`. Both services were healthy before the check. Read-only queries captured the five collection names, counts, and SHA-256 hashes of all documents sorted by `_id` and serialized as canonical Extended JSON.
+
+A temporary verifier first confirmed its chosen company ID, code, and CNPJ did not already exist. It inserted one company with code `CRUD-TEMP-PERSISTENCE-TASK15`, then changed `nomeFantasia` from `CRUD-TEMP-PERSISTENCE-INITIAL` to `CRUD-TEMP-PERSISTENCE-EDITED` and updated `atualizadoEm`. The company satisfied the existing schema; no validators or indexes were changed. The API returned HTTP `200`, eleven companies, and the edited temporary company with the matching ID.
+
+The verifier executed these lifecycle commands, with `API_PORT=8084` supplied throughout:
+
+```bash
+API_PORT=8084 docker compose -p carbono-task13-20261008 --env-file .env restart
+API_PORT=8084 docker compose -p carbono-task13-20261008 --env-file .env up \
+  -d --no-build --wait --wait-timeout 120
+API_PORT=8084 docker compose -p carbono-task13-20261008 --env-file .env up \
+  -d --no-build --force-recreate --wait --wait-timeout 120
+```
+
+All commands exited successfully. After each lifecycle operation, it verified:
+
+- both services returned to healthy;
+- volume `carbono-task13-20261008_fiap_carbono_mongodb_data` was retained;
+- the temporary company's complete BSON document, including ID, creation/update timestamps, and edited value, matched the post-edit snapshot;
+- counts and hashes for all five collections matched the post-edit snapshot;
+- the API returned HTTP `200` with eleven companies and the edited record;
+- initialization did not rerun: initialization-message counts were unchanged after restart, and the recreated MongoDB container's logs contained no initialization-script or seed-completion messages.
+
+Restart retained both container IDs. Recreation replaced API container `78f6cdf9f840` with `f5e76b3ba884` and MongoDB container `0c66abcc6853` with `71576f439efe`, while retaining the same named volume.
+
+Cleanup used `deleteOne` restricted to the exact generated `_id`, temporary code, and CNPJ. It deleted exactly one test record. A final comparison showed that all five collection hashes and counts matched the original pre-test database, and the API again returned ten companies without the temporary record:
+
+| Collection | Before test | After edit/restart/recreation | After cleanup |
+| --- | --- | --- | --- |
+| `empresas` | 10 | 11 | 10 |
+| `produtos` | 10 | 10 | 10 |
+| `fornecedores` | 10 | 10 | 10 |
+| `fatores_emissao` | 10 | 10 | 10 |
+| `emissoes_carbono` | 15 | 15 | 15 |
+
+Both services remain healthy on the original ports. The original 55 documents are unchanged, and no database or volume was dropped. Other local projects were not restarted or modified. No application/configuration fixes, image builds, or full solution tests were needed; this task verified the existing persistence configuration and recorded its results. Phase 3 host preparation was not started.
 
 ### Verification
 
-After preparing an untracked local `.env` from the example, use the following planned commands. These depend on the Phase 2 file/services being implemented:
+Follow [Como executar localmente com Docker](../README.md#como-executar-localmente-com-docker) for `.env` setup, automatic initialization, health checks, restart/recreation, and recovery guidance. Task 12 replaced the obsolete instructions to connect to the Compose database through host port `27017` and manually run all five scripts. The README also explains that the current Compose file fixes MongoDB connection/database values rather than interpolating them from `.env`.
+
+The commands below target `carbono-local` with `API_PORT=8081`. To reuse the already verified `carbono-init-check` database, keep that project name and `API_PORT=8083` instead. Never change the project name unintentionally when checking persistence.
 
 ```bash
 docker compose -f docker-compose.yml -p carbono-local --env-file .env config --quiet
-docker compose -f docker-compose.yml -p carbono-local --env-file .env up -d --build --wait
+docker compose -f docker-compose.yml -p carbono-local --env-file .env up -d --build --wait --wait-timeout 120
 docker compose -f docker-compose.yml -p carbono-local --env-file .env ps
-curl --fail --silent --show-error --max-time 15 http://localhost:8081/api/empresas
+curl --fail --silent --show-error --include --max-time 5 http://localhost:8081/api/empresas
 docker compose -f docker-compose.yml -p carbono-local --env-file .env restart
+docker compose -f docker-compose.yml -p carbono-local --env-file .env up -d --wait --wait-timeout 120
 ```
 
-Use `API_PORT=8081` in that local example. Inspect the returned JSON and a known seed key. Use `docker compose ... exec mongodb mongosh` with the chosen authentication configuration to inspect the five collections, counts, and indexes. Confirm at least ten coherent seed documents in each collection on the fresh demonstration database. Compare counts and a deliberately edited temporary record after restart/recreation to prove data was not reset. Do not use `down -v` or a database drop. Avoid capturing fully rendered Compose configuration containing secrets.
+Expect HTTP `200` and a JSON array containing `codigo: "EMP-001"`. Use `docker compose ... exec mongodb mongosh` with the chosen authentication configuration to inspect the five collections, counts, and indexes. Confirm at least ten coherent seed documents in each collection on the fresh demonstration database. Compare counts and a deliberately edited temporary record after restart/recreation to prove data was not reset. Do not use `down -v` or a database drop. Avoid capturing fully rendered Compose configuration containing secrets.
+
+Task 12 verification was limited to documentation diff/path checks, shell syntax checks, local Compose CLI help, and quiet Compose configuration validation. No builds, application tests, database scripts, restarts, or deployments were run for that documentation task. Runtime results from tasks 10 and 11 remain recorded separately above.
 
 ### Exit gate
 
-- [ ] A fresh local project starts API plus MongoDB successfully with documented configuration and readiness checks.
-- [ ] Initialization creates the expected five-collection dataset, and later restarts/recreations preserve stored data without reseeding.
-- [ ] A database-backed API request succeeds; a database-unavailable check fails within a bounded time.
+- [x] A fresh local project starts API plus MongoDB successfully with documented configuration and readiness checks. Verified in task 13 on October 8, 2026.
+- [x] Initialization creates the expected five-collection dataset, and later restarts/recreations preserve stored data without reseeding. Verified by tasks 13 and 15, including an edited temporary record and cleanup.
+- [x] A database-backed API request succeeds; a database-unavailable check fails within a bounded time. Verified with recovery in task 14 on October 8, 2026.
 
 ## Phase 3 — October 8: prepare the host and verify isolation
 

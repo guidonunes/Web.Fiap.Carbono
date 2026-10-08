@@ -59,7 +59,7 @@ A flexibilidade de dadosAtividade representa diferenças reais entre TRANSPORTE,
 
 ## Configuração
 
-Use `src/Web.Fiap.Carbono/appsettings.Development.json`, que não é versionado, ou variáveis de ambiente:
+Para executar a API diretamente com o SDK, use `src/Web.Fiap.Carbono/appsettings.Development.json`, que não é versionado, ou variáveis de ambiente:
 
 | Variável | Exemplo |
 |---|---|
@@ -72,41 +72,119 @@ Use `src/Web.Fiap.Carbono/appsettings.Development.json`, que não é versionado,
 
 Não coloque credenciais, tokens ou strings de conexão reais no Git.
 
-## Inicialização
+No Docker Compose, prepare o arquivo `.env` conforme a seção abaixo. A conexão da API está definida no `docker-compose.yml` como `mongodb://mongodb:27017`, com banco `fiap_carbono`. Os valores `MongoDb__ConnectionString` e `MongoDb__DatabaseName` do `.env.example` documentam esses valores, mas atualmente não os substituem no Compose. `localhost` dentro do container da API não aponta para o MongoDB.
 
-Pré-requisitos: .NET 8 SDK, Docker Compose ou MongoDB 8 local e mongosh.
+## Como executar localmente com Docker
 
-Inicie o banco:
+Pré-requisitos: Docker Engine em execução, plugin Docker Compose com suporte a `--wait`, acesso aos registros de imagens e `curl` no host. O comando de geração de chave abaixo usa OpenSSL. Não é necessário instalar .NET SDK ou `mongosh` no host para executar via Compose.
 
-~~~bash
-docker compose up -d mongodb
-docker compose ps
-~~~
+### Preparar a configuração
 
-Execute os scripts nesta ordem:
+Na raiz do repositório, crie `.env` somente se ele ainda não existir:
 
 ~~~bash
-mongosh "mongodb://localhost:27017/fiap_carbono" --file database/mongodb/01-create-collections.js
-mongosh "mongodb://localhost:27017/fiap_carbono" --file database/mongodb/02-create-indexes.js
-mongosh "mongodb://localhost:27017/fiap_carbono" --file database/mongodb/03-seed.js
-mongosh "mongodb://localhost:27017/fiap_carbono" --file database/mongodb/04-crud-demo.js
-mongosh "mongodb://localhost:27017/fiap_carbono" --file database/mongodb/05-aggregation-queries.js
+if [ ! -f .env ]; then cp .env.example .env; fi
+openssl rand -hex 32
 ~~~
 
-1. 01-create-collections.js cria as cinco coleções e validadores.
-2. 02-create-indexes.js cria índices únicos e de consulta.
-3. 03-seed.js insere pelo menos dez documentos coerentes em cada coleção.
-4. 04-crud-demo.js demonstra CRUD com registros CRUD-TEMP e preserva os dados permanentes.
-5. 05-aggregation-queries.js executa agregações sem alterar dados.
+Copie a chave gerada para `Jwt__SecretKey` no `.env`, substituindo o exemplo. Mantenha a chave privada; não inclua sua saída em prints. O Compose exige um valor não vazio, mas não detecta se você manteve o texto de exemplo. O `.env` é ignorado pelo Git e excluído do contexto da imagem.
 
-O seed usa chaves de negócio determinísticas. Para repetir a demonstração, use um banco de desenvolvimento limpo. A API nunca remove o banco no startup.
+Configure também `API_PORT` (padrão `8081`), `Jwt__Issuer`, `Jwt__Audience` e `Jwt__ExpirationMinutes` (padrão `60`). O `.env` fornece esses valores ao Compose; ele não é carregado automaticamente por `dotnet run`.
+
+### Iniciar API e banco
+
+~~~bash
+docker compose -p carbono-local --env-file .env config --quiet
+docker compose -p carbono-local --env-file .env up -d --build --wait --wait-timeout 120
+docker compose -p carbono-local --env-file .env ps
+~~~
+
+Espere os serviços `api` e `mongodb` ficarem `healthy`. O limite de 120 segundos se aplica à espera de disponibilidade, não à duração do build. Use `config --quiet` para validar sem imprimir a configuração resolvida, que contém a chave JWT.
+
+Com `API_PORT=8081`, verifique:
+
+~~~bash
+curl --fail --silent --show-error --include --max-time 5 \
+  http://localhost:8081/api/empresas
+~~~
+
+O resultado esperado é HTTP `200` e um array JSON contendo uma empresa com `codigo` igual a `EMP-001`. O health check interno exige essas três condições; resposta vazia, erro HTTP ou ausência dessa empresa falham. Ajuste a URL se escolher outra porta.
+
+A API escuta HTTP na porta interna `8080`. O Compose atual usa o ambiente ASP.NET Core padrão `Production`, sem Swagger; não use `/swagger` para verificar disponibilidade. Esse nome de ambiente não significa que houve deploy de produção. MongoDB não publica a porta `27017` no host. Para inspecioná-lo, use:
+
+~~~bash
+docker compose -p carbono-local --env-file .env exec mongodb mongosh fiap_carbono
+~~~
+
+### Inicialização e dados persistentes
+
+Em um volume novo, o MongoDB executa automaticamente, nesta ordem:
+
+1. `01-create-collections.js`: cria as cinco coleções e validadores.
+2. `02-create-indexes.js`: cria índices únicos e de consulta.
+3. `03-seed.js`: insere o conjunto coerente de demonstração com pelo menos dez documentos por coleção.
+
+Os scripts `04-crud-demo.js` e `05-aggregation-queries.js` permanecem em `database/mongodb/` para execução manual deliberada. Eles não fazem parte da inicialização. O primeiro demonstra CRUD com registros `CRUD-TEMP`; o segundo consulta agregações.
+
+Os dados ficam no volume `carbono-local_fiap_carbono_mongodb_data`, montado em `/data/db`. Com arquivos de banco existentes, a inicialização é ignorada, mesmo se as coleções estiverem vazias. Não execute novamente o seed para reiniciar: seus upserts substituem documentos e podem sobrescrever alterações. Não use `down -v` nem remova o volume para uma reinicialização normal.
+
+Se a primeira inicialização falhar, preserve o volume e examine os logs antes de escolher uma recuperação. Um volume parcialmente inicializado pode ser ignorado na próxima partida; reiniciar não garante completar o seed. A presença de `EMP-001` também não comprova todos os índices e dados. Não há reset automático do banco.
+
+### Reiniciar, atualizar e parar
+
+Para reiniciar os containers com a configuração existente e aguardar disponibilidade:
+
+~~~bash
+docker compose -p carbono-local --env-file .env restart
+docker compose -p carbono-local --env-file .env up -d --wait --wait-timeout 120
+~~~
+
+Depois de alterar código, Dockerfile, Compose ou `.env`, use o comando abaixo para reconstruir a imagem e aplicar a configuração. `restart` sozinho não aplica novas variáveis de ambiente. Consulte as referências de [up](https://docs.docker.com/reference/cli/docker/compose/up/) e [restart](https://docs.docker.com/reference/cli/docker/compose/restart/).
+
+~~~bash
+docker compose -p carbono-local --env-file .env up -d --build --wait --wait-timeout 120
+~~~
+
+Para recriar os containers deliberadamente, preservando o volume:
+
+~~~bash
+docker compose -p carbono-local --env-file .env up -d --force-recreate --wait --wait-timeout 120
+~~~
+
+Para parar e depois retomar o mesmo ambiente:
+
+~~~bash
+docker compose -p carbono-local --env-file .env stop
+docker compose -p carbono-local --env-file .env up -d --wait --wait-timeout 120
+~~~
+
+Mantenha o mesmo nome de projeto (`-p`) em todos os comandos: ele identifica a rede, os containers e o volume desse ambiente. Trocar o nome cria recursos separados. Se a porta estiver ocupada, escolha outra em `.env` e ajuste a URL de verificação.
+
+O projeto usado nas verificações anteriores é `carbono-init-check`, com API na porta `8083`. Para continuar usando seus dados, em vez de criar `carbono-local`, use `-p carbono-init-check` nos comandos e preserve `API_PORT=8083`, por exemplo:
+
+~~~bash
+API_PORT=8083 docker compose -p carbono-init-check --env-file .env up -d --wait --wait-timeout 120
+~~~
+
+Para investigar uma falha, consulte `ps` e os logs; não remova o volume:
+
+~~~bash
+docker compose -p carbono-local --env-file .env ps -a
+docker compose -p carbono-local --env-file .env logs --no-color --tail 100 api mongodb
+~~~
+
+Repita a consulta a `/api/empresas` após a retomada. Revise os logs antes de compartilhar evidências para evitar exposição de dados ou credenciais.
+
+## Execução com o SDK
+
+Como alternativa ao Compose completo, instale .NET 8 SDK e disponibilize uma instância MongoDB separada, acessível pelo host e previamente inicializada com os scripts `01`, `02` e `03` em um banco novo. Configure MongoDB e JWT em `appsettings.Development.json` ou no ambiente. O MongoDB do Compose acima não fica acessível em `localhost:27017`.
 
 Compile e execute:
 
 ~~~bash
 dotnet restore Web.Fiap.Carbono.sln
 dotnet build Web.Fiap.Carbono.sln
-dotnet run --project src/Web.Fiap.Carbono/Web.Fiap.Carbono.csproj
+dotnet run --project src/Web.Fiap.Carbono/Web.Fiap.Carbono.csproj --launch-profile http
 ~~~
 
 A API fica em http://localhost:5269 e o Swagger em http://localhost:5269/swagger no ambiente Development.
@@ -154,19 +232,17 @@ dotnet test Web.Fiap.Carbono.sln --configuration Release --no-build \
   --results-directory ./artifacts/test-results/after
 ~~~
 
-## Docker
+## Containerização
+
+O `Dockerfile` na raiz usa build multi-stage: restaura e publica a API com o SDK .NET 8 e copia a publicação para a imagem ASP.NET Core 8. A imagem final contém `curl` e `jq` para o health check e executa a API com o usuário definido por `APP_UID`.
+
+Para apenas construir a imagem local:
 
 ~~~bash
-docker build --file Dockerfile --tag web-fiap-carbono .
-docker run --rm --publish 8080:8080 \
-  --env MongoDb__ConnectionString="mongodb://host.docker.internal:27017" \
-  --env MongoDb__DatabaseName="fiap_carbono" \
-  --env Jwt__SecretKey="SUA_CHAVE_JWT_LOCAL" \
-  --env Jwt__Issuer="Web.Fiap.Carbono" \
-  --env Jwt__Audience="Web.Fiap.Carbono.Users" \
-  --env Jwt__ExpirationMinutes="60" \
-  web-fiap-carbono
+docker build --file Dockerfile --tag web-fiap-carbono:local .
 ~~~
+
+O `docker-compose.yml` executa essa API e `mongo:8.0.29-noble` na rede padrão do projeto, com volume persistente próprio. A API aguarda o health check do MongoDB e verifica dados pelo endpoint `/api/empresas`. A imagem `web-fiap-carbono:local` é local; publicação no Docker Hub e deploys CI/CD continuam planejados no [roadmap](docs/ci-cd-roadmap.md).
 
 ## Erros e documentação complementar
 

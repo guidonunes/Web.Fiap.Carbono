@@ -14,22 +14,53 @@ services:
       Jwt__Issuer: "${Jwt__Issuer:-Web.Fiap.Carbono}"
       Jwt__Audience: "${Jwt__Audience:-Web.Fiap.Carbono.Users}"
       Jwt__ExpirationMinutes: "${Jwt__ExpirationMinutes:-60}"
-  mongodb:
-    image: mongo:8.0.29-noble
-    
-    volumes:
-      - fiap_carbono_mongodb_data:/data/db
+    depends_on:
+      mongodb:
+        condition: service_healthy
 
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "mongosh --quiet --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'"
-        ]
+        - CMD-SHELL
+        - |
+          response_file=$$(mktemp) || exit 1
+          trap 'rm -f "$$response_file"' EXIT
+
+          status=$$(curl --silent --show-error \
+            --max-time 5 \
+            --output "$$response_file" \
+            --write-out '%{http_code}' \
+            http://127.0.0.1:8080/api/empresas) || exit 1
+
+          [ "$$status" = "200" ] || exit 1
+
+          jq -e 'type == "array" and any(.[]; .codigo == "EMP-001")' \
+            "$$response_file" > /dev/null
+      interval: 10s
+      timeout: 6s
+      retries: 6
+      start_period: 20s
+
+  mongodb:
+    image: mongo:8.0.29-noble
+
+    volumes:
+      # Keep this volume: MongoDB skips init scripts when /data/db is initialized.
+      - fiap_carbono_mongodb_data:/data/db
+      # Fresh databases only. Do not rerun the replacing seed on normal startup.
+      # Mount files individually: scripts 04 and 05 are manual demonstrations only.
+      - ./database/mongodb/01-create-collections.js:/docker-entrypoint-initdb.d/01-create-collections.js:ro
+      - ./database/mongodb/02-create-indexes.js:/docker-entrypoint-initdb.d/02-create-indexes.js:ro
+      - ./database/mongodb/03-seed.js:/docker-entrypoint-initdb.d/03-seed.js:ro
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          mongosh --host mongodb --quiet --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 10s
+      start_period: 30s
 
     restart: unless-stopped
 
