@@ -1,0 +1,37 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: web-fiap-carbono:local
+    ports:
+      - "${API_PORT:-8081}:8080"
+    environment:
+      ASPNETCORE_HTTP_PORTS: "8080"
+      MongoDb__ConnectionString: mongodb://mongodb:27017
+      MongoDb__DatabaseName: fiap_carbono
+      Jwt__SecretKey: "${Jwt__SecretKey:?Set Jwt__SecretKey in .env}"
+      Jwt__Issuer: "${Jwt__Issuer:-Web.Fiap.Carbono}"
+      Jwt__Audience: "${Jwt__Audience:-Web.Fiap.Carbono.Users}"
+      Jwt__ExpirationMinutes: "${Jwt__ExpirationMinutes:-60}"
+  mongodb:
+    image: mongo:8.0.29-noble
+    
+    volumes:
+      - fiap_carbono_mongodb_data:/data/db
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+    restart: unless-stopped
+
+volumes:
+  fiap_carbono_mongodb_data:

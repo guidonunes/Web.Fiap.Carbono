@@ -39,6 +39,8 @@ flowchart LR
 
 O código ativo está organizado em Controllers, Services/MongoDb, Data/MongoDb, Models/Documents, Dtos/MongoDb, Config/MongoDb e Middlewares. A ferramenta Web.Fiap.Carbono.Migration é separada da API e o código Oracle histórico está em archive/oracle.
 
+A API está em `src/Web.Fiap.Carbono/` e a ferramenta de migração em `src/Web.Fiap.Carbono.Migration/`. O projeto `Web.Fiap.Carbono.Tests/`, a solução, o `Dockerfile`, `database/` e `archive/` permanecem na raiz. Execute os comandos deste README a partir da raiz do repositório.
+
 ## Modelo MongoDB
 
 O banco padrão é fiap_carbono e contém exatamente:
@@ -57,7 +59,7 @@ A flexibilidade de dadosAtividade representa diferenças reais entre TRANSPORTE,
 
 ## Configuração
 
-Use appsettings.Development.json, que não é versionado, ou variáveis de ambiente:
+Use `src/Web.Fiap.Carbono/appsettings.Development.json`, que não é versionado, ou variáveis de ambiente:
 
 | Variável | Exemplo |
 |---|---|
@@ -104,7 +106,7 @@ Compile e execute:
 ~~~bash
 dotnet restore Web.Fiap.Carbono.sln
 dotnet build Web.Fiap.Carbono.sln
-dotnet run --project Web.Fiap.Carbono/Web.Fiap.Carbono.csproj
+dotnet run --project src/Web.Fiap.Carbono/Web.Fiap.Carbono.csproj
 ~~~
 
 A API fica em http://localhost:5269 e o Swagger em http://localhost:5269/swagger no ambiente Development.
@@ -140,10 +142,22 @@ dotnet test Web.Fiap.Carbono.sln
 
 Os testes usam a aplicação real e MongoDB 8 descartável em container, com banco isolado. Cobrem CRUD, índices únicos, ObjectIds inválidos, referências ausentes, fatores inativos/expirados, cálculo decimal, snapshots, quatro variantes de atividade, agregações, paginação, autenticação, autorização, erros e Swagger.
 
+A configuração JWT dos testes usa valores sintéticos definidos na factory; não é necessário fornecer `appsettings.Development.json` nem iniciar o MongoDB do Compose. A fixture de API usa rede do host Linux e porta `27019`: evite execuções simultâneas. Se houver timeout com VPN ativa, investigue a conectividade do Docker; o baseline registra uma execução que passou após desativar a VPN.
+
+Para repetir a verificação em Release e guardar o resultado após a reorganização:
+
+~~~bash
+dotnet restore Web.Fiap.Carbono.sln
+dotnet build Web.Fiap.Carbono.sln --configuration Release --no-restore
+dotnet test Web.Fiap.Carbono.sln --configuration Release --no-build \
+  --logger "trx;LogFileName=baseline.trx" \
+  --results-directory ./artifacts/test-results/after
+~~~
+
 ## Docker
 
 ~~~bash
-docker build --file Web.Fiap.Carbono/Dockerfile --tag web-fiap-carbono .
+docker build --file Dockerfile --tag web-fiap-carbono .
 docker run --rm --publish 8080:8080 \
   --env MongoDb__ConnectionString="mongodb://host.docker.internal:27017" \
   --env MongoDb__DatabaseName="fiap_carbono" \
@@ -161,4 +175,6 @@ Os códigos principais são 400 para validação, 401 para autenticação, 403 p
 - [Decisão técnica da migração](docs/mongodb-migration.md)
 - [Baseline Oracle da reconciliação](docs/oracle-baseline.md)
 - [Relatório de reconciliação](docs/oracle-mongodb-reconciliation.md)
-- [Ferramenta de migração legada](Web.Fiap.Carbono.Migration/README.md)
+- [Ferramenta de migração legada](src/Web.Fiap.Carbono.Migration/README.md)
+- [Roadmap CI/CD](docs/ci-cd-roadmap.md)
+- [Baseline CI/CD](docs/ci-cd-baseline.md)

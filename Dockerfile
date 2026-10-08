@@ -7,10 +7,10 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["Web.Fiap.Carbono/Web.Fiap.Carbono.csproj", "Web.Fiap.Carbono/"]
-RUN dotnet restore "Web.Fiap.Carbono/Web.Fiap.Carbono.csproj"
+COPY ["src/Web.Fiap.Carbono/Web.Fiap.Carbono.csproj", "src/Web.Fiap.Carbono/"]
+RUN dotnet restore "src/Web.Fiap.Carbono/Web.Fiap.Carbono.csproj"
 COPY . .
-WORKDIR "/src/Web.Fiap.Carbono"
+WORKDIR "/src/src/Web.Fiap.Carbono"
 RUN dotnet build "./Web.Fiap.Carbono.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish

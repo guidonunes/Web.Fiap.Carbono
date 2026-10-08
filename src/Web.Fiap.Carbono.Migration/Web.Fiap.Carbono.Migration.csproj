@@ -12,6 +12,6 @@
     <PackageReference Include="Oracle.EntityFrameworkCore" Version="8.23.90" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="../archive/oracle/Data/Contexts/DatabaseContext.cs" Link="Legacy/DatabaseContext.cs" />
+    <Compile Include="../../archive/oracle/Data/Contexts/DatabaseContext.cs" Link="Legacy/DatabaseContext.cs" />
   </ItemGroup>
 </Project>

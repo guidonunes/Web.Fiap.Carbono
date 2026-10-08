@@ -1,9 +1,12 @@
-using Microsoft.AspNetCore.Mvc.Testing;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
 using Web.Fiap.Carbono.Config.MongoDb;
+using Web.Fiap.Carbono.Config.Security;
 using Web.Fiap.Carbono.Data.MongoDb;
 using Web.Fiap.Carbono.Data.MongoDb.Repositories;
 using Web.Fiap.Carbono.Data.MongoDb.Repositories.Interfaces;
@@ -14,6 +17,26 @@ public sealed class MongoDbConfigurationTest(
     CustomWebApplicationFactory factory
 ) : IClassFixture<CustomWebApplicationFactory>
 {
+    [Fact]
+    public void ShouldUseSyntheticJwtSettingsForSigningAndValidation()
+    {
+        var jwt = factory.Services
+            .GetRequiredService<IOptions<JwtSettings>>().Value;
+        var validation = factory.Services
+            .GetRequiredService<IOptionsMonitor<JwtBearerOptions>>()
+            .Get(JwtBearerDefaults.AuthenticationScheme)
+            .TokenValidationParameters;
+
+        Assert.Equal("Web.Fiap.Carbono.Tests", jwt.Issuer);
+        Assert.Equal("Web.Fiap.Carbono.Tests.Client", jwt.Audience);
+        Assert.Equal("fiap-carbono-tests-only-signing-key-2026", jwt.SecretKey);
+        Assert.Equal(jwt.Issuer, validation.ValidIssuer);
+        Assert.Equal(jwt.Audience, validation.ValidAudience);
+        var signingKey = Assert.IsType<SymmetricSecurityKey>(
+            validation.IssuerSigningKey);
+        Assert.Equal(Encoding.UTF8.GetBytes(jwt.SecretKey), signingKey.Key);
+    }
+
     [Fact]
     public void ShouldBindMongoDbSettings()
     {
@@ -119,7 +142,7 @@ public sealed class MongoDbConfigurationTest(
         string expectedMessage
     )
     {
-        using var invalidFactory = new WebApplicationFactory<Program>()
+        using var invalidFactory = new CustomWebApplicationFactory()
             .WithWebHostBuilder(builder =>
             {
                 builder.ConfigureAppConfiguration(

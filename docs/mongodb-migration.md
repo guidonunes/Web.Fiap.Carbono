@@ -1375,7 +1375,7 @@ shared database automatically.
 
 #### Phase 12 migration status
 
-The permanent [migration console tool](../Web.Fiap.Carbono.Migration/README.md)
+The permanent [migration console tool](../src/Web.Fiap.Carbono.Migration/README.md)
 was implemented and executed on 2026-09-05. Its inventory reconfirmed the source
 counts and `3085.45 kgCO2e`. The checked-in policy records the reviewed Oracle
 timezone, missing-field defaults, factor versions/categories/validity starts,

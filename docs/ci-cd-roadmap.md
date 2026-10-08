@@ -81,21 +81,23 @@ Plan GitHub Secrets for Docker Hub credentials, SSH private key, and sensitive e
 
 The user reported that the pre-reorganization Release test run passed after disabling the VPN. Inspection of `artifacts/test-results/before/baseline.trx` confirms 106 executed tests, all passed, with zero failures or timeouts. The command, timestamps, evidence limits, and reported workaround are recorded in [ci-cd-baseline.md](ci-cd-baseline.md). The VPN's exact effect was not established.
 
-The user also confirmed that `dotnet restore Web.Fiap.Carbono.sln` and `dotnet build Web.Fiap.Carbono.sln --configuration Release --no-restore` passed. Pre-reorganization restore/build/test execution is recorded as successful, with restore/build based on user confirmation and test counts verified from the TRX. Tool versions, console logs, warning counts, and numeric exit codes remain uncaptured. Reorganization and post-move verification are still pending; Phase 1 exit gates remain unchecked.
+The user also confirmed that `dotnet restore Web.Fiap.Carbono.sln` and `dotnet build Web.Fiap.Carbono.sln --configuration Release --no-restore` passed. Pre-reorganization restore/build success is based on user confirmation; missing original console details remain explicitly uncaptured.
+
+Phase 1 implementation is complete. The API and migration utility are under `src/`, the Dockerfile is at the root, and project references/current documentation are updated. Post-move restore and Release build passed with zero build warnings/errors; all 107 tests passed from a clean source snapshot without developer settings. The extra test verifies synthetic JWT signing/validation configuration. The root Dockerfile built `web-fiap-carbono:baseline`. Commands, environment versions, exit codes, the TRX, and the local image ID are recorded in [ci-cd-baseline.md](ci-cd-baseline.md). No Phase 2 implementation or deployment was performed.
 
 ### Tasks
 
-- [ ] Inspect `git status`, SDK/Docker prerequisites, and existing test configuration. Ensure clean-checkout tests receive synthetic JWT settings and do not depend on ignored developer files. Preserve unrelated local work.
+- [x] Inspect `git status`, SDK/Docker prerequisites, and existing test configuration. Ensure clean-checkout tests receive synthetic JWT settings and do not depend on ignored developer files. Preserve unrelated local work.
 - [x] Run restore, Release build, and the complete existing tests before moving files: restore/build passed per user confirmation; the TRX records 106/106 tests passed after the reported VPN workaround.
-- [ ] Complete the baseline evidence with available console outputs, warning counts, exit codes, and environment details; the earlier timeout's exact cause remains unconfirmed.
-- [ ] Create `docs/ci-cd-baseline.md` during this phase with date, commit/revision, environment/tool versions, commands, exit codes, test counts, and sanitized evidence references. Separate results before and after reorganization.
-- [ ] Move `Web.Fiap.Carbono/` and `Web.Fiap.Carbono.Migration/` under `src/`. Retain `Web.Fiap.Carbono.Tests/`, solution, `global.json`, `database/`, and `archive/` at the root.
-- [ ] Move `Web.Fiap.Carbono/Dockerfile` to root `Dockerfile`; retain repository-root Docker build context and update `COPY`, restore, and working-directory paths.
-- [ ] Update solution paths and both test project references. Check the migration-to-API reference, which remains between sibling directories.
-- [ ] Update the API's linked `.dockerignore` path to reach the root, and the migration utility's archived `DatabaseContext.cs` link to reach root `archive/`.
-- [ ] Verify WebApplicationFactory content-root resolution, test script discovery from the root solution, and any remaining path assumptions. Repair only what the move requires.
-- [ ] Update current README/setup commands, migration utility guide links/commands, and other live path references affected by the move. Preserve `roadmap.md` as migration history and do not rewrite historical execution records as new results.
-- [ ] Repeat solution verification, build the relocated Dockerfile, and record actual results. Retain existing .NET 8 and dependency choices unless a narrowly scoped baseline fix is required.
+- [x] Complete the baseline evidence with available console outputs, warning counts, exit codes, and environment details; the earlier timeout's exact cause remains unconfirmed.
+- [x] Create `docs/ci-cd-baseline.md` during this phase with date, commit/revision, environment/tool versions, commands, exit codes, test counts, and sanitized evidence references. Separate results before and after reorganization.
+- [x] Move `Web.Fiap.Carbono/` and `Web.Fiap.Carbono.Migration/` under `src/`. Retain `Web.Fiap.Carbono.Tests/`, solution, `global.json`, `database/`, and `archive/` at the root.
+- [x] Move `Web.Fiap.Carbono/Dockerfile` to root `Dockerfile`; retain repository-root Docker build context and update `COPY`, restore, and working-directory paths.
+- [x] Update solution paths and both test project references. Check the migration-to-API reference, which remains between sibling directories.
+- [x] Update the API's linked `.dockerignore` path to reach the root, and the migration utility's archived `DatabaseContext.cs` link to reach root `archive/`.
+- [x] Verify WebApplicationFactory content-root resolution, test script discovery from the root solution, and any remaining path assumptions. Repair only what the move requires.
+- [x] Update current README/setup commands, migration utility guide links/commands, and other live path references affected by the move. Preserve `roadmap.md` as migration history and do not rewrite historical execution records as new results.
+- [x] Repeat solution verification, build the relocated Dockerfile, and record actual results. Retain existing .NET 8 and dependency choices unless a narrowly scoped baseline fix is required.
 
 ### Verification
 
@@ -106,8 +108,8 @@ git status --short
 dotnet --info
 docker version
 dotnet restore Web.Fiap.Carbono.sln
-dotnet build Web.Fiap.Carbono.sln --no-restore
-dotnet test Web.Fiap.Carbono.sln --no-build
+dotnet build Web.Fiap.Carbono.sln --configuration Release --no-restore
+dotnet test Web.Fiap.Carbono.sln --configuration Release --no-build
 ```
 
 After the move, check references and build the image:
@@ -123,9 +125,9 @@ Verify all linked files exist and tests discover the real MongoDB scripts. Docke
 
 ### Exit gate
 
-- [ ] Restore/build/tests pass before and after the move; actual results are recorded in `docs/ci-cd-baseline.md`.
-- [ ] The required layout is present, the root Dockerfile builds, references resolve, and current instructions use valid paths.
-- [ ] Business behavior and historical artifacts remain preserved; no unexplained test regressions or missing prerequisites remain.
+- [x] Restore/build/tests pass before and after the move; actual results are recorded in `docs/ci-cd-baseline.md`.
+- [x] The required layout is present, the root Dockerfile builds, references resolve, and current instructions use valid paths.
+- [x] Business behavior and historical artifacts remain preserved; no unexplained test regressions or missing prerequisites remain.
 
 ## Phase 2 — October 7–8: complete local Compose
 

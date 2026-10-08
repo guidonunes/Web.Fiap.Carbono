@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # 
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.Fiap.Carbono", "Web.Fiap.Carbono\Web.Fiap.Carbono.csproj", "{E830F92E-7F78-4249-B43C-3D389692AB50}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.Fiap.Carbono", "src\Web.Fiap.Carbono\Web.Fiap.Carbono.csproj", "{E830F92E-7F78-4249-B43C-3D389692AB50}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.Fiap.Carbono.Tests", "Web.Fiap.Carbono.Tests\Web.Fiap.Carbono.Tests.csproj", "{45CAD80E-0CA3-40B9-8088-E28C68D5BD68}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.Fiap.Carbono.Migration", "Web.Fiap.Carbono.Migration\Web.Fiap.Carbono.Migration.csproj", "{B3241D06-8449-4350-93E6-B9ECC24BD9F7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.Fiap.Carbono.Migration", "src\Web.Fiap.Carbono.Migration\Web.Fiap.Carbono.Migration.csproj", "{B3241D06-8449-4350-93E6-B9ECC24BD9F7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

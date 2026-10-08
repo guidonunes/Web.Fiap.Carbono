@@ -320,10 +320,10 @@ mongosh "mongodb://localhost:27017/fiap_carbono" \
 
 ### Project organization
 
-Follow the repository's existing conventions where they are coherent. CI/CD Phase 1 plans to move the API and migration utility under `src/`, retain `Web.Fiap.Carbono.Tests/` at the root, and move `Dockerfile` to the root. Those moves require explicit implementation authorization. Preserve namespaces and the internal API structure:
+Follow the repository's existing conventions where they are coherent. The API and migration utility are under `src/`, while `Web.Fiap.Carbono.Tests/`, the solution, and `Dockerfile` remain at the root. Preserve namespaces and the internal API structure:
 
 ```text
-Web.Fiap.Carbono/
+src/Web.Fiap.Carbono/
 ├── Config/MongoDb/
 ├── Data/MongoDb/
 │   └── Repositories/

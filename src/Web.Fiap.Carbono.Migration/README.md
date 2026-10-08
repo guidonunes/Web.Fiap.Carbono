@@ -14,23 +14,23 @@ dotnet restore Web.Fiap.Carbono.sln
 dotnet build Web.Fiap.Carbono.sln
 
 # Read-only inventory; no MongoDB connection or policy is needed.
-dotnet run --no-build --project Web.Fiap.Carbono.Migration -- \
-  --inventory --oracle-config Web.Fiap.Carbono/appsettings.Development.json
+dotnet run --no-build --project src/Web.Fiap.Carbono.Migration -- \
+  --inventory --oracle-config src/Web.Fiap.Carbono/appsettings.Development.json
 
 # Validate mappings and destination without inserting anything.
-dotnet run --no-build --project Web.Fiap.Carbono.Migration -- \
-  Web.Fiap.Carbono.Migration/migration-policy.json \
-  --oracle-config Web.Fiap.Carbono/appsettings.Development.json
+dotnet run --no-build --project src/Web.Fiap.Carbono.Migration -- \
+  src/Web.Fiap.Carbono.Migration/migration-policy.json \
+  --oracle-config src/Web.Fiap.Carbono/appsettings.Development.json
 
 # Apply only after reviewing the completed policy and passing the dry run.
-dotnet run --no-build --project Web.Fiap.Carbono.Migration -- \
-  Web.Fiap.Carbono.Migration/migration-policy.json --apply \
-  --oracle-config Web.Fiap.Carbono/appsettings.Development.json
+dotnet run --no-build --project src/Web.Fiap.Carbono.Migration -- \
+  src/Web.Fiap.Carbono.Migration/migration-policy.json --apply \
+  --oracle-config src/Web.Fiap.Carbono/appsettings.Development.json
 
 # Compare Oracle with the isolated migrated target.
-dotnet run --no-build --project Web.Fiap.Carbono.Migration -- \
-  Web.Fiap.Carbono.Migration/migration-policy.json --reconcile \
-  --oracle-config Web.Fiap.Carbono/appsettings.Development.json
+dotnet run --no-build --project src/Web.Fiap.Carbono.Migration -- \
+  src/Web.Fiap.Carbono.Migration/migration-policy.json --reconcile \
+  --oracle-config src/Web.Fiap.Carbono/appsettings.Development.json
 ```
 
 Alternatively, set `ConnectionStrings__OracleConnection` using local secret
@@ -145,7 +145,7 @@ On 2026-09-05 the permanent read-only inventory returned 5 companies, 5 products
 5/5/5/5/9 documents into the isolated target, and reconciliation passed every
 count, Decimal128 total, per-entity total, date, reference, full-document, and
 `legacyId` check. An identical retry inserted zero documents. Detailed values
-are in the [reconciliation report](../docs/oracle-mongodb-reconciliation.md).
+are in the [reconciliation report](../../docs/oracle-mongodb-reconciliation.md).
 
 The migration tests use synthetic source records and disposable MongoDB 8.0.29
 with the repository's actual validators/indexes. Coverage includes decimal BSON,
