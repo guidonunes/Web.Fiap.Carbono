@@ -31,9 +31,37 @@ These observations come from the October 6 repository inspection only. No builds
 
 Historical migration documents record earlier test results. Those results are not a current CI/CD baseline. Record actual Phase 1 results in [ci-cd-baseline.md](ci-cd-baseline.md), keeping unverified work separate.
 
+## Hosting decision — October 8, 2026
+
+For **Carbon API**, repository **`guidonunes/Web.Fiap.Carbono`**, AWS EC2 with an Ubuntu virtual machine is the selected deployment host for the CI/CD assignment due **October 13, 2026**. The reason is that AWS Free Plan credits are available and a cloud VM avoids the local computer's disk-space constraint.
+
+**Dated account observation, reported by the user:** on **October 8, 2026**, the AWS console showed the **Free Plan**, **US$100 in available credits**, and a **maximum free-period end date of April 8, 2027**. These values describe the account at that time, not a current balance or a guarantee of VM runtime until April. Access can end earlier if credits are exhausted. This documentation update did not independently inspect the AWS account.
+
+**Cost constraint:** keep the planned exercise within the existing Free Plan and available credits. A paid-plan upgrade is outside the current scope. Confirm account/region availability and the proposed resources' credit consumption before provisioning; do not assume an instance or disk is cost-free because credits are available.
+
+Provider selection and the reported Free Plan credit check are complete. VM provisioning, Docker installation, EC2 deployment access, staging/production deployment, and pipeline verification remain pending. The existing roadmap already specifies deployment over SSH; retain that plan, with the actual EC2 user, keys, host-key verification, and connectivity still to configure and verify. No self-hosted runner is selected by this hosting decision.
+
+### Proposed host configuration
+
+These are planning values only. No EC2 resource or configuration in this table is provisioned or verified by this decision.
+
+| Setting | Proposed value |
+| --- | --- |
+| Operating system | Ubuntu Server 24.04 LTS |
+| Architecture | x86-64 / AMD64 |
+| EC2 instance | `m7i-flex.large`, 2 vCPUs, 8 GiB RAM |
+| Storage | 64 GiB gp3 |
+| Preferred region | US East (N. Virginia), `us-east-1`, subject to account availability |
+| Staging API host port | `8081` |
+| Production API host port | `8082` |
+
 ## Planned architecture
 
-Use GitHub Actions for CI/CD, Docker Hub for the application image, and Docker Compose on **one Ubuntu deployment host**. The host is a prerequisite to prepare in Phase 3, not an existing resource. Each environment contains its own API and MongoDB instance.
+Use GitHub Actions for CI/CD, Docker Hub for the application image, and Docker Engine with Docker Compose on **one Ubuntu AWS EC2 VM**. The host is a prerequisite to prepare in Phase 3, not an existing resource. Preserve ASP.NET Core / .NET 8 and MongoDB. AWS is the deployment host; this decision does not introduce CodePipeline, CodeBuild, ECR, ECS, EKS, or a managed database.
+
+**Intended flow:** GitHub Actions builds and tests the application, publishes versioned images to Docker Hub, and deploys the selected image version to the Ubuntu EC2 host. Retain commit-SHA image tags and promotion of the same published digest from verified staging to production, as specified below.
+
+Both environments share the EC2 VM but use separate Compose projects. Each contains its own API and MongoDB containers, configuration, secrets, network, and persistent database volume.
 
 | Setting | Staging | Production |
 | --- | --- | --- |
@@ -45,6 +73,7 @@ Use GitHub Actions for CI/CD, Docker Hub for the application image, and Docker C
 | Persistent storage | Project-scoped named MongoDB volume | Different project-scoped named MongoDB volume |
 | Network | Project-scoped Compose network | Different project-scoped Compose network |
 | Proposed host configuration file | `staging.env`, untracked | `production.env`, untracked |
+| Secrets | Staging-only runtime secrets and JWT signing key | Independent production runtime secrets and JWT signing key |
 | Application image | Published `repository@sha256:...` | Exact digest that passed staging |
 
 Use the same Compose definition with separate project names and environment files. Avoid fixed container names, shared external networks/volumes, or explicit resource names that bypass project isolation. MongoDB need not publish a host port; both instances can listen on container port `27017` independently. Use `docker compose exec` for database inspection. The same database name does not mean shared data.
@@ -374,11 +403,14 @@ Task 12 verification was limited to documentation diff/path checks, shell syntax
 
 ## Phase 3 — October 8: prepare the host and verify isolation
 
-**Purpose:** make the single Ubuntu deployment host ready before automating deployment.
+**Purpose:** provision and verify the single Ubuntu AWS EC2 deployment host before automating deployment, within the existing Free Plan and available credits.
 
 ### Tasks
 
-- [ ] Obtain the host and confirm Ubuntu, reachable SSH access, enough memory/disk for two API/MongoDB pairs, and required inbound API/SSH and outbound registry connectivity. Record the actual host setup without credentials.
+- [x] Select AWS EC2 with Ubuntu as the hosting provider for Carbon API (`guidonunes/Web.Fiap.Carbono`) on October 8, 2026; record the credit availability and local disk-space rationale.
+- [x] Record the user's October 8, 2026 AWS console observation: Free Plan, US$100 available credits, maximum free-period end date April 8, 2027. Access can end earlier if credits are exhausted; no paid-plan upgrade is authorized.
+- [ ] Confirm the proposed instance, storage, and region are available to the account and fit the existing Free Plan/credit constraint. Provision the Ubuntu EC2 VM and record its actual configuration without credentials.
+- [ ] Confirm Ubuntu, reachable SSH access, enough memory/disk for two API/MongoDB pairs, and required inbound API/SSH and outbound registry connectivity on the EC2 host. Selection of a provider does not complete these checks.
 - [ ] Install/verify Docker Engine and the Compose plugin; establish a deployment user able to run the required commands and verify the SSH host key.
 - [ ] Prepare separate staging/production working directories and untracked environment files, distinct JWT signing configuration, and any chosen MongoDB credentials.
 - [ ] Start `carbono-staging` on proposed API port `8081` and `carbono-production` on `8082`, each using its own MongoDB, volume, and network. Until Phase 4 publishes an image, a manual host build of the Phase 2 image is sufficient for this prerequisite check.
