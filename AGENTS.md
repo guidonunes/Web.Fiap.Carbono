@@ -27,12 +27,12 @@ The active assignment plans:
 
 - GitHub Actions for pull-request checks and delivery from `master`;
 - Docker Hub images tagged with the commit SHA and promoted by digest;
-- Docker Compose on one Ubuntu host, with separate staging and production projects, each with its own API, MongoDB, volume, network, and environment configuration;
+- Docker Compose on one Ubuntu AWS EC2 host, with separate staging and production projects, each with its own API, MongoDB, volume, network, and environment configuration;
 - automatic staging deployment over SSH, readiness and database-backed smoke checks, then production deployment of the same digest and production verification;
 - failure blocking, non-overlapping deployments, and secrets outside tracked configuration;
 - a complete source ZIP, the required README sections, a PDF or PPT with actual contributors and real evidence, and a verified delivery checklist.
 
-The deployment host is a prerequisite to prepare, not an already provisioned resource. See the active roadmap for dates, ports, deliverables, and exit gates. The previous migration assignment remains historical context; its data and audit rules below remain architectural constraints.
+AWS EC2 is the approved hosting target, selected on October 8, 2026. Keep this exercise within the existing AWS Free Plan and available credits; a paid-plan upgrade is outside scope. The user has confirmed instance launch, status checks, SSH access, host resources, and outbound registry connectivity in `us-east-2` (Ohio). User-supplied terminal output on October 9 confirms Docker/Compose installation and Docker access for the `ubuntu` deployment account. The user also confirmed the SSH host-key fingerprint matched the AWS system log on October 9; staging/production deployment remains pending. See [docs/ci-cd-roadmap.md](docs/ci-cd-roadmap.md) for dated account observations, the proposed configuration, actual progress, and exit gates. The previous migration assignment remains historical context; its data and audit rules below remain architectural constraints.
 
 ## Sources of truth
 
@@ -47,6 +47,8 @@ Use the following files in this order:
 The actual source, configuration, and observed verification results determine what is implemented. Historical documents contain checkpoint-specific descriptions; the migration report still describes an older hybrid Oracle/MongoDB state that differs from the current API source. Do not reintroduce Oracle or treat historical completion claims as current CI/CD results.
 
 Documentation can describe planned work. Never assume a roadmap checkbox or design section proves that code has been implemented. Inspect the repository and run the relevant verification before reporting a phase as complete. Honor task-specific limits on execution; when verification is prohibited or unavailable, report it as not run. Never invent test results, screenshots, deployment status, contributors, or evidence.
+
+Distinguish proposed infrastructure, user-confirmed results, and independently observed verification. Attribute user-reported host checks explicitly; a provisioned EC2 instance does not prove Docker, either environment, or the pipeline works.
 
 If two project documents conflict:
 
@@ -194,7 +196,7 @@ This gate does not sequence new CI/CD work. Source inspection shows MongoDB regi
 
 ### CI/CD boundaries
 
-- Use GitHub Actions, Docker Hub, and Docker Compose on one Ubuntu deployment host.
+- Use GitHub Actions, Docker Hub, and Docker Compose on one Ubuntu AWS EC2 deployment host. The hosting decision does not introduce CodePipeline, CodeBuild, ECR, ECS, EKS, or a managed database.
 - Keep staging and production in distinct Compose projects, with independent API/MongoDB services, volumes, networks, and untracked environment configuration; proposed API host ports are `8081` and `8082`, respectively.
 - Run existing restore/build/tests for pull requests and gate image publication on successful checks for pushes to `master`.
 - Build once, tag with the commit SHA, capture the published digest, verify staging, and promote that same digest to production without rebuilding.

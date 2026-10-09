@@ -31,9 +31,32 @@ These observations come from the October 6 repository inspection only. No builds
 
 Historical migration documents record earlier test results. Those results are not a current CI/CD baseline. Record actual Phase 1 results in [ci-cd-baseline.md](ci-cd-baseline.md), keeping unverified work separate.
 
+## Hosting decision — October 8, 2026
+
+**Project:** Carbon API, repository `guidonunes/Web.Fiap.Carbono`, assignment deadline **October 13, 2026**. **Selected provider:** AWS EC2 with an Ubuntu virtual machine. Available AWS Free Plan credits and the local computer's disk-space constraint motivated using a cloud VM.
+
+**Dated account observation, reported by the user on October 8, 2026:** the AWS console showed the Free Plan, **US$100 in available credits**, and a maximum free-period end date of **April 8, 2027**. Access can end earlier if credits are exhausted; this is not a guarantee of VM runtime until April. Keep the exercise within the existing Free Plan and available credits. A paid-plan upgrade is outside the current scope.
+
+- [x] Select AWS EC2 as the deployment provider: explicitly confirmed by the user on October 8, 2026.
+- [x] Check Free Plan status and available credits: the dated user-reported console observation is recorded above; remaining credits must be monitored during the exercise.
+
+### Proposed host configuration
+
+These are the original planning values, not proof of provisioned settings. Phase 3 records the actual host information and checks confirmed by the user. The EC2 instance type and EBS storage class have not been separately recorded from the console.
+
+| Setting | Proposed value |
+| --- | --- |
+| Operating system / architecture | Ubuntu Server 24.04 LTS, x86-64 / AMD64 |
+| Instance type / resources | `m7i-flex.large`, 2 vCPUs, 8 GiB RAM |
+| Storage | 64 GiB gp3 |
+| Initial preferred region | US East (N. Virginia), `us-east-1`, subject to account availability |
+| API host ports | Staging `8081`; production `8082` |
+
+The user subsequently launched the host in **US East (Ohio), `us-east-2`**, availability zone **`us-east-2c`**. Use this actual region for host operations; N. Virginia remains the initial preference only. Deployment access uses SSH, as already selected by the pipeline plan. Docker/Compose installation and Docker access for the `ubuntu` deployment account are confirmed by user-supplied terminal output on October 9. The user also confirmed the SSH host-key fingerprint matched the AWS system log on October 9.
+
 ## Planned architecture
 
-Use GitHub Actions for CI/CD, Docker Hub for the application image, and Docker Compose on **one Ubuntu deployment host**. The host is a prerequisite to prepare in Phase 3, not an existing resource. Each environment contains its own API and MongoDB instance.
+**GitHub Actions builds and tests the application, publishes versioned images to Docker Hub, and deploys the selected image version to one Ubuntu AWS EC2 host.** Docker Engine and Docker Compose are the deployment runtime; the application remains ASP.NET Core / .NET 8 with MongoDB. The user has confirmed host provisioning, SSH access and host-key comparison in Phase 3, and supplied successful Docker/Compose verification output. Deployment of the two environments remains pending. Each environment contains its own API and MongoDB instance. This hosting decision does not introduce CodePipeline, CodeBuild, ECR, ECS, EKS, or a managed database.
 
 | Setting | Staging | Production |
 | --- | --- | --- |
@@ -374,20 +397,105 @@ Task 12 verification was limited to documentation diff/path checks, shell syntax
 
 ## Phase 3 — October 8: prepare the host and verify isolation
 
-**Purpose:** make the single Ubuntu deployment host ready before automating deployment.
+**Purpose:** prepare the single Ubuntu AWS EC2 host and verify independent staging/production environments before automating deployment.
 
 ### Tasks
 
-- [ ] Obtain the host and confirm Ubuntu, reachable SSH access, enough memory/disk for two API/MongoDB pairs, and required inbound API/SSH and outbound registry connectivity. Record the actual host setup without credentials.
-- [ ] Install/verify Docker Engine and the Compose plugin; establish a deployment user able to run the required commands and verify the SSH host key.
-- [ ] Prepare separate staging/production working directories and untracked environment files, distinct JWT signing configuration, and any chosen MongoDB credentials.
-- [ ] Start `carbono-staging` on proposed API port `8081` and `carbono-production` on `8082`, each using its own MongoDB, volume, and network. Until Phase 4 publishes an image, a manual host build of the Phase 2 image is sufficient for this prerequisite check.
-- [ ] Confirm the host permits required API access and does not expose MongoDB publicly.
-- [ ] Verify both environments independently and record actual access URLs and project/resource names for later workflow configuration.
+- [x] **1. Provision the EC2 host and confirm its status checks.** The user reported instance `i-08dab6645a2296e9a` launched in `us-east-2c` and all status checks passed on October 8, 2026.
+- [x] **2. Connect over SSH and check host prerequisites.** The user confirmed successful SSH access and matching OS, architecture, CPU, memory, disk, and outbound registry-check results on October 8, 2026. Results and evidence limits are recorded below.
+- [x] **3. Install/verify Docker Engine and the Compose plugin.** Establish a deployment user able to run the required commands and verify the SSH host key. Docker/Compose and `ubuntu` Docker access passed based on the supplied October 9 terminal output; the user confirmed the SSH fingerprint matched the AWS system log on the same date. See the task 3 verification record below.
+- [ ] **4. Prepare environment configuration.** Use separate staging/production working directories and untracked environment files, distinct JWT signing configuration, and any chosen MongoDB credentials.
+- [ ] **5. Start both environments.** Run `carbono-staging` on proposed API port `8081` and `carbono-production` on `8082`, each using its own MongoDB, volume, and network. Until Phase 4 publishes an image, a manual host build of the Phase 2 image is sufficient for this prerequisite check.
+- [ ] **6. Verify network exposure.** Confirm the host permits required API access and does not expose MongoDB publicly.
+- [ ] **7. Verify isolation and record results.** Check both environments independently and record actual access URLs and project/resource names for later workflow configuration.
+
+### Progress — October 8, 2026
+
+Tasks 1 and 2 are complete based on the user's confirmations. The host is instance `i-08dab6645a2296e9a`, in region `us-east-2` (Ohio), availability zone `us-east-2c`; the user reported all EC2 status checks passed. SSH initially timed out. The user identified a mismatch between the current client IP and the SSH inbound-rule source, then confirmed a successful connection after receiving correction instructions.
+
+The user subsequently confirmed that the following remote checks matched the expected results:
+
+| Check | User-confirmed result |
+| --- | --- |
+| `cat /etc/os-release` | Ubuntu 24.04 LTS |
+| `uname -m` | `x86_64` |
+| `nproc` | 2 CPUs |
+| `free -h` | Approximately 8 GiB RAM |
+| `lsblk -o NAME,SIZE,TYPE,MOUNTPOINTS` and `df -h /` | 64 GiB disk; root free-space check matched expectations, with no exact free-space figure recorded |
+| Docker Hub registry HTTPS check | HTTP `401`, the expected unauthenticated registry response |
+| Microsoft Container Registry HTTPS check | HTTP `200` |
+
+These are user-confirmed results, not commands independently executed by Codex. Raw terminal outputs and screenshots were not captured in the repository for these checks. Resource checks do not independently identify the EC2 instance type or EBS storage class. At this October 8 checkpoint, Docker installation, deployment-user setup, SSH host-key verification, API-port access, environment deployment, and isolation checks remained pending; Phase 3's exit gate was not complete.
+
+### Task 3 verification — October 9, 2026
+
+The user supplied terminal output for the host's Docker checks. The output confirms the runtime and deployment-account requirements:
+
+| Command | Result in the supplied output |
+| --- | --- |
+| `whoami` | `ubuntu`, the selected deployment account |
+| `id -nG` | Includes `docker`; Docker commands were run without `sudo` |
+| `systemctl is-active docker` | `active` |
+| `systemctl is-enabled docker` | `enabled`, confirming Docker is configured to start at boot |
+| `docker version` | Client and Server: Docker Engine Community `29.9.0`, API `1.56`, `linux/amd64` |
+| `docker compose version` | Docker Compose `v5.6.0` |
+| `docker compose ls` | Returned the table header with no Compose projects listed |
+| `docker run --rm hello-world` | Pulled the image from Docker Hub and printed `Hello from Docker!` |
+
+The pulled **hello-world test image** reported digest `sha256:5e23090353324d887c48ad5e5c56d294eab81588df9605b07d1afe895f9cc8f8`. This is not the Carbon API application image or a staging/production release digest.
+
+The runtime checks passed based on the user-supplied output; Codex did not execute commands on EC2. The subsequent October 9 AWS boot log supplied by the user did not contain the original SSH fingerprint block. After guidance to print the existing ED25519 public-key fingerprint to the serial console and retrieve the updated AWS system log, the user confirmed the SHA256 values matched. The fingerprint value itself was not supplied, so this comparison result is recorded as user-confirmed rather than independently compared by Codex.
+
+Task 3 is complete based on the supplied Docker output and the user's host-key comparison confirmation. Screenshots, environment configuration/deployment, and Phase 3 isolation/exit-gate checks remain pending. The next bounded task is task 4: separate staging/production directories and untracked environment files with distinct JWT signing configuration.
 
 ### Verification
 
-Run `docker version`, `docker compose version`, and `docker compose ls` on the host. From each environment directory, run `docker compose -f docker-compose.yml -p carbono-staging --env-file staging.env config --quiet` (substitute the production project/file there) and then `up -d --wait` and `ps` with the same options.
+For task 2, run the following inside the SSH session on the EC2 host. These are the checks whose results the user confirmed above:
+
+```bash
+cat /etc/os-release
+uname -m
+nproc
+free -h
+lsblk -o NAME,SIZE,TYPE,MOUNTPOINTS
+df -h /
+
+curl --silent --show-error --max-time 10 \
+  --output /dev/null --write-out 'Docker Hub: HTTP %{http_code}\n' \
+  https://registry-1.docker.io/v2/
+
+curl --silent --show-error --max-time 10 \
+  --output /dev/null --write-out 'Microsoft: HTTP %{http_code}\n' \
+  https://mcr.microsoft.com/v2/
+```
+
+Expect Ubuntu 24.04 LTS, `x86_64`, 2 CPUs, approximately 8 GiB RAM, and a 64 GiB disk with available root space. Docker Hub's HTTP `401` confirms the unauthenticated registry is reachable; Microsoft's expected response is HTTP `200`. These connectivity checks do not prove authenticated image pulls or deployments succeed.
+
+For task 3, run these commands on the host without `sudo`; successful results are summarized above:
+
+```bash
+whoami
+id -nG
+systemctl is-active docker
+systemctl is-enabled docker
+docker version
+docker compose version
+docker compose ls
+docker run --rm hello-world
+```
+
+For SSH host-key verification, select the instance in the AWS console, then **Actions → Monitor and troubleshoot → Get system log**. Find `BEGIN SSH HOST KEY FINGERPRINTS` and compare the appropriate entry with the fingerprint presented by SSH. For an existing session, run `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` and compare the SHA256 value with the **ED25519** entry in the AWS system log. Record the actual match; accepting an SSH prompt or running the fingerprint command alone does not establish a verified comparison.
+
+If the current boot log omits the original fingerprint block, the workaround used for this host is to print its existing public-key fingerprint to the serial console from the SSH session:
+
+```bash
+ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub \
+  | sudo tee /dev/ttyS0
+```
+
+Retrieve the latest system log for the same instance through AWS and compare its new `SHA256:` value with the terminal output. The user confirmed this comparison passed on October 9. This prints the existing public-key fingerprint as verification evidence. AWS documents latest serial-output retrieval for Nitro instances in [Instance console output](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/troubleshoot-unreachable-instance.html#instance-console-console-output).
+
+For the later environment tasks, from each environment directory, run `docker compose -f docker-compose.yml -p carbono-staging --env-file staging.env config --quiet` (substitute the production project/file there) and then `up -d --wait` and `ps` with the same options.
 
 Request `http://HOST:8081/api/empresas` and `http://HOST:8082/api/empresas` using the actual host address. Inspect container mounts/networks to prove distinct resources; compare a temporary staging-only record against production and verify it is absent there. Both may initially contain the same seed data, so matching counts alone do not prove isolation.
 
