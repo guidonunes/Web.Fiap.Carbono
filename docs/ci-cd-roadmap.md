@@ -56,20 +56,20 @@ The user subsequently launched the host in **US East (Ohio), `us-east-2`**, avai
 
 ## Planned architecture
 
-**GitHub Actions builds and tests the application, publishes versioned images to Docker Hub, and deploys the selected image version to one Ubuntu AWS EC2 host.** Docker Engine and Docker Compose are the deployment runtime; the application remains ASP.NET Core / .NET 8 with MongoDB. The user has confirmed host provisioning, SSH access and host-key comparison in Phase 3, and supplied successful Docker/Compose verification output. Deployment of the two environments remains pending. Each environment contains its own API and MongoDB instance. This hosting decision does not introduce CodePipeline, CodeBuild, ECR, ECS, EKS, or a managed database.
+**GitHub Actions builds and tests the application, publishes versioned images to Docker Hub, and deploys the selected image version to one Ubuntu AWS EC2 host.** Docker Engine and Docker Compose are the deployment runtime; the application remains ASP.NET Core / .NET 8 with MongoDB. The user has confirmed host provisioning, SSH access and host-key comparison in Phase 3, and supplied successful Docker/Compose verification output. On October 9, the user supplied healthy API/MongoDB container status for both environments and successful database-backed API responses from the EC2 host. External API access, full resource/data isolation, and automated deployment remain pending. Each environment contains its own API and MongoDB instance. This hosting decision does not introduce CodePipeline, CodeBuild, ECR, ECS, EKS, or a managed database.
 
 | Setting | Staging | Production |
 | --- | --- | --- |
 | Compose project | `carbono-staging` | `carbono-production` |
 | Services | `api`, `mongodb` | `api`, `mongodb` |
-| Proposed API host/container ports | `8081:8080` | `8082:8080` |
+| API host/container ports (Phase 3 task 5) | `8081:8080` | `8082:8080` |
 | Database name | `fiap_carbono` | `fiap_carbono` |
 | MongoDB address from its API | Its own `mongodb:27017` service | Its own `mongodb:27017` service |
 | Persistent storage | Project-scoped named MongoDB volume | Different project-scoped named MongoDB volume |
 | Network | Project-scoped Compose network | Different project-scoped Compose network |
 | Host environment file (Phase 3 task 4) | `/home/ubuntu/carbono/staging/staging.env`, outside the Git checkout | `/home/ubuntu/carbono/production/production.env`, outside the Git checkout |
 | Secrets | Staging-only runtime secrets and JWT signing key | Independent production runtime secrets and JWT signing key |
-| Application image | Published `repository@sha256:...` | Exact digest that passed staging |
+| Planned release image | Published `repository@sha256:...` | Exact digest that passed staging |
 
 Use the same Compose definition with separate project names and environment files. Avoid fixed container names, shared external networks/volumes, or explicit resource names that bypass project isolation. MongoDB need not publish a host port; both instances can listen on container port `27017` independently. Use `docker compose exec` for database inspection. The same database name does not mean shared data.
 
@@ -406,7 +406,7 @@ Task 12 verification was limited to documentation diff/path checks, shell syntax
 - [x] **2. Connect over SSH and check host prerequisites.** The user confirmed successful SSH access and matching OS, architecture, CPU, memory, disk, and outbound registry-check results on October 8, 2026. Results and evidence limits are recorded below.
 - [x] **3. Install/verify Docker Engine and the Compose plugin.** Establish a deployment user able to run the required commands and verify the SSH host key. Docker/Compose and `ubuntu` Docker access passed based on the supplied October 9 terminal output; the user confirmed the SSH fingerprint matched the AWS system log on the same date. See the task 3 verification record below.
 - [x] **4. Prepare environment configuration.** Separate staging/production directories and untracked environment files are prepared. On October 9, the user supplied successful quiet Compose validation and file-permission output, and confirmed staging port `8081`, production port `8082`, and different JWT signing keys. See the task 4 verification record below. The current Compose configuration does not enable MongoDB authentication; no MongoDB credentials were added for this task.
-- [ ] **5. Start both environments.** Run `carbono-staging` on proposed API port `8081` and `carbono-production` on `8082`, each using its own MongoDB, volume, and network. Until Phase 4 publishes an image, a manual host build of the Phase 2 image is sufficient for this prerequisite check.
+- [x] **5. Start both environments.** The user's October 9 `ps` output shows healthy API/MongoDB pairs in `carbono-staging` on API host port `8081` and `carbono-production` on `8082`; both host-local `/api/empresas` requests returned HTTP `200` and displayed seeded company `EMP-001`. Both API containers report `web-fiap-carbono:local`. See the task 5 record below; volume/network/data inspection remains task 7, and Docker Hub publication/promotion remains later pipeline work.
 - [ ] **6. Verify network exposure.** Confirm the host permits required API access and does not expose MongoDB publicly.
 - [ ] **7. Verify isolation and record results.** Check both environments independently and record actual access URLs and project/resource names for later workflow configuration.
 
@@ -464,7 +464,31 @@ The user supplied successful configuration-validation and file-permission output
 
 These results are based on the user's output and confirmations, not commands independently run by Codex on EC2. Quiet validation confirms that Compose resolves each configuration; it does not start containers or prove readiness, actual port bindings, resource isolation, or database-backed responses. The MongoDB connection and database name remain fixed in the current Compose definition as `mongodb://mongodb:27017` and `fiap_carbono`; MongoDB authentication is not configured.
 
-Task 4 is complete. The next bounded task is task 5: start both environments and verify API/MongoDB readiness. Tasks 5–7, screenshots, and both Phase 3 exit-gate checks remain pending. No host build, environment deployment, or pipeline execution was reported for task 4.
+Task 4 is complete. At that checkpoint, the next bounded task was task 5: start both environments and verify API/MongoDB readiness. Tasks 5–7, screenshots, and both Phase 3 exit-gate checks were still pending. No host build, environment deployment, or pipeline execution was reported for task 4. Subsequent startup and readiness results are recorded below.
+
+### Task 5 verification — October 9, 2026
+
+The user supplied `docker compose ps` output for both projects using the shared Compose definition and their separate environment files. All four containers were running and healthy:
+
+| Container | Image reported | Status | Host port mapping |
+| --- | --- | --- | --- |
+| `carbono-staging-api-1` | `web-fiap-carbono:local` | Running, healthy | `8081` to container `8080`, on IPv4 and IPv6 |
+| `carbono-staging-mongodb-1` | `mongo:8.0.29-noble` | Running, healthy | None; `27017/tcp` is a container port only |
+| `carbono-production-api-1` | `web-fiap-carbono:local` | Running, healthy | `8082` to container `8080`, on IPv4 and IPv6 |
+| `carbono-production-mongodb-1` | `mongo:8.0.29-noble` | Running, healthy | None; `27017/tcp` is a container port only |
+
+The user then supplied results of API requests run inside the EC2 SSH session:
+
+| Request | Result shown | HTTP `Date` header |
+| --- | --- | --- |
+| `GET http://127.0.0.1:8081/api/empresas` | HTTP `200 OK`; displayed JSON company records include `EMP-001` | October 9, 2026, `18:09:11 GMT` |
+| `GET http://127.0.0.1:8082/api/empresas` | HTTP `200 OK`; displayed JSON company records include `EMP-001` | October 9, 2026, `18:09:22 GMT` |
+
+These results establish manual startup and host-local database-backed readiness based on the user's supplied output and completion confirmation. Codex did not execute builds, deployments, or requests on EC2. The pasted response bodies are truncated at the end; complete response files, build/startup/curl exit codes, screenshots, and application image IDs/digests were not supplied. The shared local image tag alone does not verify identical image contents or a published release digest. Preserve the later build-once and digest-promotion requirements.
+
+The MongoDB status output shows no published host port; external API access and the AWS security-group rules still need verification in task 6. Container names and successful requests do not establish complete volume/network/data isolation; that inspection remains task 7. The matching seeded business records do not prove shared data or isolation.
+
+Task 5 is complete. The next bounded task is task 6: verify external API access on ports `8081` and `8082` and confirm MongoDB is not publicly exposed. Task 7, screenshots, both Phase 3 exit-gate checks, and pipeline execution remain pending.
 
 ### Verification
 
@@ -537,7 +561,29 @@ stat -c '%a %U %n' \
 
 Expect no validation errors, exit code `0` for each Compose check, and `600 ubuntu` for both files. Confirm the intended ports and different JWT keys privately; do not print keys or the resolved Compose configuration into logs or screenshots.
 
-For task 5, retain the same Compose file, project names, and environment-file options for `up -d --wait` and `ps`. A host build is needed if the local application image is absent; this remains pending work. Separate project names create independent networks and named volumes when the environments are started; configuration validation alone does not create them.
+For task 5, retain the same Compose file, project names, and environment-file options for `up -d --wait` and `ps`. If the local application image is absent, build it once before starting staging, then reuse it for production. Startup/readiness is now confirmed by the user-supplied output above; no build log or image-ID comparison was supplied. Do not rebuild merely to repeat a status check. To inspect the running environments from the EC2 SSH session:
+
+```bash
+docker compose \
+  -f /home/ubuntu/carbono/repository/docker-compose.yml \
+  -p carbono-staging \
+  --env-file /home/ubuntu/carbono/staging/staging.env \
+  ps
+
+docker compose \
+  -f /home/ubuntu/carbono/repository/docker-compose.yml \
+  -p carbono-production \
+  --env-file /home/ubuntu/carbono/production/production.env \
+  ps
+
+curl --fail --silent --show-error --include --max-time 5 \
+  http://127.0.0.1:8081/api/empresas
+
+curl --fail --silent --show-error --include --max-time 5 \
+  http://127.0.0.1:8082/api/empresas
+```
+
+Expect all four containers to be healthy, the API mappings `8081:8080` and `8082:8080`, and both requests to return HTTP `200` with a JSON array containing `EMP-001`. These URLs are local to the EC2 host; success does not prove access from the user's local computer. Separate project names scope Compose networks and named volumes; actual mounts, networks, and data isolation remain to inspect in task 7.
 
 Request `http://HOST:8081/api/empresas` and `http://HOST:8082/api/empresas` using the actual host address. Inspect container mounts/networks to prove distinct resources; compare a temporary staging-only record against production and verify it is absent there. Both may initially contain the same seed data, so matching counts alone do not prove isolation.
 
