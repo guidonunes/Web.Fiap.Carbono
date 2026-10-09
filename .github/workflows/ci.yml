@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Restore, build and test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Install .NET 8
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Verify prerequisites
+        run: |
+          dotnet --version
+          docker version
+
+      - name: Restore dependencies
+        run: dotnet restore Web.Fiap.Carbono.sln
+
+      - name: Build solution
+        run: dotnet build Web.Fiap.Carbono.sln --configuration Release --no-restore
+
+      - name: Run tests
+        run: |
+          dotnet test Web.Fiap.Carbono.sln \
+            --configuration Release \
+            --no-build \
+            --logger "trx;LogFileName=ci.trx" \
+            --results-directory ./artifacts/test-results/ci

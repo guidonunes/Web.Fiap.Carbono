@@ -694,12 +694,42 @@ Expect the two distinct volumes and each network's own API/MongoDB pair from the
 
 ### Tasks
 
-- [ ] Add `.github/workflows/` checks for pull requests and pushes to `master`: checkout, install the .NET 8 SDK, restore, build, and execute the existing full test suite on a Docker-capable Ubuntu runner.
+- [ ] Add `.github/workflows/` checks for pull requests and pushes to `master`: checkout, install the .NET 8 SDK, restore, build, and execute the existing full test suite on a Docker-capable Ubuntu runner. Task 1 implementation is present in [ci.yml](../.github/workflows/ci.yml), with local verification recorded below; successful real PR and `master` runs remain pending before checking this item.
 - [ ] Supply synthetic test JWT settings and verify the current host-network/fixed-port fixture works without relying on developer files. Keep tests isolated from staging/production databases.
 - [ ] Make failed restore/build/tests block publication; retain test reports and sanitized failure diagnostics.
 - [ ] Configure the Docker Hub repository and credentials in GitHub Secrets. Build the root Dockerfile with root context only after successful `master` checks.
 - [ ] Push an application image tagged with the full commit SHA; capture its registry digest as a job output for deployment. Do not publish from PRs.
 - [ ] Verify `.dockerignore` excludes secrets before publication; record the image repository, SHA tag, digest, and corresponding workflow run without credentials.
+
+### Task 1 implementation and local verification — October 9, 2026
+
+The working tree was clean before this task. [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) now defines a single `ci` job for pull requests and pushes to `master`. It runs directly on `ubuntu-24.04`, installs .NET `8.0.x`, checks SDK/Docker availability, restores the solution, builds Release, and executes the complete existing test suite. The job has a twenty-minute timeout and read-only repository permissions; checkout does not persist its credentials.
+
+The existing test factory already supplies synthetic JWT configuration, and the MongoDB fixtures create disposable test containers. No application, fixture, Compose, SDK configuration, or deployment resource was changed for task 1. GitHub runner compatibility and execution from its clean checkout still require real workflow evidence; task 2 remains pending.
+
+Codex executed the following local checks with .NET SDK `8.0.422` and Docker Engine `29.8.2` (`linux/amd64`):
+
+| Check | Actual local result |
+| --- | --- |
+| Workflow YAML parsing and structure checks | Passed: PR/`master` triggers, .NET 8 selection, read-only permissions, sequential full-solution commands, and no test filter |
+| `bash -n` for each workflow command block | Passed; GitHub Actions itself was not executed and `actionlint` was not installed locally |
+| `dotnet restore Web.Fiap.Carbono.sln` | Passed; all three projects restored, exit code `0` |
+| `dotnet build Web.Fiap.Carbono.sln --configuration Release --no-restore` | Passed outside the sandbox; zero warnings/errors, exit code `0` |
+| Release full-solution tests with `--no-build` and the TRX logger | Passed outside the sandbox: 107 passed, 0 failed, 0 skipped; exit code `0` |
+
+The local test command used the same test options as the workflow, with a temporary results directory:
+
+```bash
+dotnet test Web.Fiap.Carbono.sln --configuration Release --no-build \
+  --logger 'trx;LogFileName=ci.trx' \
+  --results-directory /tmp/carbono-ci-task1-20261009-test-results
+```
+
+The local TRX is `/tmp/carbono-ci-task1-20261009-test-results/ci.trx`; it is temporary verification output, not a committed submission artifact. The workflow writes its report to `artifacts/test-results/ci/ci.trx` on the runner. Downloadable artifact retention remains task 3.
+
+The sandbox denied Docker socket access, and the initial sandboxed MSBuild attempt failed without a compiler diagnostic. Authorized execution outside the sandbox confirmed Docker access and a successful build/test run; the initial failed attempts are not counted as passing checks.
+
+Task 1's workflow implementation and local checks are complete. Its real-run acceptance and both Phase 4 exit gates remain pending: the user must push a feature branch, open a PR targeting `master`, inspect the CI result, and verify another run after merging into `master`. No commit, push, PR, GitHub run, image publication, or deployment was performed for this task. Image publication and deployment belong to their later tasks/phases.
 
 ### Verification
 
