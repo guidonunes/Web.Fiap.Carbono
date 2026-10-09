@@ -56,7 +56,7 @@ The user subsequently launched the host in **US East (Ohio), `us-east-2`**, avai
 
 ## Planned architecture
 
-**GitHub Actions builds and tests the application, publishes versioned images to Docker Hub, and deploys the selected image version to one Ubuntu AWS EC2 host.** Docker Engine and Docker Compose are the deployment runtime; the application remains ASP.NET Core / .NET 8 with MongoDB. The user has confirmed host provisioning, SSH access and host-key comparison in Phase 3, and supplied successful Docker/Compose verification output. On October 9, the user supplied healthy API/MongoDB container status for both environments and successful database-backed API responses from the EC2 host. Subsequent task 6 output confirms HTTP access from the authorized local computer and no published MongoDB host ports, with an external MongoDB connection timing out. Full resource/data isolation and automated deployment remain pending. Each environment contains its own API and MongoDB instance. This hosting decision does not introduce CodePipeline, CodeBuild, ECR, ECS, EKS, or a managed database.
+**GitHub Actions builds and tests the application, publishes versioned images to Docker Hub, and deploys the selected image version to one Ubuntu AWS EC2 host.** Docker Engine and Docker Compose are the deployment runtime; the application remains ASP.NET Core / .NET 8 with MongoDB. The user has confirmed host provisioning, SSH access and host-key comparison in Phase 3, and supplied successful Docker/Compose verification output. On October 9, the user supplied healthy API/MongoDB container status for both environments and successful database-backed API responses from the EC2 host. Subsequent task 6 output confirms HTTP access from the authorized local computer and no published MongoDB host ports, with an external MongoDB connection timing out. Task 7 output confirms separate database volumes and networks, staging-only test data, and cleanup; both Phase 3 exit gates are satisfied based on user-supplied evidence. Automated deployment and the later persistence/redeployment checks remain pending. Each environment contains its own API and MongoDB instance. This hosting decision does not introduce CodePipeline, CodeBuild, ECR, ECS, EKS, or a managed database.
 
 | Setting | Staging | Production |
 | --- | --- | --- |
@@ -66,8 +66,8 @@ The user subsequently launched the host in **US East (Ohio), `us-east-2`**, avai
 | API URL from the authorized client (October 9, task 6) | `http://18.222.63.49:8081/api/empresas` | `http://18.222.63.49:8082/api/empresas` |
 | Database name | `fiap_carbono` | `fiap_carbono` |
 | MongoDB address from its API | Its own `mongodb:27017` service | Its own `mongodb:27017` service |
-| Persistent storage | Project-scoped named MongoDB volume | Different project-scoped named MongoDB volume |
-| Network | Project-scoped Compose network | Different project-scoped Compose network |
+| MongoDB volume mounted at `/data/db` (October 9, task 7) | `carbono-staging_fiap_carbono_mongodb_data` | `carbono-production_fiap_carbono_mongodb_data` |
+| Compose network (October 9, task 7) | `carbono-staging_default` | `carbono-production_default` |
 | Host environment file (Phase 3 task 4) | `/home/ubuntu/carbono/staging/staging.env`, outside the Git checkout | `/home/ubuntu/carbono/production/production.env`, outside the Git checkout |
 | Secrets | Staging-only runtime secrets and JWT signing key | Independent production runtime secrets and JWT signing key |
 | Planned release image | Published `repository@sha256:...` | Exact digest that passed staging |
@@ -407,9 +407,9 @@ Task 12 verification was limited to documentation diff/path checks, shell syntax
 - [x] **2. Connect over SSH and check host prerequisites.** The user confirmed successful SSH access and matching OS, architecture, CPU, memory, disk, and outbound registry-check results on October 8, 2026. Results and evidence limits are recorded below.
 - [x] **3. Install/verify Docker Engine and the Compose plugin.** Establish a deployment user able to run the required commands and verify the SSH host key. Docker/Compose and `ubuntu` Docker access passed based on the supplied October 9 terminal output; the user confirmed the SSH fingerprint matched the AWS system log on the same date. See the task 3 verification record below.
 - [x] **4. Prepare environment configuration.** Separate staging/production directories and untracked environment files are prepared. On October 9, the user supplied successful quiet Compose validation and file-permission output, and confirmed staging port `8081`, production port `8082`, and different JWT signing keys. See the task 4 verification record below. The current Compose configuration does not enable MongoDB authentication; no MongoDB credentials were added for this task.
-- [x] **5. Start both environments.** The user's October 9 `ps` output shows healthy API/MongoDB pairs in `carbono-staging` on API host port `8081` and `carbono-production` on `8082`; both host-local `/api/empresas` requests returned HTTP `200` and displayed seeded company `EMP-001`. Both API containers report `web-fiap-carbono:local`. See the task 5 record below; volume/network/data inspection remains task 7, and Docker Hub publication/promotion remains later pipeline work.
+- [x] **5. Start both environments.** The user's October 9 `ps` output shows healthy API/MongoDB pairs in `carbono-staging` on API host port `8081` and `carbono-production` on `8082`; both host-local `/api/empresas` requests returned HTTP `200` and displayed seeded company `EMP-001`. Both API containers report `web-fiap-carbono:local`. See the task 5 record below and task 7 for subsequent volume/network/data verification; Docker Hub publication/promotion remains later pipeline work.
 - [x] **6. Verify network exposure.** On October 9, the user's local computer received HTTP `200` from both APIs at `18.222.63.49:8081` and `18.222.63.49:8082`. Both MongoDB containers reported no published host ports; the external TCP probe of port `27017` timed out with exit code `1`. The supplied inbound rules restrict TCP `22`, `8081`, and `8082` to the client's public IPv4 address with `/32`. See the task 6 verification record below.
-- [ ] **7. Verify isolation and record results.** Check both environments independently and record actual access URLs and project/resource names for later workflow configuration.
+- [x] **7. Verify isolation and record results.** The user's October 9 output confirms distinct MongoDB volumes and Compose networks, a temporary staging-only product absent from production, and successful cleanup. Actual URLs, project names, environment-file paths, and resource names are recorded in the architecture table and verification records. See task 7 below; Codex did not independently run the EC2 checks.
 
 ### Progress — October 8, 2026
 
@@ -487,7 +487,7 @@ The user then supplied results of API requests run inside the EC2 SSH session:
 
 These results establish manual startup and host-local database-backed readiness based on the user's supplied output and completion confirmation. Codex did not execute builds, deployments, or requests on EC2. The pasted response bodies are truncated at the end; complete response files, build/startup/curl exit codes, screenshots, and application image IDs/digests were not supplied. The shared local image tag alone does not verify identical image contents or a published release digest. Preserve the later build-once and digest-promotion requirements.
 
-The MongoDB status output shows no published host port. At the task 5 checkpoint, external API access and the AWS security-group rules still needed verification in task 6; subsequent results are recorded below. Container names and successful requests do not establish complete volume/network/data isolation; that inspection remains task 7. The matching seeded business records do not prove shared data or isolation.
+The MongoDB status output shows no published host port. At the task 5 checkpoint, external API access and the AWS security-group rules still needed verification in task 6; subsequent results are recorded below. Container names and successful requests alone do not establish volume/network/data isolation; task 7 records that subsequent inspection. The matching seeded business records do not prove shared data or isolation.
 
 Task 5 is complete. At that checkpoint, the next bounded task was task 6: verify external API access on ports `8081` and `8082` and confirm MongoDB is not publicly exposed. Task 7, screenshots, both Phase 3 exit-gate checks, and pipeline execution were still pending. Subsequent network-access results are recorded below.
 
@@ -512,7 +512,32 @@ The external HTTP checks used `--noproxy '*'`, a ten-second timeout, and discard
 
 Initial API attempts timed out. During troubleshooting, the user clarified that commands intended for the local computer had been run inside the SSH session. The later checks from the correct terminals passed. The exact cause of the earlier timeouts was not independently established; no proxy fault, firewall change, rebuild, or deployment result is inferred from the successful checks.
 
-Task 6 is complete based on the user's supplied output and confirmations, not commands independently executed by Codex. The host/readiness/access exit-gate check is now complete using tasks 1–6. The next bounded task is task 7: inspect actual volumes and networks, prove data isolation, and record the remaining resource names. The isolation exit gate, overall Phase 3 completion, screenshots, and the CI/CD pipeline remain pending. The API URLs above are dated observations; confirm the current EC2 public IPv4 address before later checks.
+Task 6 is complete based on the user's supplied output and confirmations, not commands independently executed by Codex. At that checkpoint, tasks 1–6 satisfied the host/readiness/access exit-gate check; task 7, the isolation exit gate, overall Phase 3 completion, screenshots, and the CI/CD pipeline were still pending. Subsequent isolation results are recorded below. The API URLs above are dated observations; confirm the current EC2 public IPv4 address before later checks.
+
+### Task 7 verification — October 9, 2026
+
+The user supplied output from checks run inside the EC2 SSH session. Formatted container inspection identified the named volume mounted at each MongoDB container's `/data/db`; network inspection listed the containers attached to each environment's network:
+
+| Check | Result in the supplied output |
+| --- | --- |
+| `carbono-staging-mongodb-1`: `/data/db` volume | `carbono-staging_fiap_carbono_mongodb_data` |
+| `carbono-production-mongodb-1`: `/data/db` volume | `carbono-production_fiap_carbono_mongodb_data` |
+| `carbono-staging_default`: attached containers | `carbono-staging-api-1`, `carbono-staging-mongodb-1` only |
+| `carbono-production_default`: attached containers | `carbono-production-api-1`, `carbono-production-mongodb-1` only |
+
+Data isolation was checked in each instance's existing `fiap_carbono.produtos` collection using the exact temporary business key `CRUD-TEMP-PHASE3-ISOLATION`. The staging insertion copied seeded product `PRO-001`, checked its company reference, assigned a new ObjectId and timestamps, removed the copied `legacyId`, and changed its code and name. The original seed product was not modified. No collection, validator, index, or authentication setting was changed by the supplied commands.
+
+| Step | Result supplied by the user |
+| --- | --- |
+| Before insertion: count matching temporary products | Staging `0`; production `0` |
+| Insert the temporary product into staging | `acknowledged: true`; `insertedId: ObjectId('6ac9422a4ff17a26b3fc2cd7')` |
+| After insertion: count matching temporary products | Staging `1`; production `0` |
+| Delete the temporary staging product by its ObjectId, code, and name | `acknowledged: true`; `deletedCount: 1` |
+| After cleanup: count matching temporary products | Staging `0`; production `0` |
+
+The separate volume mounts and network membership, together with the staging-only write, verify resource and data isolation for these environments. Matching initial seed counts alone would not prove isolation. Cleanup removed exactly the identified temporary product; retain both environments, their networks, persistent volumes, and environment files for later phases.
+
+Task 7 and Phase 3 are complete based on the user's supplied terminal output and earlier prerequisite/configuration/readiness/access confirmations. Task 4 provides separate configuration and JWT-key confirmation, task 6 provides MongoDB exposure checks, and task 7 supplies the remaining volume/network/data evidence. Codex did not independently execute these EC2 commands. The supplied output is recorded here as text; no screenshots were added. This check did not recreate/redeploy containers, test persistence across deployment, or restart staging while checking production availability; those checks and screenshots remain Phase 6 tasks. Image publication, digest promotion, automated deployment, and failure blocking remain pending. The next bounded work is Phase 4: implement CI and publish the application image.
 
 ### Verification
 
@@ -607,7 +632,7 @@ curl --fail --silent --show-error --include --max-time 5 \
   http://127.0.0.1:8082/api/empresas
 ```
 
-Expect all four containers to be healthy, the API mappings `8081:8080` and `8082:8080`, and both requests to return HTTP `200` with a JSON array containing `EMP-001`. These URLs are local to the EC2 host; success does not prove access from the user's local computer. Separate project names scope Compose networks and named volumes; actual mounts, networks, and data isolation remain to inspect in task 7.
+Expect all four containers to be healthy, the API mappings `8081:8080` and `8082:8080`, and both requests to return HTTP `200` with a JSON array containing `EMP-001`. These URLs are local to the EC2 host; success does not prove access from the user's local computer. Separate project names scope Compose networks and named volumes; task 7 records the actual mounts, network membership, and data-isolation results.
 
 For task 6, confirm the current EC2 public IPv4 address in the AWS console and the source IP allowed by the instance's attached security groups. Keep SSH and the API rules limited to the intended client source; do not add a public MongoDB rule. Run the following on the **local computer, outside the EC2 SSH session**, substituting the current host address if it differs from the October 9 observation:
 
@@ -635,12 +660,33 @@ docker port carbono-production-mongodb-1
 
 Expect no output from either command. Assess the external probe together with the published-port checks and the intended inbound rules; the TCP timeout alone does not prove MongoDB is private.
 
-For task 7, inspect container mounts/networks to prove distinct resources; compare a temporary staging-only record against production and verify it is absent there. Both may initially contain the same seed data, so matching counts alone do not prove isolation.
+For task 7, run these read-only resource checks inside the **EC2 SSH session**; their supplied results are recorded above. Formatted inspection avoids printing container environment values:
+
+```bash
+docker inspect --type container \
+  --format '{{.Name}}: {{range .Mounts}}{{if eq .Destination "/data/db"}}{{.Name}}{{end}}{{end}}' \
+  carbono-staging-mongodb-1 \
+  carbono-production-mongodb-1
+
+docker network inspect \
+  --format '{{.Name}}: {{range .Containers}}{{.Name}} {{end}}' \
+  carbono-staging_default \
+  carbono-production_default
+
+for CARBONO_ENV in staging production; do
+  printf '%s: ' "$CARBONO_ENV"
+  docker exec "carbono-${CARBONO_ENV}-mongodb-1" \
+    mongosh --quiet mongodb://localhost:27017/fiap_carbono \
+    --eval 'print(db.produtos.countDocuments({codigo: "CRUD-TEMP-PHASE3-ISOLATION"}))'
+done
+```
+
+Expect the two distinct volumes and each network's own API/MongoDB pair from the task 7 table. The count loop was used before insertion, after the staging-only insertion, and after cleanup; it now reports zero matching products in both environments because cleanup passed. Preserve the recorded intermediate `staging: 1` / `production: 0` evidence. Repeating a zero count alone cannot reproduce the data-isolation proof; a future mutation check must use an explicitly named temporary product and targeted cleanup.
 
 ### Exit gate
 
 - [x] The host and access prerequisites are verified, and both environments serve database-backed responses at their documented addresses. Completed based on the user's prerequisite, readiness, and external-access output/confirmations in tasks 1–6 on October 8–9, 2026.
-- [ ] Volumes, networks, configuration, and data are independent; MongoDB is not publicly published.
+- [x] Volumes, networks, configuration, and data are independent; MongoDB is not publicly published. Completed based on the user's task 4 configuration confirmations, task 6 exposure checks, and task 7 resource/data/cleanup output on October 9, 2026.
 
 ## Phase 4 — October 9: implement CI and publish the image
 
