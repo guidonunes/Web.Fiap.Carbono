@@ -67,7 +67,7 @@ The user subsequently launched the host in **US East (Ohio), `us-east-2`**, avai
 | MongoDB address from its API | Its own `mongodb:27017` service | Its own `mongodb:27017` service |
 | Persistent storage | Project-scoped named MongoDB volume | Different project-scoped named MongoDB volume |
 | Network | Project-scoped Compose network | Different project-scoped Compose network |
-| Proposed host configuration file | `staging.env`, untracked | `production.env`, untracked |
+| Host environment file (Phase 3 task 4) | `/home/ubuntu/carbono/staging/staging.env`, outside the Git checkout | `/home/ubuntu/carbono/production/production.env`, outside the Git checkout |
 | Secrets | Staging-only runtime secrets and JWT signing key | Independent production runtime secrets and JWT signing key |
 | Application image | Published `repository@sha256:...` | Exact digest that passed staging |
 
@@ -405,7 +405,7 @@ Task 12 verification was limited to documentation diff/path checks, shell syntax
 - [x] **1. Provision the EC2 host and confirm its status checks.** The user reported instance `i-08dab6645a2296e9a` launched in `us-east-2c` and all status checks passed on October 8, 2026.
 - [x] **2. Connect over SSH and check host prerequisites.** The user confirmed successful SSH access and matching OS, architecture, CPU, memory, disk, and outbound registry-check results on October 8, 2026. Results and evidence limits are recorded below.
 - [x] **3. Install/verify Docker Engine and the Compose plugin.** Establish a deployment user able to run the required commands and verify the SSH host key. Docker/Compose and `ubuntu` Docker access passed based on the supplied October 9 terminal output; the user confirmed the SSH fingerprint matched the AWS system log on the same date. See the task 3 verification record below.
-- [ ] **4. Prepare environment configuration.** Use separate staging/production working directories and untracked environment files, distinct JWT signing configuration, and any chosen MongoDB credentials.
+- [x] **4. Prepare environment configuration.** Separate staging/production directories and untracked environment files are prepared. On October 9, the user supplied successful quiet Compose validation and file-permission output, and confirmed staging port `8081`, production port `8082`, and different JWT signing keys. See the task 4 verification record below. The current Compose configuration does not enable MongoDB authentication; no MongoDB credentials were added for this task.
 - [ ] **5. Start both environments.** Run `carbono-staging` on proposed API port `8081` and `carbono-production` on `8082`, each using its own MongoDB, volume, and network. Until Phase 4 publishes an image, a manual host build of the Phase 2 image is sufficient for this prerequisite check.
 - [ ] **6. Verify network exposure.** Confirm the host permits required API access and does not expose MongoDB publicly.
 - [ ] **7. Verify isolation and record results.** Check both environments independently and record actual access URLs and project/resource names for later workflow configuration.
@@ -447,7 +447,24 @@ The pulled **hello-world test image** reported digest `sha256:5e23090353324d887c
 
 The runtime checks passed based on the user-supplied output; Codex did not execute commands on EC2. The subsequent October 9 AWS boot log supplied by the user did not contain the original SSH fingerprint block. After guidance to print the existing ED25519 public-key fingerprint to the serial console and retrieve the updated AWS system log, the user confirmed the SHA256 values matched. The fingerprint value itself was not supplied, so this comparison result is recorded as user-confirmed rather than independently compared by Codex.
 
-Task 3 is complete based on the supplied Docker output and the user's host-key comparison confirmation. Screenshots, environment configuration/deployment, and Phase 3 isolation/exit-gate checks remain pending. The next bounded task is task 4: separate staging/production directories and untracked environment files with distinct JWT signing configuration.
+Task 3 is complete based on the supplied Docker output and the user's host-key comparison confirmation. At that checkpoint, screenshots, environment configuration/deployment, and Phase 3 isolation/exit-gate checks were still pending. Subsequent task 4 progress is recorded below.
+
+### Task 4 verification — October 9, 2026
+
+The user supplied successful configuration-validation and file-permission output from EC2, then confirmed the intended API ports and different JWT signing keys. One repository checkout supplies the Compose definition at `/home/ubuntu/carbono/repository/docker-compose.yml`; the environment files are in separate directories outside that checkout:
+
+| Check | Result supplied or confirmed by the user |
+| --- | --- |
+| Staging environment file | `/home/ubuntu/carbono/staging/staging.env`; permissions `600`, owner `ubuntu` |
+| Production environment file | `/home/ubuntu/carbono/production/production.env`; permissions `600`, owner `ubuntu` |
+| API port configuration | Staging `8081`; production `8082` |
+| JWT signing keys | Different keys in the two environment files; values were not shared or recorded |
+| `carbono-staging` with its environment file: `config --quiet` | Exit code `0` |
+| `carbono-production` with its environment file: `config --quiet` | Exit code `0` |
+
+These results are based on the user's output and confirmations, not commands independently run by Codex on EC2. Quiet validation confirms that Compose resolves each configuration; it does not start containers or prove readiness, actual port bindings, resource isolation, or database-backed responses. The MongoDB connection and database name remain fixed in the current Compose definition as `mongodb://mongodb:27017` and `fiap_carbono`; MongoDB authentication is not configured.
+
+Task 4 is complete. The next bounded task is task 5: start both environments and verify API/MongoDB readiness. Tasks 5–7, screenshots, and both Phase 3 exit-gate checks remain pending. No host build, environment deployment, or pipeline execution was reported for task 4.
 
 ### Verification
 
@@ -496,7 +513,31 @@ ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub \
 
 Retrieve the latest system log for the same instance through AWS and compare its new `SHA256:` value with the terminal output. The user confirmed this comparison passed on October 9. This prints the existing public-key fingerprint as verification evidence. AWS documents latest serial-output retrieval for Nitro instances in [Instance console output](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/troubleshoot-unreachable-instance.html#instance-console-console-output).
 
-For the later environment tasks, from each environment directory, run `docker compose -f docker-compose.yml -p carbono-staging --env-file staging.env config --quiet` (substitute the production project/file there) and then `up -d --wait` and `ps` with the same options.
+For task 4, run these checks inside the EC2 SSH session. They use the shared checkout and the separate environment files at the paths confirmed above:
+
+```bash
+docker compose \
+  -f /home/ubuntu/carbono/repository/docker-compose.yml \
+  -p carbono-staging \
+  --env-file /home/ubuntu/carbono/staging/staging.env \
+  config --quiet
+echo $?
+
+docker compose \
+  -f /home/ubuntu/carbono/repository/docker-compose.yml \
+  -p carbono-production \
+  --env-file /home/ubuntu/carbono/production/production.env \
+  config --quiet
+echo $?
+
+stat -c '%a %U %n' \
+  /home/ubuntu/carbono/staging/staging.env \
+  /home/ubuntu/carbono/production/production.env
+```
+
+Expect no validation errors, exit code `0` for each Compose check, and `600 ubuntu` for both files. Confirm the intended ports and different JWT keys privately; do not print keys or the resolved Compose configuration into logs or screenshots.
+
+For task 5, retain the same Compose file, project names, and environment-file options for `up -d --wait` and `ps`. A host build is needed if the local application image is absent; this remains pending work. Separate project names create independent networks and named volumes when the environments are started; configuration validation alone does not create them.
 
 Request `http://HOST:8081/api/empresas` and `http://HOST:8082/api/empresas` using the actual host address. Inspect container mounts/networks to prove distinct resources; compare a temporary staging-only record against production and verify it is absent there. Both may initially contain the same seed data, so matching counts alone do not prove isolation.
 

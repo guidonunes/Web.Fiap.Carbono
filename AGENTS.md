@@ -34,6 +34,8 @@ The active assignment plans:
 
 AWS EC2 is the approved hosting target, selected on October 8, 2026. Keep this exercise within the existing AWS Free Plan and available credits; a paid-plan upgrade is outside scope. The user has confirmed instance launch, status checks, SSH access, host resources, and outbound registry connectivity in `us-east-2` (Ohio). User-supplied terminal output on October 9 confirms Docker/Compose installation and Docker access for the `ubuntu` deployment account. The user also confirmed the SSH host-key fingerprint matched the AWS system log on October 9; staging/production deployment remains pending. See [docs/ci-cd-roadmap.md](docs/ci-cd-roadmap.md) for dated account observations, the proposed configuration, actual progress, and exit gates. The previous migration assignment remains historical context; its data and audit rules below remain architectural constraints.
 
+Phase 3 task 4 is complete based on the user's October 9 output and confirmations: separate host environment files under `/home/ubuntu/carbono/staging/` and `/home/ubuntu/carbono/production/`, API ports `8081` and `8082`, different JWT signing keys, file permissions `600` owned by `ubuntu`, and successful quiet Compose configuration validation for both projects. Codex did not independently run these checks on EC2. The next bounded task is Phase 3 task 5: start both environments and verify readiness; deployment, network exposure, isolation, and the phase exit gate remain pending.
+
 ## Sources of truth
 
 Use the following files in this order:
