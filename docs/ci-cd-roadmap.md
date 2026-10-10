@@ -697,9 +697,9 @@ Expect the two distinct volumes and each network's own API/MongoDB pair from the
 - [x] Add `.github/workflows/` checks for pull requests and pushes to `master`: checkout, install the .NET 8 SDK, restore, build, and execute the existing full test suite on a Docker-capable Ubuntu runner. Task 1 implementation is present in [ci.yml](../.github/workflows/ci.yml), with local verification recorded below. Successful `master` runs were independently inspected; the user confirmed successful PR checks on October 10, completing the remaining acceptance. See task 4's completion record for the evidence limits.
 - [x] Supply synthetic test JWT settings and verify the current host-network/fixed-port fixture works without relying on developer files. Keep tests isolated from staging/production databases. Existing configuration passed on the GitHub Ubuntu runner: 107 tests passed with zero failures or skipped tests in the October 10 run inspected by Codex. See task 2 below; no implementation changes were needed.
 - [ ] Make failed restore/build/tests block publication; retain test reports and sanitized failure diagnostics. The October 10 run recorded below verifies successful summary/TRX creation and `ci-results` upload; artifact downloads, failing-run reports, and dependent publication blocking remain to verify.
-- [x] Configure the Docker Hub repository and credentials in GitHub Secrets. Build the root Dockerfile with root context only after successful `master` checks. Both secret names were independently observed, and the October 10 run verifies CI followed by Docker Hub login and the image build. The user confirmed creating the intended Docker Hub repository and checking successful PR CI with the image job skipped. Task 5 publication will verify push permission. See task 4's completion record below.
-- [ ] Push an application image tagged with the full commit SHA; capture its registry digest as a job output for deployment. Do not publish from PRs. Task 5's publication/output logic is implemented and locally checked below; actual GitHub publication, matching Docker Hub tag/digest, and output availability remain to verify.
-- [ ] Verify `.dockerignore` excludes secrets before publication; record the image repository, SHA tag, digest, and corresponding workflow run without credentials.
+- [x] Configure the Docker Hub repository and credentials in GitHub Secrets. Build the root Dockerfile with root context only after successful `master` checks. Both secret names were independently observed, and the October 10 run verifies CI followed by Docker Hub login and the image build. The user confirmed creating the intended Docker Hub repository and checking successful PR CI with the image job skipped. Task 5's successful publication subsequently verifies push permission for `gui2506/web-fiap-carbono`. See the completion records below.
+- [x] Push an application image tagged with the full commit SHA; capture its registry digest as a job output for deployment. Do not publish from PRs. Run `38090160366` verifies successful publication and GitHub setting the digest output; independent Docker Hub inspection verifies the matching SHA tag/digest. The unchanged PR exclusion gate and earlier user-confirmed skipped image job are recorded below.
+- [ ] Verify `.dockerignore` excludes secrets before publication; record the image repository, SHA tag, digest, and corresponding workflow run without credentials. Ignore rules were inspected and the image identifiers/run are recorded below; pulling/starting the published image with runtime configuration, checking its contents, and collecting real image evidence remain pending.
 
 ### Task 1 implementation and local verification — October 9, 2026
 
@@ -872,9 +872,40 @@ Codex ran focused local verification:
 | Publication arguments and credential canary | Exactly one push of the expected synthetic full-SHA tag; no build invocation; a synthetic token value was absent from captured logs and outputs |
 | Dockerfile and `.dockerignore` preservation | Both unchanged byte-for-byte; inspection confirms existing environment/development-settings exclusions. Actual image-content verification remains task 6 |
 
-The scenario workspaces were removed. These checks used synthetic command output and a Docker substitute; they are not real Docker Hub publication, application tests, or GitHub condition/output evaluation. No actual image build/push, registry login, workflow trigger, deployment, screenshot, commit, push, or PR creation was performed for task 5.
+The scenario workspaces were removed. These checks used synthetic command output and a Docker substitute; they are not real Docker Hub publication, application tests, or GitHub condition/output evaluation. No actual image build/push, registry login, workflow trigger, deployment, screenshot, commit, push, or PR creation was performed by Codex at this implementation checkpoint. Subsequent read-only publication and registry verification is recorded below.
 
-**Acceptance still pending:** publish this workflow change through the user's normal Git process. On its PR run, verify successful CI and **Build and publish application image** skipped. On a successful `master` push, verify CI → login → build → publish, the full commit-SHA tag in the intended Docker Hub repository, and the matching registry digest in the publish log and job output. Confirm the runner does not report a skipped/redacted digest output. Preserve the actual run link, commit, tag, and digest without credentials. Task 5 and both Phase 4 exit gates remain unchecked; task 3's controlled failure/artifact checks also remain pending. Pulling/running the published image and collecting the remaining image evidence belong to task 6; automated deployment remains Phase 5.
+At this implementation checkpoint, task 5 and both Phase 4 exit gates remained unchecked pending actual publication, the matching Docker Hub SHA tag/digest, and digest-output confirmation. Subsequent task 5 acceptance is recorded below. Task 3's controlled failure/artifact checks and task 6's published-image runtime/content checks remain pending; automated deployment remains Phase 5.
+
+### Task 5 publication and registry verification — October 10, 2026
+
+The user reported that the workflow worked as intended, supplied Docker Hub repository `gui2506/web-fiap-carbono`, and confirmed their registry inspection returned the expected digest. Codex independently inspected the existing GitHub run/job metadata and image-job log, then queried Docker Hub's registry metadata without pulling or starting the image.
+
+| Evidence | Observed result |
+| --- | --- |
+| Workflow run | [38090160366](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38090160366), created `2026-10-10 22:06:25 UTC`; event `push`, branch `master`, conclusion `success` |
+| Commit / full SHA tag | `6458819e04eecf1d35a13648a509210f90bf8fc1` |
+| CI job | **Restore, build and test** succeeded from `22:06:28` to `22:07:28 UTC`; restore, build, tests, diagnostic summary, and artifact upload steps all reported success. Test counts and artifact contents were not inspected for this run |
+| Image job | [Build and publish application image](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38090160366/job/114324975076) succeeded from `22:07:31` to `22:08:12 UTC`, after CI; checkout, Docker Hub login, build, and publish steps succeeded |
+| Docker Hub repository / published tag | [gui2506/web-fiap-carbono](https://hub.docker.com/r/gui2506/web-fiap-carbono/tags), tag `6458819e04eecf1d35a13648a509210f90bf8fc1` |
+| Registry digest | `sha256:78030c6e4e85e5fce8ce0be4766062e7f36c028e0442950e744795abeb5f3e13` in both the push log and independent registry inspection |
+| GitHub job output | The log records `Evaluate and set job outputs` and `Set output 'digest'`; no skipped/redacted digest-output warning was observed. The workflow exposes `jobs.image.outputs.digest`; no deployment job consumes it yet |
+| Independent registry command | `docker buildx imagetools inspect gui2506/web-fiap-carbono:6458819e04eecf1d35a13648a509210f90bf8fc1` returned exit code `0` and the matching top-level `Digest:` |
+
+The registry inspection returned:
+
+```text
+Name:      docker.io/gui2506/web-fiap-carbono:6458819e04eecf1d35a13648a509210f90bf8fc1
+MediaType: application/vnd.docker.distribution.manifest.v2+json
+Digest:    sha256:78030c6e4e85e5fce8ce0be4766062e7f36c028e0442950e744795abeb5f3e13
+```
+
+The full commit SHA is the image's tag; the registry digest identifies its published content. Future deployment must use this exact reference for this release:
+
+```text
+gui2506/web-fiap-carbono@sha256:78030c6e4e85e5fce8ce0be4766062e7f36c028e0442950e744795abeb5f3e13
+```
+
+Task 5 is complete based on successful real publication, the digest job output, the independent SHA-tag/digest match, and the unchanged PR exclusion gate together with the earlier user-confirmed skipped image job. No new PR run was independently verified; retain the earlier attribution and collect its actual link/screenshots later. A registry metadata match does not verify startup, image contents, absence of secrets in image layers, staging/production use of this digest, or failure blocking. Task 6 and task 3's remaining checks keep both Phase 4 exit gates pending. No image was pulled/run, no workflow was triggered, and no deployment, screenshot capture, commit, push, or PR creation was performed by Codex for this verification or documentation update.
 
 ### Verification
 
@@ -883,7 +914,7 @@ Inspect an actual PR workflow run for executed restore/build/tests and absence o
 ### Exit gate
 
 - [ ] Real PR and `master` runs execute the existing tests; failures block subsequent work.
-- [ ] A successful `master` run publishes a SHA-tagged image with a recorded usable digest; PRs cannot publish or deploy.
+- [ ] A successful `master` run publishes a SHA-tagged image with a recorded usable digest; PRs cannot publish or deploy. Publication and the SHA-tag/digest match are verified; published-image startup/content checks remain pending under task 6. PR exclusion retains the inspected gate and user-confirmed skipped image job; no deployment jobs exist yet.
 
 ## Phase 5 — October 10: automate staging and production deployment
 
@@ -911,6 +942,8 @@ Use a real successful `master` workflow to inspect check → publish → staging
 ## Phase 6 — October 11: verify the full flow and collect evidence
 
 **Purpose:** prove delivery, failure handling, persistence, and isolation through actual execution.
+
+**Existing evidence for later checks:** Phase 4 task 5's October 10 record above provides actual run `38090160366`, commit `6458819e04eecf1d35a13648a509210f90bf8fc1`, repository `gui2506/web-fiap-carbono`, and the independently matched registry digest. This verifies the publication segment only. Phase 5's automated deployments and every Phase 6 task/exit gate below remain pending; no full-flow, failure-blocking, persistence/redeployment, concurrency, or screenshot results are implied by the registry check.
 
 ### Tasks and verification
 
@@ -1014,7 +1047,7 @@ This checklist covers the requirements supplied for this assignment. It remains 
 - [ ] .NET 8 application, MongoDB, five ESG collections, business behavior, and authentication/authorization are preserved; restore, build, and existing tests pass.
 - [ ] Local Docker instructions start API plus MongoDB with required variables, networking, persistent storage, readiness checks, and safe fresh-database initialization.
 - [ ] GitHub Actions executes restore/build/tests for pull requests; failed checks block subsequent stages.
-- [ ] Successful `master` pushes publish the application image to Docker Hub with the commit SHA tag and a recorded digest.
+- [x] Successful `master` pushes publish the application image to Docker Hub with the commit SHA tag and a recorded digest. Verified by run `38090160366` and the independent Docker Hub SHA-tag/digest inspection in Phase 4 task 5 on October 10, 2026.
 - [ ] Staging deploys automatically over SSH and passes readiness plus a database-backed API smoke check.
 - [ ] Production receives the same digest only after staging succeeds and passes its own verification.
 - [ ] Deployments do not overlap; controlled failures demonstrate blocked later stages.
