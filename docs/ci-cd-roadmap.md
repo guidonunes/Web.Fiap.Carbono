@@ -694,11 +694,11 @@ Expect the two distinct volumes and each network's own API/MongoDB pair from the
 
 ### Tasks
 
-- [ ] Add `.github/workflows/` checks for pull requests and pushes to `master`: checkout, install the .NET 8 SDK, restore, build, and execute the existing full test suite on a Docker-capable Ubuntu runner. Task 1 implementation is present in [ci.yml](../.github/workflows/ci.yml), with local verification recorded below; successful `master` runs are verified in the October 10 task 2 record, while a real PR run remains to verify before checking this item.
+- [x] Add `.github/workflows/` checks for pull requests and pushes to `master`: checkout, install the .NET 8 SDK, restore, build, and execute the existing full test suite on a Docker-capable Ubuntu runner. Task 1 implementation is present in [ci.yml](../.github/workflows/ci.yml), with local verification recorded below. Successful `master` runs were independently inspected; the user confirmed successful PR checks on October 10, completing the remaining acceptance. See task 4's completion record for the evidence limits.
 - [x] Supply synthetic test JWT settings and verify the current host-network/fixed-port fixture works without relying on developer files. Keep tests isolated from staging/production databases. Existing configuration passed on the GitHub Ubuntu runner: 107 tests passed with zero failures or skipped tests in the October 10 run inspected by Codex. See task 2 below; no implementation changes were needed.
-- [ ] Make failed restore/build/tests block publication; retain test reports and sanitized failure diagnostics. CI retention is implemented and locally checked in task 3 below; actual GitHub artifact retention and dependent publication blocking remain to verify.
-- [ ] Configure the Docker Hub repository and credentials in GitHub Secrets. Build the root Dockerfile with root context only after successful `master` checks. The gated build job is implemented, and both expected secret names were independently observed; repository/access and actual GitHub build verification remain pending. See task 4 below.
-- [ ] Push an application image tagged with the full commit SHA; capture its registry digest as a job output for deployment. Do not publish from PRs.
+- [ ] Make failed restore/build/tests block publication; retain test reports and sanitized failure diagnostics. The October 10 run recorded below verifies successful summary/TRX creation and `ci-results` upload; artifact downloads, failing-run reports, and dependent publication blocking remain to verify.
+- [x] Configure the Docker Hub repository and credentials in GitHub Secrets. Build the root Dockerfile with root context only after successful `master` checks. Both secret names were independently observed, and the October 10 run verifies CI followed by Docker Hub login and the image build. The user confirmed creating the intended Docker Hub repository and checking successful PR CI with the image job skipped. Task 5 publication will verify push permission. See task 4's completion record below.
+- [ ] Push an application image tagged with the full commit SHA; capture its registry digest as a job output for deployment. Do not publish from PRs. Task 5's publication/output logic is implemented and locally checked below; actual GitHub publication, matching Docker Hub tag/digest, and output availability remain to verify.
 - [ ] Verify `.dockerignore` excludes secrets before publication; record the image repository, SHA tag, digest, and corresponding workflow run without credentials.
 
 ### Task 1 implementation and local verification — October 9, 2026
@@ -729,7 +729,7 @@ The local TRX is `/tmp/carbono-ci-task1-20261009-test-results/ci.trx`; it is tem
 
 The sandbox denied Docker socket access, and the initial sandboxed MSBuild attempt failed without a compiler diagnostic. Authorized execution outside the sandbox confirmed Docker access and a successful build/test run; the initial failed attempts are not counted as passing checks.
 
-Task 1's workflow implementation and local checks are complete. At the October 9 implementation checkpoint, its real-run acceptance and both Phase 4 exit gates were pending; Codex had not committed, pushed, opened a PR, triggered a GitHub run, published an image, or deployed an environment. The subsequent October 10 inspection verified successful `master` runs. A successful PR run targeting `master` remains to verify; image publication and deployment belong to their later tasks/phases.
+Task 1's workflow implementation and local checks are complete. At the October 9 implementation checkpoint, its real-run acceptance and both Phase 4 exit gates were pending; Codex had not committed, pushed, opened a PR, triggered a GitHub run, published an image, or deployed an environment. Subsequent October 10 inspection verified successful `master` runs, and the user's later PR-check confirmation completes task 1, as recorded with task 4 below. Image publication and deployment belong to their later tasks/phases; the Phase 4 exit gates remain pending.
 
 ### Task 2 verification — October 10, 2026
 
@@ -787,7 +787,7 @@ Codex ran focused local verification rather than rerunning the unchanged applica
 
 The shell scenarios used synthetic report files to check presence and upload selection. They are not application test results, GitHub condition evaluation, or proof of artifact upload. Temporary scenario workspaces were removed. No application build/test, workflow run, image publication, deployment, screenshot, commit, push, or PR creation was performed for this task.
 
-**Acceptance still pending:** after the user publishes the workflow change through their normal Git process, inspect a successful PR run and download `ci-results` to verify the summary and real TRX. In a temporary PR, introduce a controlled failing test, confirm failed CI and a downloadable failure report, then remove the failing change and verify a passing run before merging. This also supplies task 1's missing PR-trigger evidence. Do not deliberately break `master` or either deployment environment.
+**Acceptance still pending:** download `ci-results` from a successful PR run to verify the summary and real TRX. Successful PR CI is user-confirmed in task 4's completion record below; successful `master` artifact upload is independently verified in the October 10 run record. In a temporary PR, introduce a controlled failing test, confirm failed CI and a downloadable failure report, then remove the failing change and verify a passing run before merging. Do not deliberately break `master` or either deployment environment.
 
 At the task 3 implementation checkpoint, the workflow contained only the `ci` job. Task 4 below adds a gated image-build job; publication in task 5 must preserve `needs: ci`, with `if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/master' }}`. Keep failure-tolerant conditions confined to diagnostics/retention; do not apply them to publication. Verify the real dependency and absence of publication after failed checks when publication is added. Task 3 and both Phase 4 exit gates remain unchecked until the required real-run evidence exists.
 
@@ -806,7 +806,7 @@ docker build \
   .
 ```
 
-`GITHUB_SHA` supplies the full commit SHA. Credentials are provided to registry login, not as Docker build arguments. The API Dockerfile, `.dockerignore`, application, MongoDB configuration, and deployment environments were not changed. This job builds the API image but does not push it. Task 5 should append publication and digest capture to this same job so each delivery builds the image once; a separate runner would not share this job's Docker image storage.
+`GITHUB_SHA` supplies the full commit SHA. Credentials are provided to registry login, not as Docker build arguments. The API Dockerfile, `.dockerignore`, application, MongoDB configuration, and deployment environments were not changed. At this task 4 checkpoint, the job built the API image without pushing it. Subsequent task 5 implementation below appends publication and digest capture to this same job so each delivery builds the image once; a separate runner would not share this job's Docker image storage.
 
 Codex ran focused local verification:
 
@@ -820,7 +820,61 @@ Codex ran focused local verification:
 
 The local filesystem had approximately `3.12 GiB` free. A real local image build was not attempted; the intended build verification is on GitHub's runner. Temporary command-verification files were removed. No application build/test, registry login, workflow trigger, image push, deployment, screenshot, commit, push, or PR creation was performed for task 4.
 
-**Acceptance still pending:** after the user publishes this workflow change through their normal Git process, inspect a PR run for successful CI and a skipped image job, then a successful `master` run for CI followed by Docker Hub login and image build. Confirm the intended Docker Hub repository exists and matches the namespace/name before task 5 publication. Preserve run links and verify failure blocking through controlled checks without deliberately breaking `master` or a deployment environment. Task 4 and both Phase 4 exit gates remain unchecked until their actual acceptance evidence is available; publication, digest capture, and deployment remain later work.
+At the task 4 implementation checkpoint, real PR/`master` job execution and Docker Hub repository confirmation were pending. Subsequent `master` verification and user-confirmed repository/PR completion are recorded below. Both Phase 4 exit gates remain unchecked.
+
+### Task 4 GitHub verification — October 10, 2026
+
+The user reported a successful CI run. With a clean working tree, Codex independently inspected existing [run 38085383384](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38085383384) through read-only `gh run view` metadata and log calls. The run was created at `20:51:29 UTC` on October 10 for a `push` to `master`, commit `0d59ad9c68fdd634d7093ba8047e4ab67a7299c9`, and completed successfully.
+
+| Check | Result in the inspected run |
+| --- | --- |
+| Restore and Release solution build | Both succeeded; build reported zero warnings and errors |
+| Full solution tests | 107 passed, 0 failed, 0 skipped; reported duration 23 seconds |
+| Diagnostic summary and TRX | Summary step succeeded; log records creation of `artifacts/test-results/ci/ci.trx` |
+| Artifact upload | `ci-results` successfully uploaded, 40,168 bytes, [artifact 11682366173](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38085383384/artifacts/11682366173); contents were not downloaded or inspected |
+| Job order | CI completed at `20:52:34 UTC`; the image job started at `20:52:37 UTC` and completed at `20:53:09 UTC` |
+| Docker Hub authentication | Login step succeeded; log reports `Login Succeeded!`; secret values were not read |
+| Root Dockerfile image build | Succeeded; log records the tag `docker.io/***/web-fiap-carbono:0d59ad9c68fdd634d7093ba8047e4ab67a7299c9`, with the namespace masked by GitHub |
+| Runner-local image ID | `sha256:2647cab8ac7bb39ddc9ac45e1b14b532ac2eb963085ae78730accb82b64e96fb`; this is not a published registry digest |
+
+This verifies task 4's successful `master` CI, authenticated Docker Hub login, and application image build, plus task 3's successful artifact upload. The workflow revision executed by this run had no image-push or deployment step, so neither Docker Hub publication nor an environment update is established by this run. Login and a local image tag do not prove the intended Docker Hub repository exists or the token can push to it.
+
+After this run inspection, the user confirmed on October 10 that the intended Docker Hub repository had already been created and reported successful CI in the PR context. At that checkpoint, Codex's read-only run listing for `guidonunes/Web.Fiap.Carbono` returned only successful `push` runs on `master`; a listing filtered by `--event pull_request` and `gh pr list --state all` both returned no entries. An overall successful run alone did not establish whether the image job was skipped, so the PR job-status check was explained to the user. Subsequent confirmation is recorded below.
+
+Codex inspected the existing run; no local build/test, workflow trigger, image push, deployment, screenshot capture, commit, push, or PR creation was performed for this documentation update. No application or workflow files were changed.
+
+### Tasks 1 and 4 completion confirmation — October 10, 2026
+
+After receiving instructions to inspect the PR run's job statuses, the user confirmed that all checks were complete: **Restore, build and test** succeeded on the PR, and **Build application image** was skipped. Together with the earlier user confirmation that the intended Docker Hub repository exists and the independently inspected successful `master` CI/login/build run, this completes tasks 1 and 4.
+
+The PR result and Docker Hub repository creation are user-confirmed evidence. Codex's read-only PR-run listing during this documentation update still returned no entries. No PR/run URL, PR commit, PR test counts, or screenshot was supplied; do not invent these details or describe the PR checks as independently inspected. Preserve the earlier CLI observations and collect the actual PR/run link and real screenshots for the later evidence tasks.
+
+At the tasks 1 and 4 completion checkpoint, task 3's artifact-content downloads, failing-run report retention, and controlled failure-blocking checks remained pending, as did both Phase 4 exit gates. The next implementation task was task 5: append SHA-tagged publication and registry-digest capture to the existing `image` job, preserving its gate and building once. Subsequent implementation is recorded below. Actual publication will verify push permission for the user-confirmed repository. Task 6's published-image verification and automated deployment remain later work.
+
+The existing uncommitted updates to `AGENTS.md` and this roadmap were preserved. This completion record changes documentation only; no build, test, workflow trigger, image publication, deployment, commit, push, or PR creation was performed.
+
+### Task 5 implementation and local verification — October 10, 2026
+
+The working tree already contained the task 4 documentation updates in `AGENTS.md` and this roadmap; those changes were preserved. [ci.yml](../.github/workflows/ci.yml) now adds a **Publish application image** step to the existing `image` job, which is named **Build and publish application image**. Its `needs: ci`, successful `master` push condition, Ubuntu runner, timeout, permissions, original CI job, and login/build steps are preserved. There is still one application image build per delivery run.
+
+The `publish` step uploads `${DOCKERHUB_USERNAME}/web-fiap-carbono:${GITHUB_SHA}` using the existing registry login. It captures push output in the runner's temporary directory, extracts a registry digest, and requires exactly one `sha256:` value with 64 lowercase hexadecimal characters. Missing, malformed, or multiple matching digests fail the step. `set -euo pipefail` preserves failures from `docker push` or `tee`; no digest output or success message is written after those failures. The Docker token is not supplied to the shell step or as a build argument. [Docker push documentation](https://docs.docker.com/reference/cli/docker/image/push/)
+
+The step writes `digest=sha256:...` to `$GITHUB_OUTPUT`; `jobs.image.outputs.digest` maps `${{ steps.publish.outputs.digest }}`. Later dependent jobs can use `${{ needs.image.outputs.digest }}`. Only the digest is exported, and the final log message records the commit SHA and registry digest. Do not substitute the runner-local image ID recorded for task 4 or rebuild for production. [GitHub job-output documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/pass-job-outputs)
+
+Codex ran focused local verification:
+
+| Check | Actual local result |
+| --- | --- |
+| Workflow YAML parsing and structure | Passed: original CI job, triggers, permissions, CI/`master` gate, and login/build steps preserved; publication is in the same job; the digest output maps to the `publish` step |
+| `bash -n` for every workflow command block | Passed; `actionlint` is not installed and was not run |
+| Nine scenarios executing the actual publish command with a temporary Docker substitute | Passed: successful push, existing layers, push failure despite digest text, missing digest, short digest, wrong algorithm, non-hex digest, multiple digest lines, and log-write failure |
+| Failure behavior and outputs in those scenarios | Substitute push failure preserved exit code `17`; digest/log failures returned `1`; successful cases returned `0` and emitted the expected digest; failures emitted no digest or success message |
+| Publication arguments and credential canary | Exactly one push of the expected synthetic full-SHA tag; no build invocation; a synthetic token value was absent from captured logs and outputs |
+| Dockerfile and `.dockerignore` preservation | Both unchanged byte-for-byte; inspection confirms existing environment/development-settings exclusions. Actual image-content verification remains task 6 |
+
+The scenario workspaces were removed. These checks used synthetic command output and a Docker substitute; they are not real Docker Hub publication, application tests, or GitHub condition/output evaluation. No actual image build/push, registry login, workflow trigger, deployment, screenshot, commit, push, or PR creation was performed for task 5.
+
+**Acceptance still pending:** publish this workflow change through the user's normal Git process. On its PR run, verify successful CI and **Build and publish application image** skipped. On a successful `master` push, verify CI → login → build → publish, the full commit-SHA tag in the intended Docker Hub repository, and the matching registry digest in the publish log and job output. Confirm the runner does not report a skipped/redacted digest output. Preserve the actual run link, commit, tag, and digest without credentials. Task 5 and both Phase 4 exit gates remain unchecked; task 3's controlled failure/artifact checks also remain pending. Pulling/running the published image and collecting the remaining image evidence belong to task 6; automated deployment remains Phase 5.
 
 ### Verification
 
