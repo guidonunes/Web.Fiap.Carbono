@@ -32,15 +32,49 @@ jobs:
           docker version
 
       - name: Restore dependencies
+        id: restore
         run: dotnet restore Web.Fiap.Carbono.sln
 
       - name: Build solution
+        id: build
         run: dotnet build Web.Fiap.Carbono.sln --configuration Release --no-restore
 
       - name: Run tests
+        id: tests
         run: |
           dotnet test Web.Fiap.Carbono.sln \
             --configuration Release \
             --no-build \
             --logger "trx;LogFileName=ci.trx" \
             --results-directory ./artifacts/test-results/ci
+
+      - name: Write CI diagnostic summary
+        if: ${{ !cancelled() }}
+        env:
+          RESTORE_OUTCOME: ${{ steps.restore.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        run: |
+          mkdir -p artifacts/ci
+          {
+            printf 'Commit: %s\n' "$GITHUB_SHA"
+            printf 'Run: %s\n' "$GITHUB_RUN_ID"
+            printf 'Restore: %s\n' "$RESTORE_OUTCOME"
+            printf 'Build: %s\n' "$BUILD_OUTCOME"
+            printf 'Tests: %s\n' "$TEST_OUTCOME"
+          } > artifacts/ci/summary.txt
+
+          if [[ "$TEST_OUTCOME" == "success" ]]; then
+            test -s artifacts/test-results/ci/ci.trx
+          fi
+
+      - name: Upload CI results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-results
+          path: |
+            artifacts/ci/summary.txt
+            artifacts/test-results/ci/*.trx
+          retention-days: 14
+          if-no-files-found: error

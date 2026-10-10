@@ -694,9 +694,9 @@ Expect the two distinct volumes and each network's own API/MongoDB pair from the
 
 ### Tasks
 
-- [ ] Add `.github/workflows/` checks for pull requests and pushes to `master`: checkout, install the .NET 8 SDK, restore, build, and execute the existing full test suite on a Docker-capable Ubuntu runner. Task 1 implementation is present in [ci.yml](../.github/workflows/ci.yml), with local verification recorded below; successful real PR and `master` runs remain pending before checking this item.
-- [ ] Supply synthetic test JWT settings and verify the current host-network/fixed-port fixture works without relying on developer files. Keep tests isolated from staging/production databases.
-- [ ] Make failed restore/build/tests block publication; retain test reports and sanitized failure diagnostics.
+- [ ] Add `.github/workflows/` checks for pull requests and pushes to `master`: checkout, install the .NET 8 SDK, restore, build, and execute the existing full test suite on a Docker-capable Ubuntu runner. Task 1 implementation is present in [ci.yml](../.github/workflows/ci.yml), with local verification recorded below; successful `master` runs are verified in the October 10 task 2 record, while a real PR run remains to verify before checking this item.
+- [x] Supply synthetic test JWT settings and verify the current host-network/fixed-port fixture works without relying on developer files. Keep tests isolated from staging/production databases. Existing configuration passed on the GitHub Ubuntu runner: 107 tests passed with zero failures or skipped tests in the October 10 run inspected by Codex. See task 2 below; no implementation changes were needed.
+- [ ] Make failed restore/build/tests block publication; retain test reports and sanitized failure diagnostics. CI retention is implemented and locally checked in task 3 below; actual GitHub artifact retention and dependent publication blocking remain to verify.
 - [ ] Configure the Docker Hub repository and credentials in GitHub Secrets. Build the root Dockerfile with root context only after successful `master` checks.
 - [ ] Push an application image tagged with the full commit SHA; capture its registry digest as a job output for deployment. Do not publish from PRs.
 - [ ] Verify `.dockerignore` excludes secrets before publication; record the image repository, SHA tag, digest, and corresponding workflow run without credentials.
@@ -705,7 +705,7 @@ Expect the two distinct volumes and each network's own API/MongoDB pair from the
 
 The working tree was clean before this task. [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) now defines a single `ci` job for pull requests and pushes to `master`. It runs directly on `ubuntu-24.04`, installs .NET `8.0.x`, checks SDK/Docker availability, restores the solution, builds Release, and executes the complete existing test suite. The job has a twenty-minute timeout and read-only repository permissions; checkout does not persist its credentials.
 
-The existing test factory already supplies synthetic JWT configuration, and the MongoDB fixtures create disposable test containers. No application, fixture, Compose, SDK configuration, or deployment resource was changed for task 1. GitHub runner compatibility and execution from its clean checkout still require real workflow evidence; task 2 remains pending.
+The existing test factory already supplies synthetic JWT configuration, and the MongoDB fixtures create disposable test containers. No application, fixture, Compose, SDK configuration, or deployment resource was changed for task 1. At this October 9 implementation checkpoint, GitHub runner compatibility and execution from its clean checkout still required real workflow evidence; task 2 was pending. Subsequent verification is recorded below.
 
 Codex executed the following local checks with .NET SDK `8.0.422` and Docker Engine `29.8.2` (`linux/amd64`):
 
@@ -729,7 +729,67 @@ The local TRX is `/tmp/carbono-ci-task1-20261009-test-results/ci.trx`; it is tem
 
 The sandbox denied Docker socket access, and the initial sandboxed MSBuild attempt failed without a compiler diagnostic. Authorized execution outside the sandbox confirmed Docker access and a successful build/test run; the initial failed attempts are not counted as passing checks.
 
-Task 1's workflow implementation and local checks are complete. Its real-run acceptance and both Phase 4 exit gates remain pending: the user must push a feature branch, open a PR targeting `master`, inspect the CI result, and verify another run after merging into `master`. No commit, push, PR, GitHub run, image publication, or deployment was performed for this task. Image publication and deployment belong to their later tasks/phases.
+Task 1's workflow implementation and local checks are complete. At the October 9 implementation checkpoint, its real-run acceptance and both Phase 4 exit gates were pending; Codex had not committed, pushed, opened a PR, triggered a GitHub run, published an image, or deployed an environment. The subsequent October 10 inspection verified successful `master` runs. A successful PR run targeting `master` remains to verify; image publication and deployment belong to their later tasks/phases.
+
+### Task 2 verification — October 10, 2026
+
+The user reported CI working correctly. Codex then independently inspected existing GitHub Actions runs through read-only `gh run list` and `gh run view --log` calls, and reviewed the workflow and test fixtures. The working tree was clean. No test, workflow, application, or deployment configuration changes were needed to satisfy task 2.
+
+| Existing run inspected | Event / branch | Commit | Verified result |
+| --- | --- | --- | --- |
+| [October 10 run 38079294318](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38079294318), created `19:18:47 UTC` | `push` / `master` | `f0f42c75c466bcef85cf9ed7625d81e0c1baccb2` | Completed successfully; job log independently inspected |
+| [October 9 run 38002363520](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38002363520), created `23:02:03 UTC` | `push` / `master` | `f645225e17edc3d38c44b5b58b6b8f649f894015` | Completed successfully according to run metadata; full log not inspected |
+
+The October 10 job log records the following actual results:
+
+| Check | Result in the inspected log |
+| --- | --- |
+| Runner image | `ubuntu-24.04`, image version `20261004.327.1` |
+| Docker availability | Client and Server version `28.0.4` |
+| Restore and Release build | Both steps completed successfully; build printed `Build succeeded.` |
+| Full solution tests, with no test filter | 107 passed, 0 failed, 0 skipped; reported duration 25 seconds |
+| TRX creation | `/home/runner/work/Web.Fiap.Carbono/Web.Fiap.Carbono/artifacts/test-results/ci/ci.trx` |
+
+Source inspection confirms why these tests work without deployment settings:
+
+- [CustomWebApplicationFactory.cs](../Web.Fiap.Carbono.Tests/Config/CustomWebApplicationFactory.cs) supplies synthetic JWT signing, issuer, audience, and expiration settings before the application entry point reads them. [MongoDbConfigurationTest.cs](../Web.Fiap.Carbono.Tests/Config/MongoDbConfigurationTest.cs) includes the signing/validation regression test; the unfiltered run executed all tests with none skipped.
+- [MongoApiFixture.cs](../Web.Fiap.Carbono.Tests/Config/MongoApiFixture.cs) creates its own MongoDB container with Linux host networking, loopback port `27019`, and database `fiap_carbono_api_tests`; it overrides the API's connection settings with that container's address. The API test collection disables parallel execution.
+- [MongoRepositoryFixture.cs](../Web.Fiap.Carbono.Tests/Data/MongoDb/MongoRepositoryFixture.cs) and [MigrationMongoFixture.cs](../Web.Fiap.Carbono.Tests/Migration/MigrationMongoFixture.cs) use disposable containers with dynamically allocated host ports and uniquely named test databases. Their connections do not target staging or production.
+- The workflow checks out repository source onto the GitHub-hosted runner, selects .NET `8.0.x`, and supplies no deployment environment files or runtime secrets. `git ls-files` inspection found no tracked actual `.env`/`*.env` files or `appsettings.Development.json` files. The successful run therefore verifies the existing test configuration without ignored developer settings.
+
+Task 2 is complete using the existing implementation and the independently inspected October 10 CI evidence. Codex inspected existing results rather than triggering a workflow or rerunning local tests for this verification. No screenshots or downloaded TRX artifacts were added. The logged TRX path proves report creation; downloadable artifact retention remains task 3.
+
+At this inspection, the run listing returned two `push` runs on `master` and no PR run. Task 1's PR-trigger verification, the controlled failure/publication checks, and both Phase 4 exit gates remained pending. The next bounded task at that checkpoint was task 3: retain reports and sanitized diagnostics, and make failed CI block image publication. Subsequent implementation is recorded below. Docker Hub publication and deployments remain subsequent work.
+
+### Task 3 implementation and local verification — October 10, 2026
+
+The working tree already contained the task 2 documentation updates in `AGENTS.md` and this roadmap; those changes were preserved. [ci.yml](../.github/workflows/ci.yml) now gives the existing restore/build/test steps IDs and adds two retention steps. Their commands, triggers, .NET version, runner, permissions, and timeout are unchanged. The checks still return their normal failures; no `continue-on-error` or error suppression was added.
+
+After successful or failed checks, `if: ${{ !cancelled() }}` allows the diagnostic summary and artifact upload to execute. Canceled runs skip these steps. The summary records only the commit SHA, run ID, and restore/build/test outcomes; it does not dump environment variables or configuration. Detailed restore/build errors remain in the GitHub job log, and generated TRX reports contain test failure details. A successful test step without a nonempty `artifacts/test-results/ci/ci.trx` fails the summary step; the summary is written before that check so it remains available for upload.
+
+`actions/upload-artifact@v4` retains a `ci-results` artifact for fourteen days, subject to repository retention limits. Its explicit upload paths are:
+
+```text
+artifacts/ci/summary.txt
+artifacts/test-results/ci/*.trx
+```
+
+If restore/build fails or tests fail before creating a report, the artifact can contain only the summary. Successful upload does not clear an earlier check failure. Environment files, credentials, full Docker inspection output, and unrelated workspace files are not selected for upload. CI continues to use synthetic test configuration; do not introduce real deployment secrets into its reports.
+
+Codex ran focused local verification rather than rerunning the unchanged application commands:
+
+| Check | Actual local result |
+| --- | --- |
+| YAML parsing, workflow structure, and `bash -n` for every command block | Passed; original check commands/triggers/permissions were preserved. `actionlint` is not installed and was not run. |
+| Eight shell scenarios executing the actual summary command with supplied stage outcomes | Passed: successful tests with a report; restore failure; build failure; test failure with/without a report; successful tests with a missing/empty report; skipped checks. |
+| Missing/empty report after a supplied successful test outcome | Both returned exit code `1`, retaining the summary; expected failure of the guard. |
+| Artifact-path selection and summary contents in those temporary workspaces | Passed: only the summary and matching TRX files were selected; an unrelated synthetic canary environment value and files were excluded. |
+
+The shell scenarios used synthetic report files to check presence and upload selection. They are not application test results, GitHub condition evaluation, or proof of artifact upload. Temporary scenario workspaces were removed. No application build/test, workflow run, image publication, deployment, screenshot, commit, push, or PR creation was performed for this task.
+
+**Acceptance still pending:** after the user publishes the workflow change through their normal Git process, inspect a successful PR run and download `ci-results` to verify the summary and real TRX. In a temporary PR, introduce a controlled failing test, confirm failed CI and a downloadable failure report, then remove the failing change and verify a passing run before merging. This also supplies task 1's missing PR-trigger evidence. Do not deliberately break `master` or either deployment environment.
+
+The workflow still contains only the `ci` job. Publication belongs to tasks 4–5 and must depend on `needs: ci`, with `if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/master' }}`. Keep failure-tolerant conditions confined to diagnostics/retention; do not apply them to publication. Verify the real dependency and absence of publication after failed checks when that job is added. Task 3 and both Phase 4 exit gates remain unchecked until the required real-run evidence exists.
 
 ### Verification
 
