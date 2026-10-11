@@ -696,10 +696,10 @@ Expect the two distinct volumes and each network's own API/MongoDB pair from the
 
 - [x] Add `.github/workflows/` checks for pull requests and pushes to `master`: checkout, install the .NET 8 SDK, restore, build, and execute the existing full test suite on a Docker-capable Ubuntu runner. Task 1 implementation is present in [ci.yml](../.github/workflows/ci.yml), with local verification recorded below. Successful `master` runs were independently inspected; the user confirmed successful PR checks on October 10, completing the remaining acceptance. See task 4's completion record for the evidence limits.
 - [x] Supply synthetic test JWT settings and verify the current host-network/fixed-port fixture works without relying on developer files. Keep tests isolated from staging/production databases. Existing configuration passed on the GitHub Ubuntu runner: 107 tests passed with zero failures or skipped tests in the October 10 run inspected by Codex. See task 2 below; no implementation changes were needed.
-- [ ] Make failed restore/build/tests block publication; retain test reports and sanitized failure diagnostics. The October 10 run recorded below verifies successful summary/TRX creation and `ci-results` upload; artifact downloads, failing-run reports, and dependent publication blocking remain to verify.
+- [x] Make failed restore/build/tests block publication; retain test reports and sanitized failure diagnostics. October 11 run `38145711002` verifies failed tests, retained summary/TRX, and skipped publication on `master`; recovery run `38145909543` succeeded. The user confirmed downloaded failure and successful PR TRX contents. See task 3's completion record for results and attribution.
 - [x] Configure the Docker Hub repository and credentials in GitHub Secrets. Build the root Dockerfile with root context only after successful `master` checks. Both secret names were independently observed, and the October 10 run verifies CI followed by Docker Hub login and the image build. The user confirmed creating the intended Docker Hub repository and checking successful PR CI with the image job skipped. Task 5's successful publication subsequently verifies push permission for `gui2506/web-fiap-carbono`. See the completion records below.
 - [x] Push an application image tagged with the full commit SHA; capture its registry digest as a job output for deployment. Do not publish from PRs. Run `38090160366` verifies successful publication and GitHub setting the digest output; independent Docker Hub inspection verifies the matching SHA tag/digest. The unchanged PR exclusion gate and earlier user-confirmed skipped image job are recorded below.
-- [ ] Verify `.dockerignore` excludes secrets before publication; record the image repository, SHA tag, digest, and corresponding workflow run without credentials. Ignore rules were inspected and the image identifiers/run are recorded below; pulling/starting the published image with runtime configuration, checking its contents, and collecting real image evidence remain pending.
+- [x] Verify `.dockerignore` excludes secrets before publication; record the image repository, SHA tag, digest, and corresponding workflow run without credentials. Ignore rules and image identifiers/run were already inspected. The user's October 11 EC2 output verifies published-image startup, a database-backed API response, and the expected API files with no matching migration/environment/development files under `/app`. Task 6's completion record below includes the actual output; screenshots remain Phase 6 evidence work.
 
 ### Task 1 implementation and local verification — October 9, 2026
 
@@ -729,7 +729,7 @@ The local TRX is `/tmp/carbono-ci-task1-20261009-test-results/ci.trx`; it is tem
 
 The sandbox denied Docker socket access, and the initial sandboxed MSBuild attempt failed without a compiler diagnostic. Authorized execution outside the sandbox confirmed Docker access and a successful build/test run; the initial failed attempts are not counted as passing checks.
 
-Task 1's workflow implementation and local checks are complete. At the October 9 implementation checkpoint, its real-run acceptance and both Phase 4 exit gates were pending; Codex had not committed, pushed, opened a PR, triggered a GitHub run, published an image, or deployed an environment. Subsequent October 10 inspection verified successful `master` runs, and the user's later PR-check confirmation completes task 1, as recorded with task 4 below. Image publication and deployment belong to their later tasks/phases; the Phase 4 exit gates remain pending.
+Task 1's workflow implementation and local checks are complete. At the October 9 implementation checkpoint, its real-run acceptance and both Phase 4 exit gates were pending; Codex had not committed, pushed, opened a PR, triggered a GitHub run, published an image, or deployed an environment. Subsequent October 10 inspection verified successful `master` runs, and the user's later PR-check confirmation completes task 1, as recorded with task 4 below. Image publication and deployment belong to their later tasks/phases; the October 11 task 3 and task 6 records satisfy both Phase 4 exit gates.
 
 ### Task 2 verification — October 10, 2026
 
@@ -787,9 +787,42 @@ Codex ran focused local verification rather than rerunning the unchanged applica
 
 The shell scenarios used synthetic report files to check presence and upload selection. They are not application test results, GitHub condition evaluation, or proof of artifact upload. Temporary scenario workspaces were removed. No application build/test, workflow run, image publication, deployment, screenshot, commit, push, or PR creation was performed for this task.
 
-**Acceptance still pending:** download `ci-results` from a successful PR run to verify the summary and real TRX. Successful PR CI is user-confirmed in task 4's completion record below; successful `master` artifact upload is independently verified in the October 10 run record. In a temporary PR, introduce a controlled failing test, confirm failed CI and a downloadable failure report, then remove the failing change and verify a passing run before merging. Do not deliberately break `master` or either deployment environment.
+**Acceptance pending at the October 10 checkpoint:** successful PR artifact contents, a retained controlled-failure report, and actual publication blocking still required verification. The planned exercise used a temporary PR, followed by removal of the failing change and a passing run before merging. The actual October 11 failure/recovery and downloaded-report confirmations are recorded below. Use a temporary PR for any future controlled-failure exercise; do not deliberately break `master` or either deployment environment.
 
-At the task 3 implementation checkpoint, the workflow contained only the `ci` job. Task 4 below adds a gated image-build job; publication in task 5 must preserve `needs: ci`, with `if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/master' }}`. Keep failure-tolerant conditions confined to diagnostics/retention; do not apply them to publication. Verify the real dependency and absence of publication after failed checks when publication is added. Task 3 and both Phase 4 exit gates remain unchecked until the required real-run evidence exists.
+At the task 3 implementation checkpoint, the workflow contained only the `ci` job. Task 4 below adds a gated image-build job; publication in task 5 must preserve `needs: ci`, with `if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/master' }}`. Keep failure-tolerant conditions confined to diagnostics/retention; do not apply them to publication. Verify the real dependency and absence of publication after failed checks when publication is added. Task 3 and both Phase 4 exit gates were unchecked at that checkpoint; subsequent task 3 acceptance is recorded below.
+
+### Task 3 failure, recovery, and artifact verification — October 11, 2026
+
+Task 3 is complete. Codex independently inspected the existing failure and recovery runs through read-only GitHub metadata and log checks. The user separately confirmed downloading the reports and checking their contents.
+
+| Evidence | Verified result and source |
+| --- | --- |
+| Controlled failure run | [38145711002](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38145711002), created `2026-10-11 14:04:34 UTC`; event `push`, branch `master`, commit `6b3b6aa9ccd637a38efa385a52eee6c25b627138`; conclusion `failure`. Independently inspected by Codex |
+| Restore and Release build | Both succeeded in the failed run |
+| Full solution tests | 107 passed, 1 failed, 0 skipped; 108 total. The only failure was `Web.Fiap.Carbono.Tests.Failure.CiFailureVerificationTest.ControlledFailureProducesDiagnostics`, with `CI-FAILURE-VERIFICATION: expected temporary failure.`; test command exited `1` |
+| Failure diagnostics and report retention | **Write CI diagnostic summary** and **Upload CI results** succeeded; the log records creation of `artifacts/test-results/ci/ci.trx` |
+| Publication blocking | **Build and publish application image**, job `114488680378`, was `skipped` with no steps executed after failed CI |
+| Temporary test removal and recovery | Removal commit `2fbd381667aae4fe73995c99a2519d2172d6f524`; [run 38145909543](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38145909543), created `2026-10-11 14:07:29 UTC`, event `push`, branch `master`, conclusion `success`. Restore, build, tests, summary, artifact upload, and image login/build/publication all succeeded |
+| Downloaded failure `ci.trx` | The user confirmed the report contains the expected temporary failure |
+| Downloaded successful PR `ci.trx` | The user confirmed zero failures; no PR/run identifier or screenshot was supplied |
+
+The user also supplied this summary from the failed run:
+
+```text
+Commit: 6b3b6aa9ccd637a38efa385a52eee6c25b627138
+Run: 38145711002
+Restore: success
+Build: success
+Tests: failure
+```
+
+The controlled failure occurred on `master`, although the original exercise was planned for a temporary PR. Its skipped image job directly verifies that failed CI blocks publication on the publishing branch. The temporary test has been removed and the recovery run passed; no further failing change is required for this acceptance. Use a temporary PR for any future controlled-failure exercise.
+
+Report download and content inspection are user-confirmed; Codex did not download the TRX files. Recovery test counts and the recovery image digest were not inspected, so the task 5 release identifiers below remain unchanged. Actual restore/build failures and canceled-run behavior were not exercised by these runs. No screenshots were added.
+
+Together with the earlier PR checks and successful `master` runs, this evidence satisfies task 3 and the first Phase 4 exit gate. At this task 3 checkpoint, task 6 and the second exit gate were still pending; the subsequent task 6 record below completes them and Phase 4. Automated deployment and staging-to-production failure blocking remain later phases.
+
+This documentation update preserves the existing user change to the test project. Codex did not modify implementation files, rerun builds/tests, trigger workflows, publish images, deploy, commit, push, or open a PR for this update.
 
 ### Task 4 implementation and local verification — October 10, 2026
 
@@ -820,7 +853,7 @@ Codex ran focused local verification:
 
 The local filesystem had approximately `3.12 GiB` free. A real local image build was not attempted; the intended build verification is on GitHub's runner. Temporary command-verification files were removed. No application build/test, registry login, workflow trigger, image push, deployment, screenshot, commit, push, or PR creation was performed for task 4.
 
-At the task 4 implementation checkpoint, real PR/`master` job execution and Docker Hub repository confirmation were pending. Subsequent `master` verification and user-confirmed repository/PR completion are recorded below. Both Phase 4 exit gates remain unchecked.
+At the task 4 implementation checkpoint, real PR/`master` job execution and Docker Hub repository confirmation were pending. Subsequent `master` verification and user-confirmed repository/PR completion are recorded below. Both Phase 4 exit gates were unchecked at that checkpoint; the October 11 task 3 record satisfies the first gate.
 
 ### Task 4 GitHub verification — October 10, 2026
 
@@ -874,7 +907,7 @@ Codex ran focused local verification:
 
 The scenario workspaces were removed. These checks used synthetic command output and a Docker substitute; they are not real Docker Hub publication, application tests, or GitHub condition/output evaluation. No actual image build/push, registry login, workflow trigger, deployment, screenshot, commit, push, or PR creation was performed by Codex at this implementation checkpoint. Subsequent read-only publication and registry verification is recorded below.
 
-At this implementation checkpoint, task 5 and both Phase 4 exit gates remained unchecked pending actual publication, the matching Docker Hub SHA tag/digest, and digest-output confirmation. Subsequent task 5 acceptance is recorded below. Task 3's controlled failure/artifact checks and task 6's published-image runtime/content checks remain pending; automated deployment remains Phase 5.
+At this implementation checkpoint, task 5 and both Phase 4 exit gates remained unchecked pending actual publication, the matching Docker Hub SHA tag/digest, and digest-output confirmation. Subsequent task 5 acceptance is recorded below. Task 3's controlled failure/artifact checks and task 6's published-image runtime/content checks were pending at that checkpoint; task 3 acceptance is recorded above. Automated deployment remains Phase 5.
 
 ### Task 5 publication and registry verification — October 10, 2026
 
@@ -905,16 +938,76 @@ The full commit SHA is the image's tag; the registry digest identifies its publi
 gui2506/web-fiap-carbono@sha256:78030c6e4e85e5fce8ce0be4766062e7f36c028e0442950e744795abeb5f3e13
 ```
 
-Task 5 is complete based on successful real publication, the digest job output, the independent SHA-tag/digest match, and the unchanged PR exclusion gate together with the earlier user-confirmed skipped image job. No new PR run was independently verified; retain the earlier attribution and collect its actual link/screenshots later. A registry metadata match does not verify startup, image contents, absence of secrets in image layers, staging/production use of this digest, or failure blocking. Task 6 and task 3's remaining checks keep both Phase 4 exit gates pending. No image was pulled/run, no workflow was triggered, and no deployment, screenshot capture, commit, push, or PR creation was performed by Codex for this verification or documentation update.
+Task 5 is complete based on successful real publication, the digest job output, the independent SHA-tag/digest match, and the unchanged PR exclusion gate together with the earlier user-confirmed skipped image job. No new PR run was independently verified; retain the earlier attribution and collect its actual link/screenshots later. A registry metadata match does not verify startup, image contents, absence of secrets in image layers, staging/production use of this digest, or failure blocking. At this October 10 checkpoint, task 6 and task 3's remaining checks kept both Phase 4 exit gates pending. The October 11 task 3 record satisfies the first gate; subsequent task 6 verification below satisfies the second gate and completes Phase 4. No image was pulled/run, no workflow was triggered, and no deployment, screenshot capture, commit, push, or PR creation was performed by Codex for this verification or documentation update.
+
+### Task 6 published-image verification and Phase 4 completion — October 11, 2026
+
+**Task 6 and Phase 4 are complete.** The user supplied the following EC2 execution results for the published release recorded in task 5: repository `gui2506/web-fiap-carbono`, SHA tag `6458819e04eecf1d35a13648a509210f90bf8fc1`, digest `sha256:78030c6e4e85e5fce8ce0be4766062e7f36c028e0442950e744795abeb5f3e13`. These host checks are user-supplied evidence; Codex did not independently run them on EC2.
+
+| Check | User-supplied result |
+| --- | --- |
+| Published-image startup | `docker start carbono-image-check` returned the container name |
+| Database-backed API request | `http://127.0.0.1:8083/api/empresas` returned HTTP `200`; response saved to `/tmp/carbono-image-check-empresas.json` |
+| JSON response and seeded data | `jq -e -s 'length == 1 and (.[0] \| type == "array" and any(.[]; .codigo == "EMP-001"))'` returned `true` |
+| Required application files | Nonempty `/app/Web.Fiap.Carbono.dll`, `Web.Fiap.Carbono.deps.json`, and `Web.Fiap.Carbono.runtimeconfig.json` |
+| Excluded application files | No matches under `/app` for `Web.Fiap.Carbono.Migration*`, `.env`, `.env.*`, `*.env`, or case-insensitive `appsettings.Development*.json` |
+| Image-content command | Temporary container with `--rm --network none --entrypoint sh` printed `Application file checks passed`; `echo $?` printed `0` |
+
+The image-content command uses the previously selected digest and reads packaged files without starting the API or supplying environment files:
+
+```bash
+CARBONO_IMAGE='gui2506/web-fiap-carbono@sha256:78030c6e4e85e5fce8ce0be4766062e7f36c028e0442950e744795abeb5f3e13'
+
+docker run --rm --network none \
+  --entrypoint sh "$CARBONO_IMAGE" -eu -c '
+  for file in Web.Fiap.Carbono.dll \
+              Web.Fiap.Carbono.deps.json \
+              Web.Fiap.Carbono.runtimeconfig.json; do
+    if [ ! -s "/app/$file" ]; then
+      echo "Missing API file: $file"
+      exit 1
+    fi
+  done
+
+  unexpected=$(find /app \( \
+    -name "Web.Fiap.Carbono.Migration*" -o \
+    -name ".env" -o \
+    -name ".env.*" -o \
+    -name "*.env" -o \
+    -iname "appsettings.Development*.json" \
+  \) -print -quit)
+
+  if [ -n "$unexpected" ]; then
+    echo "Unexpected application file: $unexpected"
+    exit 1
+  fi
+
+  echo "Application file checks passed"
+'
+echo $?
+```
+
+The user supplied this actual result:
+
+```text
+Application file checks passed
+0
+```
+
+The scan verifies the named files and exclusions in the final `/app` filesystem. It does not inspect all historical image layers or prove the absence of every possible embedded secret. No configuration values were printed. Keep the inspected SHA/digest associated with this release; the recovery run in task 3 published another revision whose digest was not inspected here.
+
+Together with tasks 1–5, the startup, database-backed response, and file checks satisfy both Phase 4 exit gates. Actual screenshots remain to collect in Phase 6. This manual image check does not establish automated staging/production deployment, production promotion, deployment failure blocking, concurrency, or persistence after redeployment.
+
+The next bounded work is Phase 5, beginning with deployment/smoke scripts. Its tasks and exit gates remain unchecked; no Phase 5 implementation is included in this documentation update. Existing local changes were preserved. Codex did not rerun application builds/tests, execute Docker/database/deployment commands, trigger workflows, provision resources, capture screenshots, commit, push, or open a PR for this update.
 
 ### Verification
 
-Inspect an actual PR workflow run for executed restore/build/tests and absence of publish/deploy steps. After an explicitly authorized push/merge to `master`, inspect the successful check/publish run and Docker Hub tag. Pull `DOCKERHUB_NAMESPACE/IMAGE@sha256:DIGEST` with the actual values and inspect its repo digest; verify the image starts with runtime configuration and contains the API rather than the migration tool. Confirm a controlled failing PR test results in failed CI and no publication.
+Inspect an actual PR workflow run for executed restore/build/tests and absence of publish/deploy steps. After an explicitly authorized push/merge to `master`, inspect the successful check/publish run and Docker Hub tag. Pull `DOCKERHUB_NAMESPACE/IMAGE@sha256:DIGEST` with the actual values and inspect its repo digest; verify the image starts with runtime configuration and contains the API rather than the migration tool. Confirm a controlled test failure produces failed CI, retained diagnostics, and no image publication. Task 3 records the actual `master` failure/recovery and user-confirmed PR reports; use a temporary PR for any future controlled-failure exercise.
 
 ### Exit gate
 
-- [ ] Real PR and `master` runs execute the existing tests; failures block subsequent work.
-- [ ] A successful `master` run publishes a SHA-tagged image with a recorded usable digest; PRs cannot publish or deploy. Publication and the SHA-tag/digest match are verified; published-image startup/content checks remain pending under task 6. PR exclusion retains the inspected gate and user-confirmed skipped image job; no deployment jobs exist yet.
+- [x] Real PR and `master` runs execute the existing tests; failures block subsequent work. Successful PR checks and downloaded zero-failure reports are user-confirmed; independently inspected October 11 `master` failure/recovery runs verify retained diagnostics and blocked image publication after failed tests.
+- [x] A successful `master` run publishes a SHA-tagged image with a recorded usable digest; PRs cannot publish or deploy. Task 5 verifies publication and the SHA-tag/digest match; the user's October 11 task 6 output verifies startup, a database-backed HTTP `200` response, and application contents. PR exclusion retains the inspected gate and user-confirmed skipped image job; no deployment jobs exist yet.
 
 ## Phase 5 — October 10: automate staging and production deployment
 
