@@ -52,7 +52,7 @@ These are the original planning values, not proof of provisioned settings. Phase
 | Initial preferred region | US East (N. Virginia), `us-east-1`, subject to account availability |
 | API host ports | Staging `8081`; production `8082` |
 
-The user subsequently launched the host in **US East (Ohio), `us-east-2`**, availability zone **`us-east-2c`**. Use this actual region for host operations; N. Virginia remains the initial preference only. Deployment access uses SSH, as already selected by the pipeline plan. Docker/Compose installation and Docker access for the `ubuntu` deployment account are confirmed by user-supplied terminal output on October 9. The user also confirmed the SSH host-key fingerprint matched the AWS system log on October 9.
+The user subsequently launched the host in **US East (Ohio), `us-east-2`**, availability zone **`us-east-2c`**. Use this actual region for host operations; N. Virginia remains the initial preference only. Manual host administration uses SSH; automated deployment now uses a self-hosted GitHub Actions runner on the same EC2 VM, as selected on October 11 and recorded in Phase 5 task 2. Docker/Compose installation and Docker access for the `ubuntu` deployment account are confirmed by user-supplied terminal output on October 9. The user also confirmed the SSH host-key fingerprint matched the AWS system log on October 9.
 
 ## Planned architecture
 
@@ -86,9 +86,11 @@ Pull request → restore → build → existing tests → CI result
 Push to master → restore → build → existing tests
   → build and push Docker Hub image tagged with full commit SHA
   → capture registry digest
-  → SSH deploy staging by digest → readiness + database-backed smoke check
-  → SSH deploy production by the same digest → readiness + database-backed smoke check
+  → EC2 runner deploys staging locally by digest → readiness + database-backed smoke check
+  → EC2 runner deploys production locally by the same digest → readiness + database-backed smoke check
 ```
+
+CI and image publication run on GitHub-hosted Ubuntu runners. Deployment jobs use the existing EC2 host's deployment runner, selected with `[self-hosted, linux, x64, carbono-deploy]`; pull requests do not execute on that runner. It receives jobs through outbound HTTPS and invokes Docker Compose locally. The staging job is implemented in Phase 5 task 2; its first real deployment run remains pending. Production deployment is still planned for task 4.
 
 Production follows automatically only after staging succeeds. Build once; do not rebuild for production or promote a mutable `latest` tag. Carry the registry digest as the publish job's output. Deploy the Compose/scripts revision associated with that commit as well, rather than pulling an unrelated newer `master` on the host.
 
@@ -96,7 +98,7 @@ Failures must return a nonzero exit status and block dependent jobs. PRs must ne
 
 Readiness means the API can serve requests after MongoDB and initialization are ready. Prefer a bounded retry check against the existing public `GET /api/empresas` endpoint; a new health endpoint is not required. Separately validate HTTP `200`, a JSON array, and a known seeded company's business key to prove a database-backed response. Choose and record that key after inspecting the seed; do not accept an empty response, HTML, redirect, or merely a running container. Confirm a database outage makes the check fail. Any container health-check command must actually be available in its image.
 
-Plan GitHub Secrets for Docker Hub credentials, SSH private key, and sensitive environment values as needed. Store the host address/user and independently verified SSH host key in appropriate repository/environment configuration. Verify the host key; do not disable checking. Supply production configuration on the host or securely through the workflow without printing it. Use bounded SSH, readiness, and smoke-check timeouts; retain sanitized failure logs.
+Use GitHub Secrets for Docker Hub publication credentials. Keep staging/production runtime secrets in their separate untracked host environment files, outside the runner checkout. The local deployment job does not need EC2 SSH secrets, AWS credentials, or security-group changes; do not print runner credentials or environment contents. Retain SSH host-key verification for manual administration. Use bounded job, readiness, and smoke-check timeouts; retain sanitized failure logs.
 
 ## Phase 1 — October 6–7: establish a passing baseline and reorganize
 
@@ -1016,11 +1018,11 @@ Inspect an actual PR workflow run for executed restore/build/tests and absence o
 ### Tasks
 
 - [x] Add small deployment/smoke scripts under root `scripts/` with explicit project, environment-file, image-digest, and API URL inputs. Reject missing inputs and fail on command errors. The user implemented `scripts/deploy.sh`, `scripts/smoke.sh`, and Compose `APP_IMAGE` selection; local syntax/missing-argument checks passed, and the user's October 11 manual EC2 staging deployment returned healthy containers, a passing database-backed smoke check, and exit `0`. See the task 1 record below.
-- [ ] Deploy the matching Compose/scripts revision over SSH with host-key verification. Set `APP_IMAGE` to the published digest, pull it, and start/update the staging API with the existing persistent database.
+- [ ] Deploy the matching Compose/scripts revision on the EC2 deployment runner. Set `APP_IMAGE` to the published digest, pull it, and start/update staging with its existing persistent database. The gated `deploy_staging` job is implemented; acceptance awaits a real successful `master` run, as recorded below.
 - [ ] Wait with bounded retries for readiness, then validate HTTP status, JSON shape, and a known database record through the API. Return nonzero for timeout or invalid output.
 - [ ] Deploy production only after staging and its smoke checks succeed. Use the same digest and production's own configuration/resources, then run equivalent production checks.
-- [ ] Enforce job dependencies and shared concurrency across the complete deployment sequence; do not use `continue-on-error` or unconditional production deployment.
-- [ ] Keep registry/SSH/runtime credentials out of scripts, logs, command tracing, and image layers. If the image is private, provide host pull credentials securely.
+- [ ] Enforce job dependencies and shared concurrency across the complete deployment sequence; do not use `continue-on-error` or unconditional production deployment. Workflow concurrency is configured in task 2; production dependencies and real concurrency verification remain pending.
+- [ ] Keep registry/runner/SSH/runtime credentials out of scripts, logs, command tracing, and image layers. If the image is private, provide host pull credentials securely.
 - [ ] Record commit, digest, environment, and result. Document a simple manual recovery using the previous known digest without deleting MongoDB storage; automatic rollback is not required.
 
 ### Task 1 scripts and manual staging verification — October 11, 2026
@@ -1080,7 +1082,49 @@ Deployment verified: carbono-staging
 
 The EC2 results are user-supplied; Codex did not run the deployment or independently access the host. This manual execution is not a GitHub Actions deployment run, production promotion, or proof of persistence after redeployment. The script implements readiness/smoke logic, but its pipeline integration and controlled timeout/failure checks remain later work. No deployment-script commit SHA, new pipeline run, or screenshot is claimed.
 
-Tasks 2–7 and both Phase 5 exit gates remain pending. The next bounded task is to deploy the matching revision over SSH from the workflow with verified host keys. Codex changed only `AGENTS.md` and this roadmap; no implementation edits, application builds/tests, Docker/database commands, deployments, resource provisioning, commits, pushes, or PR creation were performed for this documentation update.
+At the task 1 documentation checkpoint, tasks 2–7 and both Phase 5 exit gates remained pending, and the next planned task was deployment over SSH from the workflow. Codex changed only `AGENTS.md` and this roadmap for that update; no implementation edits, application builds/tests, Docker/database commands, deployments, resource provisioning, commits, pushes, or PR creation were performed. The subsequent runner decision and task 2 implementation below replace the automated SSH access plan while preserving manual SSH administration.
+
+### Task 2 EC2 runner and staging workflow — October 11, 2026
+
+**Implementation is present; real-run acceptance remains pending.** The user reported that the attempted AWS advanced account/identity setup required a paid-plan upgrade. To stay within the existing Free Plan, the user selected and authorized a self-hosted GitHub Actions deployment runner on the existing EC2 VM. This replaces GitHub-hosted deployment over SSH; no AWS OIDC role, paid-plan upgrade, additional host, or dynamic security-group rule is required by this job. The user confirmed that `guidonunes/Web.Fiap.Carbono` is private.
+
+The user supplied successful registration output for runner **`carbono-ec2`**, with the default `self-hosted`, `Linux`, and `X64` labels and `_work` folder. After initially skipping the custom label, the user confirmed completing the follow-up setup to add `carbono-deploy` and install/start the runner service as `ubuntu` under `/home/ubuntu/actions-runner`. Service status and GitHub availability are user-confirmed; Codex did not inspect EC2 or independently verify an idle runner. GitHub documents [runner selection by labels](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/use-in-a-workflow) and the runner's [outbound HTTPS connection](https://docs.github.com/en/actions/reference/runners/self-hosted-runners).
+
+[ci.yml](../.github/workflows/ci.yml) now adds:
+
+| Workflow setting | Implementation |
+| --- | --- |
+| Staging job | `deploy_staging`, displayed as **Deploy and verify staging** |
+| Gate | Requires successful `image`; only a `push` to `refs/heads/master` |
+| Runner | `[self-hosted, linux, x64, carbono-deploy]` |
+| Checkout | Exact `${{ github.sha }}`; `persist-credentials: false` |
+| Release input | `${{ needs.image.outputs.digest }}` through `CARBONO_DIGEST`; full `gui2506/web-fiap-carbono@sha256:...` reference |
+| Deployment | Existing `scripts/deploy.sh`; project `carbono-staging`, `/home/ubuntu/carbono/staging/staging.env`, `http://127.0.0.1:8081/api/empresas` |
+| Bounds and failure handling | Ten-minute job timeout; existing Compose/smoke bounds and nonzero failure propagation |
+| Workflow concurrency | `carbono-release-${{ github.ref }}`, `cancel-in-progress: false` |
+
+CI and image-publication jobs are unchanged and remain on GitHub-hosted `ubuntu-24.04` runners. Deployment uses the scripts/Compose from the matching runner checkout, so it does not depend on a manual pull into `/home/ubuntu/carbono/repository`. The explicit Compose project retains staging's existing named volume/network even though the checkout path changes. The database and deployment scripts are unchanged; no build, storage removal, or reseeding command is added. Keep environment files outside the runner workspace so checkout cleanup cannot remove them.
+
+All `master` runs share one workflow concurrency group covering checks, publication, staging, and the future production job. PRs have separate groups by ref. A running release is not canceled to start a newer one; with GitHub's default queue, a newer pending run can replace an older pending run. This is not a guarantee that every queued commit deploys. See [GitHub's concurrency rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency). Keep the future production job within the same serialized workflow. Live overlap verification and production gating remain pending.
+
+Codex verified locally:
+
+| Check | Observed result |
+| --- | --- |
+| YAML parse and workflow structure | Passed; prior CI/publication jobs and triggers unchanged; staging gate, runner labels, exact checkout SHA, digest input, and workflow concurrency checked |
+| `bash -n` on the staging step and both existing scripts | Exit `0`; no syntax errors |
+| Eight synthetic integration scenarios | Passed: success, empty/malformed digest, missing environment file, failed pull, failed health wait, HTTP failure, and missing seeded company |
+
+The synthetic checks used the actual staging shell block and existing scripts in an isolated temporary checkout, with a synthetic environment file, mock Docker/curl/sleep commands, and real `jq`. They verified argument forwarding, `--no-build`/bounded wait, invalid-input rejection before Docker, failure propagation, and absence of a deployment-success message on errors. They made no network requests or live container changes. These are local checks, not GitHub scheduling, application tests, or EC2 deployment evidence.
+
+After the user commits and merges/pushes these changes to `master`, verify task 2 using a real run:
+
+1. Confirm **Restore, build and test** and **Build and publish application image** succeed before **Deploy and verify staging** starts on `carbono-ec2`.
+2. Match the run's commit and published digest to the staging job log. Expect `Smoke check passed: HTTP 200 and EMP-001` and `Deployment verified: carbono-staging`.
+3. Inside EC2, run `docker inspect --type container --format '{{.Config.Image}}' carbono-staging-api-1`; expect `gui2506/web-fiap-carbono@` followed by that run's exact registry digest.
+4. Record the actual run link, commit, digest, and result. Confirm a PR skips image/staging jobs; a failed prerequisite must prevent staging from running.
+
+Task 2 stays unchecked until the real staging run passes. Controlled readiness failures (task 3), production promotion (task 4), full deployment/concurrency acceptance, credentials review, recovery records, and both Phase 5 exit gates remain pending. Codex changed only the workflow, `AGENTS.md`, and this roadmap for this implementation; no application builds/tests, live Docker/database/deployment commands, resource provisioning, workflow triggers, screenshots, commits, pushes, or PR creation were performed.
 
 ### Verification
 
@@ -1200,7 +1244,7 @@ This checklist covers the requirements supplied for this assignment. It remains 
 - [ ] Local Docker instructions start API plus MongoDB with required variables, networking, persistent storage, readiness checks, and safe fresh-database initialization.
 - [ ] GitHub Actions executes restore/build/tests for pull requests; failed checks block subsequent stages.
 - [x] Successful `master` pushes publish the application image to Docker Hub with the commit SHA tag and a recorded digest. Verified by run `38090160366` and the independent Docker Hub SHA-tag/digest inspection in Phase 4 task 5 on October 10, 2026.
-- [ ] Staging deploys automatically over SSH and passes readiness plus a database-backed API smoke check.
+- [ ] Staging deploys automatically on the EC2 deployment runner and passes readiness plus a database-backed API smoke check.
 - [ ] Production receives the same digest only after staging succeeds and passes its own verification.
 - [ ] Deployments do not overlap; controlled failures demonstrate blocked later stages.
 - [ ] Both isolated Compose projects run on the prepared Ubuntu host with independent API/MongoDB instances, volumes, networks, environment configuration, and documented ports.

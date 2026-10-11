@@ -6,6 +6,10 @@ on:
     branches:
       - master
 
+concurrency:
+  group: carbono-release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -135,3 +139,30 @@ jobs:
           printf 'digest=%s\n' "$CARBONO_DIGEST" >> "$GITHUB_OUTPUT"
           printf 'Published commit %s with registry digest %s\n' \
             "$GITHUB_SHA" "$CARBONO_DIGEST"
+
+  deploy_staging:
+    name: Deploy and verify staging
+    needs: image
+    if: ${{ success() && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    runs-on: [self-hosted, linux, x64, carbono-deploy]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout release revision
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Deploy staging by published digest
+        shell: bash
+        env:
+          CARBONO_DIGEST: ${{ needs.image.outputs.digest }}
+        run: |
+          set -euo pipefail
+
+          bash scripts/deploy.sh \
+            carbono-staging \
+            /home/ubuntu/carbono/staging/staging.env \
+            "gui2506/web-fiap-carbono@${CARBONO_DIGEST}" \
+            http://127.0.0.1:8081/api/empresas
