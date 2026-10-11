@@ -90,7 +90,7 @@ Push to master → restore → build → existing tests
   → EC2 runner deploys production locally by the same digest → readiness + database-backed smoke check
 ```
 
-CI and image publication run on GitHub-hosted Ubuntu runners. Deployment jobs use the existing EC2 host's deployment runner, selected with `[self-hosted, linux, x64, carbono-deploy]`; pull requests do not execute on that runner. It receives jobs through outbound HTTPS and invokes Docker Compose locally. The user subsequently confirmed that all jobs, including staging deployment, ran successfully; Phase 5 task 2 records that user-reported acceptance and its evidence limits. Production deployment is still planned for task 4.
+CI and image publication run on GitHub-hosted Ubuntu runners. Deployment jobs use the existing EC2 host's deployment runner, selected with `[self-hosted, linux, x64, carbono-deploy]`; pull requests do not execute on that runner. It receives jobs through outbound HTTPS and invokes Docker Compose locally. The user subsequently confirmed that all jobs, including staging deployment, ran successfully; Phase 5 task 2 records that user-reported acceptance and its evidence limits. Task 4 now implements production deployment after successful staging; its first real production run and matching-digest acceptance remain pending.
 
 Production follows automatically only after staging succeeds. Build once; do not rebuild for production or promote a mutable `latest` tag. Carry the registry digest as the publish job's output. Deploy the Compose/scripts revision associated with that commit as well, rather than pulling an unrelated newer `master` on the host.
 
@@ -1020,8 +1020,8 @@ Inspect an actual PR workflow run for executed restore/build/tests and absence o
 - [x] Add small deployment/smoke scripts under root `scripts/` with explicit project, environment-file, image-digest, and API URL inputs. Reject missing inputs and fail on command errors. The user implemented `scripts/deploy.sh`, `scripts/smoke.sh`, and Compose `APP_IMAGE` selection; local syntax/missing-argument checks passed, and the user's October 11 manual EC2 staging deployment returned healthy containers, a passing database-backed smoke check, and exit `0`. See the task 1 record below.
 - [x] Deploy the matching Compose/scripts revision on the EC2 deployment runner. Set `APP_IMAGE` to the published digest, pull it, and start/update staging with its existing persistent database. The user confirmed all workflow jobs ran successfully after adding the runner label; the execution result is user-reported, with run/digest evidence still to collect below.
 - [x] Wait with bounded retries for readiness, then validate HTTP status, JSON shape, and a known database record through the API. Return nonzero for timeout or invalid output. The existing smoke implementation passed thirteen real loopback HTTP scenarios on October 11, including timeout and invalid-response rejection; the user confirmed successful staging workflow execution. See task 3 below for scope and results.
-- [ ] Deploy production only after staging and its smoke checks succeed. Use the same digest and production's own configuration/resources, then run equivalent production checks.
-- [ ] Enforce job dependencies and shared concurrency across the complete deployment sequence; do not use `continue-on-error` or unconditional production deployment. Workflow concurrency is configured in task 2; production dependencies and real concurrency verification remain pending.
+- [ ] Deploy production only after staging and its smoke checks succeed. Use the same digest and production's own configuration/resources, then run equivalent production checks. The `deploy_production` job is implemented and locally verified in task 4 below; acceptance awaits a real successful production run and comparison of both runtime images with that run's registry digest.
+- [ ] Enforce job dependencies and shared concurrency across the complete deployment sequence; do not use `continue-on-error` or unconditional production deployment. Workflow concurrency is configured in task 2 and production dependencies in task 4; real failure-blocking and concurrency verification remain pending.
 - [ ] Keep registry/runner/SSH/runtime credentials out of scripts, logs, command tracing, and image layers. If the image is private, provide host pull credentials securely.
 - [ ] Record commit, digest, environment, and result. Document a simple manual recovery using the previous known digest without deleting MongoDB storage; automatic rollback is not required.
 
@@ -1105,7 +1105,7 @@ The user supplied successful registration output for runner **`carbono-ec2`**, w
 
 CI and image-publication jobs are unchanged and remain on GitHub-hosted `ubuntu-24.04` runners. Deployment uses the scripts/Compose from the matching runner checkout, so it does not depend on a manual pull into `/home/ubuntu/carbono/repository`. The explicit Compose project retains staging's existing named volume/network even though the checkout path changes. The database and deployment scripts are unchanged; no build, storage removal, or reseeding command is added. Keep environment files outside the runner workspace so checkout cleanup cannot remove them.
 
-All `master` runs share one workflow concurrency group covering checks, publication, staging, and the future production job. PRs have separate groups by ref. A running release is not canceled to start a newer one; with GitHub's default queue, a newer pending run can replace an older pending run. This is not a guarantee that every queued commit deploys. See [GitHub's concurrency rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency). Keep the future production job within the same serialized workflow. Live overlap verification and production gating remain pending.
+All `master` runs share one workflow concurrency group covering checks, publication, staging, and production. PRs have separate groups by ref. A running release is not canceled to start a newer one; with GitHub's default queue, a newer pending run can replace an older pending run. This is not a guarantee that every queued commit deploys. See [GitHub's concurrency rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency). At the task 2 checkpoint, production gating was pending; task 4 below adds it within this same serialized workflow. Live overlap and controlled pipeline-failure verification remain pending.
 
 Codex verified locally:
 
@@ -1126,7 +1126,7 @@ Retain the following verification steps to capture task 2's actual run and diges
 
 At the task 2 implementation checkpoint, acceptance and tasks 3–7 were pending. Codex changed only the workflow, `AGENTS.md`, and this roadmap for that implementation; no application builds/tests, live Docker/database/deployment commands, resource provisioning, workflow triggers, screenshots, commits, pushes, or PR creation were performed.
 
-**Subsequent user-reported acceptance:** after the runner troubleshooting, the user confirmed all jobs ran and were green. Source inspection confirms `deploy_staging` invokes the fail-fast deployment script and database-backed smoke check, so that report satisfies task 2's successful execution acceptance. No new run URL, commit, registry digest, runtime-image comparison, or screenshot was supplied; collect these for the release/evidence records. Codex has not independently verified that GitHub run or EC2 state. Do not reuse Phase 4's older digest as the identifier of this later run. Production automation and both Phase 5 exit gates remain pending.
+**Subsequent user-reported acceptance:** after the runner troubleshooting, the user confirmed all jobs ran and were green. Source inspection confirms `deploy_staging` invokes the fail-fast deployment script and database-backed smoke check, so that report satisfies task 2's successful execution acceptance. No new run URL, commit, registry digest, runtime-image comparison, or screenshot was supplied; collect these for the release/evidence records. Codex has not independently verified that GitHub run or EC2 state. Do not reuse Phase 4's older digest as the identifier of this later run. At this acceptance checkpoint, production automation and both Phase 5 exit gates remained pending; task 4's subsequent implementation is recorded below.
 
 ### Task 3 smoke-check verification — October 11, 2026
 
@@ -1157,7 +1157,51 @@ Codex executed these checks against local base commit `d6c449a0d6dfa4d8a60599b73
 
 Both Bash scripts and the Python verifier passed syntax checks. The initial sandbox run exited `1` because local socket creation was prohibited (`Operation not permitted`); the permitted rerun outside that sandbox passed all thirteen scenarios and exited `0`. Failed cases printed `Smoke check failed after 10 attempts`; successful cases printed `Smoke check passed: HTTP 200 and EMP-001`. Every case removed its temporary response file, and the fixture response-body marker was absent from script output.
 
-These are real local HTTP/script checks using artificial responses. They do not independently prove EC2 database readiness or a failed GitHub deployment blocking production. No application builds/tests, Docker/database commands, EC2 access, workflow trigger, screenshots, commits, pushes, or PR creation occurred for this task. Live database-outage, complete pipeline blocking, concurrency, and persistence evidence remain in their later tasks. The next bounded implementation is task 4: production deployment after staging succeeds, using the same digest. Both Phase 5 exit gates stay unchecked until the complete flow is verified.
+These are real local HTTP/script checks using artificial responses. They do not independently prove EC2 database readiness or a failed GitHub deployment blocking production. No application builds/tests, Docker/database commands, EC2 access, workflow trigger, screenshots, commits, pushes, or PR creation occurred for this task. Live database-outage, complete pipeline blocking, concurrency, and persistence evidence remain in their later tasks. At this task 3 checkpoint, the next bounded implementation was task 4: production deployment after staging succeeds, using the same digest. Its subsequent implementation is recorded below. Both Phase 5 exit gates stay unchecked until the complete flow is verified.
+
+### Task 4 production workflow — October 11, 2026
+
+**Implementation and local verification are complete; real-run acceptance remains pending.** [ci.yml](../.github/workflows/ci.yml) adds `deploy_production`, displayed as **Deploy and verify production**, within the existing workflow and concurrency group. The new job requires both `image` and `deploy_staging` to succeed, runs only for a `push` to `refs/heads/master`, and uses the existing `[self-hosted, linux, x64, carbono-deploy]` runner. Its checkout uses the exact `${{ github.sha }}` with `persist-credentials: false`, so production receives the same release revision as staging.
+
+The job reads `${{ needs.image.outputs.digest }}` through `CARBONO_DIGEST`, just as staging does, and calls the existing deployment script with:
+
+| Input | Production value |
+| --- | --- |
+| Compose project | `carbono-production` |
+| Environment file | `/home/ubuntu/carbono/production/production.env`, outside the checkout |
+| Application image | `gui2506/web-fiap-carbono@` followed by this run's published registry digest |
+| Database-backed API URL | `http://127.0.0.1:8082/api/empresas` |
+| Job timeout | Ten minutes |
+
+No production image rebuild, source pull into the manual host checkout, or new SSH/AWS credential is introduced. The existing script validates the selected image, pulls it, updates the named project without building, waits up to 120 seconds for Compose health, and requires the existing bounded HTTP/JSON/`EMP-001` smoke check to pass. It uses production's existing configuration, network, and persistent MongoDB volume; no storage deletion or seed rerun is added. No `always()` or `continue-on-error` is added to the production job. GitHub's [job dependency rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-jobs) block this job when publication or staging fails or is skipped; its direct `image` dependency also permits [reading the published job output](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/pass-job-outputs).
+
+Codex verified the uncommitted workflow against local base commit `c18d3e34341ee93ffb58f4ee8f219ee2d541b31b`:
+
+| Local check | Observed result |
+| --- | --- |
+| YAML parse and workflow structure | Passed; existing jobs, triggers, permissions, and concurrency unchanged; production dependencies, success/`master` gate, runner, checkout revision, digest input, and environment arguments checked |
+| `bash -n` on all workflow shell blocks and both existing deployment scripts | Exit `0`; no syntax errors |
+| Twelve synthetic integration scenarios | All passed: staging and production success with the same supplied digest; production rejection of empty/invalid digest, missing environment file, Compose configuration failure, wrong Compose image, pull failure, health-wait failure, HTTP failure, invalid JSON, and missing `EMP-001` |
+
+The synthetic checks executed the actual workflow deployment shell blocks and unchanged `deploy.sh`/`smoke.sh` in temporary checkouts, replacing only the host environment-file path with a synthetic local file. Docker, curl, and sleep were mocked; Bash and jq were real. Checks asserted project/environment/digest/URL forwarding, `--no-build`, bounded health wait, nonzero failure propagation, and absence of a deployment-success message on failures. They made no network requests or live container changes. The temporary checkouts were cleaned up. These checks do not execute GitHub scheduling, actual image pulls, EC2 health checks, or production deployment.
+
+After the user commits and merges/pushes this change to `master`, verify task 4 using a real run:
+
+1. Confirm CI and publication succeed, then staging succeeds before **Deploy and verify production** starts. Production must execute on the existing EC2 deployment runner.
+2. Compare the published digest and the staging/production deployment log references. Both must use this run's exact `gui2506/web-fiap-carbono@sha256:...` value. Production must print `Smoke check passed: HTTP 200 and EMP-001` and `Deployment verified: carbono-production`.
+3. Inside EC2's SSH terminal, inspect both runtime image references:
+
+   ```bash
+   docker inspect --type container \
+     --format '{{.Name}}: {{.Config.Image}}' \
+     carbono-staging-api-1 \
+     carbono-production-api-1
+   ```
+
+   Both must match the registry digest output of that run. Confirm both environments remain healthy and retain their separate database resources.
+4. Record the actual run URL, commit, digest, and production smoke result. On a PR run, publication and both deployment jobs must be skipped. Keep deliberate staging-failure and concurrency exercises for their assigned later verification tasks.
+
+Task 4 stays unchecked until successful real production execution and the matching-digest checks are reported or independently observed. The next action is that acceptance run, followed by task 5's full dependency/concurrency verification. Tasks 5–7 and both Phase 5 exit gates remain pending. Codex changed only the workflow, `AGENTS.md`, and this roadmap; no application builds/tests, actual Docker/database/deployment commands, EC2 access, resource provisioning, workflow triggers, screenshots, commits, pushes, or PR creation were performed.
 
 ### Verification
 
@@ -1172,7 +1216,7 @@ Use a real successful `master` workflow to inspect check → publish → staging
 
 **Purpose:** prove delivery, failure handling, persistence, and isolation through actual execution.
 
-**Existing evidence for later checks:** Phase 4 task 5's October 10 record above provides actual run `38090160366`, commit `6458819e04eecf1d35a13648a509210f90bf8fc1`, repository `gui2506/web-fiap-carbono`, and the independently matched registry digest. This verifies the publication segment only. Phase 5 now separately records user-reported automated staging success and local smoke-script verification; production automation and every Phase 6 task/exit gate below remain pending. No full-flow, failure-blocking, persistence/redeployment, concurrency, or screenshot results are implied by those earlier checks.
+**Existing evidence for later checks:** Phase 4 task 5's October 10 record above provides actual run `38090160366`, commit `6458819e04eecf1d35a13648a509210f90bf8fc1`, repository `gui2506/web-fiap-carbono`, and the independently matched registry digest. This verifies the publication segment only. Phase 5 now separately records user-reported automated staging success, local smoke-script verification, and locally verified production workflow implementation. Real production execution and every Phase 6 task/exit gate below remain pending. No full-flow, failure-blocking, persistence/redeployment, concurrency, or screenshot results are implied by those earlier checks.
 
 ### Tasks and verification
 
