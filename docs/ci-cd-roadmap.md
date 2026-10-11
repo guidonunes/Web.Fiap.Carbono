@@ -76,7 +76,7 @@ Use the same Compose definition with separate project names and environment file
 
 The API container must receive `MongoDb__ConnectionString`, `MongoDb__DatabaseName`, `Jwt__SecretKey`, `Jwt__Issuer`, `Jwt__Audience`, and `Jwt__ExpirationMinutes`. Connect to the MongoDB service name, not `localhost` inside the API container. Document the chosen ASP.NET Core environment and HTTP port configuration. Swagger currently runs only in Development; a Swagger page is not a deployment readiness check.
 
-Proposed Compose interpolation keys are `APP_IMAGE` (a digest reference for deployment) and `API_PORT`. A Compose `--env-file` supplies interpolation values; explicitly map the API's required values into the container. Keep credentials in GitHub Secrets or untracked host environment files, with independent environment settings. Commit placeholders only. Ensure `.dockerignore` excludes development settings and all actual secret files before building/publishing; Git ignore rules alone do not protect a Docker build context.
+Compose now supports `APP_IMAGE` (the deployment digest reference, with `web-fiap-carbono:local` as the local default) and `API_PORT`. Phase 5 task 1 records the user's implemented image selection and manual staging verification. A Compose `--env-file` supplies interpolation values; explicitly map the API's required values into the container. Keep credentials in GitHub Secrets or untracked host environment files, with independent environment settings. Commit placeholders only. Ensure `.dockerignore` excludes development settings and all actual secret files before building/publishing; Git ignore rules alone do not protect a Docker build context.
 
 ## Planned pipeline and checks
 
@@ -998,7 +998,7 @@ The scan verifies the named files and exclusions in the final `/app` filesystem.
 
 Together with tasks 1–5, the startup, database-backed response, and file checks satisfy both Phase 4 exit gates. Actual screenshots remain to collect in Phase 6. This manual image check does not establish automated staging/production deployment, production promotion, deployment failure blocking, concurrency, or persistence after redeployment.
 
-The next bounded work is Phase 5, beginning with deployment/smoke scripts. Its tasks and exit gates remain unchecked; no Phase 5 implementation is included in this documentation update. Existing local changes were preserved. Codex did not rerun application builds/tests, execute Docker/database/deployment commands, trigger workflows, provision resources, capture screenshots, commit, push, or open a PR for this update.
+At this Phase 4 completion checkpoint, the next bounded work was Phase 5, beginning with deployment/smoke scripts. Its tasks and exit gates were unchecked; no Phase 5 implementation was included in that documentation update. Subsequent Phase 5 task 1 completion is recorded below. Existing local changes were preserved. Codex did not rerun application builds/tests, execute Docker/database/deployment commands, trigger workflows, provision resources, capture screenshots, commit, push, or open a PR for this update.
 
 ### Verification
 
@@ -1015,13 +1015,72 @@ Inspect an actual PR workflow run for executed restore/build/tests and absence o
 
 ### Tasks
 
-- [ ] Add small deployment/smoke scripts under root `scripts/` with explicit project, environment-file, image-digest, and API URL inputs. Reject missing inputs and fail on command errors.
+- [x] Add small deployment/smoke scripts under root `scripts/` with explicit project, environment-file, image-digest, and API URL inputs. Reject missing inputs and fail on command errors. The user implemented `scripts/deploy.sh`, `scripts/smoke.sh`, and Compose `APP_IMAGE` selection; local syntax/missing-argument checks passed, and the user's October 11 manual EC2 staging deployment returned healthy containers, a passing database-backed smoke check, and exit `0`. See the task 1 record below.
 - [ ] Deploy the matching Compose/scripts revision over SSH with host-key verification. Set `APP_IMAGE` to the published digest, pull it, and start/update the staging API with the existing persistent database.
 - [ ] Wait with bounded retries for readiness, then validate HTTP status, JSON shape, and a known database record through the API. Return nonzero for timeout or invalid output.
 - [ ] Deploy production only after staging and its smoke checks succeed. Use the same digest and production's own configuration/resources, then run equivalent production checks.
 - [ ] Enforce job dependencies and shared concurrency across the complete deployment sequence; do not use `continue-on-error` or unconditional production deployment.
 - [ ] Keep registry/SSH/runtime credentials out of scripts, logs, command tracing, and image layers. If the image is private, provide host pull credentials securely.
 - [ ] Record commit, digest, environment, and result. Document a simple manual recovery using the previous known digest without deleting MongoDB storage; automatic rollback is not required.
+
+### Task 1 scripts and manual staging verification — October 11, 2026
+
+**Task 1 is complete.** The user created [scripts/deploy.sh](../scripts/deploy.sh) and [scripts/smoke.sh](../scripts/smoke.sh), and changed the API's [Compose image](../docker-compose.yml) to `"${APP_IMAGE:-web-fiap-carbono:local}"`. At documentation inspection, Compose was modified and `scripts/` was untracked; Codex preserved those user changes.
+
+Source inspection confirms the deployment script accepts the Compose project, environment file, full Docker Hub image digest, and host-local API URL. It rejects mismatched environments/URLs, unreadable environment files, invalid digests, and missing tools/scripts; it validates Compose without printing runtime configuration and confirms the selected image before pulling. It uses `--no-build`, a 120-second Compose health wait, and the existing project/volume configuration. Normal command failures return nonzero.
+
+The smoke script uses up to ten requests, with a two-second connection timeout, five-second request timeout, and two-second delays between failed attempts. Success requires exactly HTTP `200`, a single JSON array, and company `EMP-001`; redirects, HTML, missing seeded data, and connection failures cannot satisfy that condition. The temporary response file is removed on exit, and response bodies/runtime secrets are not printed.
+
+Codex ran only these local script checks:
+
+| Local check | Observed result |
+| --- | --- |
+| `bash -n scripts/deploy.sh` | Exit `0`; no syntax errors |
+| `bash -n scripts/smoke.sh` | Exit `0`; no syntax errors |
+| `bash scripts/deploy.sh` without arguments | Printed usage; exit `1` as expected, before Docker commands |
+| `bash scripts/smoke.sh` without arguments | Printed usage; exit `1` as expected, before API requests |
+
+Create/edit these files in the local repository, then copy the scripts and updated Compose file to the EC2 checkout. Execute deployment commands inside EC2's SSH session from `/home/ubuntu/carbono/repository`; the relative path `scripts/deploy.sh` does not resolve from `/home/ubuntu`. Host environment files remain outside the checkout.
+
+The user supplied successful manual EC2 execution for:
+
+| Deployment setting/result | User-supplied evidence |
+| --- | --- |
+| Compose project | `carbono-staging` |
+| Environment file | `/home/ubuntu/carbono/staging/staging.env` |
+| Application release | `gui2506/web-fiap-carbono`; digest `sha256:78030c6e4e85e5fce8ce0be4766062e7f36c028e0442950e744795abeb5f3e13`, previously matched to SHA tag `6458819e04eecf1d35a13648a509210f90bf8fc1` in Phase 4 |
+| Image pull | Selected digest pulled successfully |
+| Compose health | `carbono-staging-mongodb-1` and `carbono-staging-api-1` both reported `Healthy` |
+| API URL / smoke result | `http://127.0.0.1:8081/api/empresas`; `Smoke check passed: HTTP 200 and EMP-001` |
+| Deployment result | `Deployment verified: carbono-staging`; `echo $?` returned `0` |
+
+Reproduce the manual check on EC2 with:
+
+```bash
+cd /home/ubuntu/carbono/repository
+
+CARBONO_IMAGE='gui2506/web-fiap-carbono@sha256:78030c6e4e85e5fce8ce0be4766062e7f36c028e0442950e744795abeb5f3e13'
+
+bash scripts/deploy.sh \
+  carbono-staging \
+  /home/ubuntu/carbono/staging/staging.env \
+  "$CARBONO_IMAGE" \
+  http://127.0.0.1:8081/api/empresas
+
+echo $?
+```
+
+The user's output ended with:
+
+```text
+Smoke check passed: HTTP 200 and EMP-001
+Deployment verified: carbono-staging
+0
+```
+
+The EC2 results are user-supplied; Codex did not run the deployment or independently access the host. This manual execution is not a GitHub Actions deployment run, production promotion, or proof of persistence after redeployment. The script implements readiness/smoke logic, but its pipeline integration and controlled timeout/failure checks remain later work. No deployment-script commit SHA, new pipeline run, or screenshot is claimed.
+
+Tasks 2–7 and both Phase 5 exit gates remain pending. The next bounded task is to deploy the matching revision over SSH from the workflow with verified host keys. Codex changed only `AGENTS.md` and this roadmap; no implementation edits, application builds/tests, Docker/database commands, deployments, resource provisioning, commits, pushes, or PR creation were performed for this documentation update.
 
 ### Verification
 
