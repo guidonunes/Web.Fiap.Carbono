@@ -96,6 +96,8 @@ Production follows automatically only after staging succeeds. Build once; do not
 
 Failures must return a nonzero exit status and block dependent jobs. PRs must never publish or receive deployment credentials. Use job dependencies to enforce checks → publication → staging → production, including smoke checks. Serialize the **whole staging-to-production deployment sequence across runs**, using one shared deployment concurrency group and `cancel-in-progress: false`; independent per-environment groups alone can interleave releases. Superseded queued runs need not deploy, but running deployments must not overlap. Manual deployments must not bypass that serialization.
 
+**Current task 5 verification step:** the workflow temporarily exits `1` before staging deployment to exercise production blocking. Eligible `master` runs are expected to fail staging and skip production until the temporary step is removed. Capture the failure result, remove the step, and verify a new successful run before the concurrency exercise. See Phase 5 task 5 below; this is an intentional verification step, not a completed failure/concurrency result.
+
 Readiness means the API can serve requests after MongoDB and initialization are ready. Prefer a bounded retry check against the existing public `GET /api/empresas` endpoint; a new health endpoint is not required. Separately validate HTTP `200`, a JSON array, and a known seeded company's business key to prove a database-backed response. Choose and record that key after inspecting the seed; do not accept an empty response, HTML, redirect, or merely a running container. Confirm a database outage makes the check fail. Any container health-check command must actually be available in its image.
 
 Use GitHub Secrets for Docker Hub publication credentials. Keep staging/production runtime secrets in their separate untracked host environment files, outside the runner checkout. The local deployment job does not need EC2 SSH secrets, AWS credentials, or security-group changes; do not print runner credentials or environment contents. Retain SSH host-key verification for manual administration. Use bounded job, readiness, and smoke-check timeouts; retain sanitized failure logs.
@@ -1021,7 +1023,7 @@ Inspect an actual PR workflow run for executed restore/build/tests and absence o
 - [x] Deploy the matching Compose/scripts revision on the EC2 deployment runner. Set `APP_IMAGE` to the published digest, pull it, and start/update staging with its existing persistent database. The user confirmed all workflow jobs ran successfully after adding the runner label; the execution result is user-reported, with run/digest evidence still to collect below.
 - [x] Wait with bounded retries for readiness, then validate HTTP status, JSON shape, and a known database record through the API. Return nonzero for timeout or invalid output. The existing smoke implementation passed thirteen real loopback HTTP scenarios on October 11, including timeout and invalid-response rejection; the user confirmed successful staging workflow execution. See task 3 below for scope and results.
 - [x] Deploy production only after staging and its smoke checks succeed. Use the same digest and production's own configuration/resources, then run equivalent production checks. On October 11, the user reported all workflow jobs green and supplied identical staging/production image references with digest `sha256:4deaaaa81939cf9cc27ac140cc993631139b576d281ad991452170e92a1e4da7`. See task 4's acceptance record and evidence limits below.
-- [ ] Enforce job dependencies and shared concurrency across the complete deployment sequence; do not use `continue-on-error` or unconditional production deployment. Workflow concurrency is configured in task 2 and production dependencies in task 4; real failure-blocking and concurrency verification remain pending.
+- [ ] Enforce job dependencies and shared concurrency across the complete deployment sequence; do not use `continue-on-error` or unconditional production deployment. Workflow concurrency is configured in task 2 and production dependencies in task 4. Task 5 below adds a temporary staging failure step and records local checks; real failure blocking, step removal/recovery, and concurrency verification remain pending.
 - [ ] Keep registry/runner/SSH/runtime credentials out of scripts, logs, command tracing, and image layers. If the image is private, provide host pull credentials securely.
 - [ ] Record commit, digest, environment, and result. Document a simple manual recovery using the previous known digest without deleting MongoDB storage; automatic rollback is not required.
 
@@ -1213,6 +1215,54 @@ At the implementation checkpoint, task 4 and both Phase 5 exit gates remained un
 Both containers reference exactly the same image digest. Together with the all-green workflow report and the inspected job configuration, which passes `needs.image.outputs.digest` to both fail-fast deployment/smoke steps, this satisfies task 4's successful execution and same-image promotion acceptance. Passing smoke checks are inferred from the reported successful jobs and their script behavior; no new raw smoke log was supplied. Codex did not independently inspect that GitHub run, EC2 state, or registry metadata. No run URL, run commit, or screenshot was supplied for this deployment; collect these for the later evidence/release record and do not associate the new digest with Phase 4's older run or commit.
 
 The first Phase 5 exit gate is satisfied based on this user-supplied evidence. Tasks 5–7 and the second exit gate remain pending; the next bounded task is task 5's failure-blocking and concurrency verification. This acceptance documentation update changes only `AGENTS.md` and this roadmap, without executing builds, tests, database scripts, deployments, or remote checks. Phase 5 is not complete.
+
+### Task 5 failure blocking and concurrency verification — October 11, 2026
+
+**The controlled-failure step is implemented and locally checked; real-run acceptance remains pending.** Existing job dependencies already enforce `ci` → `image` → `deploy_staging` → `deploy_production`; production directly requires both `image` and `deploy_staging`, and delivery jobs retain their successful-`master`-push conditions. Workflow-level `carbono-release-${{ github.ref }}` concurrency retains `cancel-in-progress: false` across the full release sequence.
+
+[ci.yml](../.github/workflows/ci.yml) now includes **Temporary staging failure verification**, immediately after staging's release checkout and before **Deploy staging by published digest**. It prints `Controlled staging failure: production must be skipped` and exits `1`. The existing fail-fast dependencies should skip staging's deployment step and the entire production job. PRs still run CI and skip delivery jobs. The temporary step has no Docker, API, database, or credential command; it deliberately blocks every eligible `master` deployment until removed. CI and image publication still execute before the controlled failure.
+
+Codex checked the uncommitted workflow against local base commit `6faff4572f8541924024da2c815790f1b19bf92b`:
+
+| Local check | Observed result |
+| --- | --- |
+| YAML parse and structure | Passed; existing CI/image/production jobs, triggers, permissions, dependency conditions, and workflow concurrency unchanged; failure step correctly placed in staging |
+| Recovery structure | Passed; removing the temporary step from the parsed workflow restores the previous workflow structure exactly |
+| Bash syntax | All workflow shell blocks, the parsed recovery version's shell blocks, and the unchanged deployment/smoke scripts passed `bash -n` |
+| Execute only the temporary step locally | Printed the expected controlled-failure message and exited `1`, as intended; no deployment command executed |
+
+These local checks do not execute GitHub's scheduler, verify production availability, or prove non-overlapping releases. No actual task 5 GitHub run or EC2 result has been observed or supplied. Complete the following manual acceptance steps:
+
+1. **Inside EC2, before merging the temporary step:** save the output of `docker inspect --type container --format '{{.Id}} {{.Config.Image}} {{.State.StartedAt}}' carbono-production-api-1`. This records production's container identity, image, and start time.
+2. **Commit and merge through the usual local/PR process:** CI should pass on the PR while delivery jobs are skipped. On the resulting `master` push, expect CI and publication to succeed, staging to fail at the named temporary step with exit `1`, staging deployment not to execute, and production to be skipped. Record the actual run URL, commit, and job results.
+3. **Inside EC2 after that failed run:** repeat the production inspection; the container ID, image reference, and start time must match the saved output. Check availability with:
+
+   ```bash
+   curl --noproxy '*' --fail --silent --show-error \
+     --max-time 10 --output /dev/null \
+     --write-out 'Production HTTP %{http_code}\n' \
+     http://127.0.0.1:8082/api/empresas
+   ```
+
+   Expect HTTP `200`, and retain the actual command/result. These are expected results, not checks performed by Codex.
+4. **Remove the entire temporary step and its removal comment:** commit and merge the removal. Verify the new commit's run succeeds through staging and production. A rerun of the failed run uses its original commit and retains the failure step; use the new revision for recovery. Retain the failed run and recovery run links instead of overwriting their evidence.
+5. **After recovery, on an up-to-date local `master` with a clean working tree:** use an empty commit to trigger release A:
+
+   ```bash
+   git commit --allow-empty -m "ci: verify deployment serialization A"
+   git push origin master
+   ```
+
+   Wait until A is in progress on GitHub, then trigger release B with another empty commit:
+
+   ```bash
+   git commit --allow-empty -m "ci: verify deployment serialization B"
+   git push origin master
+   ```
+
+   If branch protection requires PRs, use two permitted merges instead. B must wait for the shared workflow concurrency group while A continues, then run after A finishes. Capture both run URLs, commits, the concurrency wait, and job timestamps showing A's production job finishes before B's staging job starts. Waiting only for an available self-hosted runner is insufficient proof of workflow serialization. Keep this exercise to A and B; an additional trigger may replace an older pending run, while the running release must not be canceled by the newer trigger.
+
+Task 5 remains unchecked until the real controlled failure, unchanged/available production, removal of the temporary step, successful recovery, and serialized A/B results are reported or independently observed. This tests job dependencies; Phase 6 still requires an actual controlled readiness/database failure, persistence checks, and real evidence collection. Tasks 6–7 and the second Phase 5 exit gate remain pending. Codex changed only the workflow, `AGENTS.md`, and this roadmap; no application builds/tests, live Docker/database/deployment commands, EC2 access, workflow triggers, provisioning, screenshots, commits, pushes, or PR creation occurred for this implementation.
 
 ### Verification
 

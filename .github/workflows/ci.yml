@@ -154,6 +154,13 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
 
+      # Remove after recording failed staging and skipped production evidence.
+      - name: Temporary staging failure verification
+        shell: bash
+        run: |
+          echo "Controlled staging failure: production must be skipped"
+          exit 1
+
       - name: Deploy staging by published digest
         shell: bash
         env:
