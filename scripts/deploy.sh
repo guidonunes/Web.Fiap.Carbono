@@ -57,7 +57,12 @@ compose=(
 
 "${compose[@]}" config --quiet
 
-if ! "${compose[@]}" config --images | grep -Fxq "$image"; then
+if ! compose_images=$("${compose[@]}" config --images); then
+  fail "Could not read Compose image configuration"
+fi
+
+# Read all Compose output before matching; grep -q can close a live pipe early.
+if ! grep -Fxq -- "$image" <<< "$compose_images"; then
   fail "Compose did not select the supplied API image"
 fi
 

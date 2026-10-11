@@ -98,6 +98,8 @@ Failures must return a nonzero exit status and block dependent jobs. PRs must ne
 
 **Task 5 is complete based on user-supplied results:** the user confirmed failed staging/skipped production, unchanged and available production, successful recovery, B waiting for A, and B starting after A finished. The temporary failure step is removed. No A/B run links or raw timestamps were supplied; retain those for later evidence collection. The next bounded work is Phase 5 task 6: review credential handling.
 
+**Latest deployment incident:** run `38183852655` subsequently failed staging's image-selection check and skipped production. The local image-validation fix and regression results are recorded at the end of Phase 5 below; a successful run of the fixed revision remains pending. Keep the earlier successful milestones as dated evidence rather than treating them as proof that this later run passed.
+
 Readiness means the API can serve requests after MongoDB and initialization are ready. Prefer a bounded retry check against the existing public `GET /api/empresas` endpoint; a new health endpoint is not required. Separately validate HTTP `200`, a JSON array, and a known seeded company's business key to prove a database-backed response. Choose and record that key after inspecting the seed; do not accept an empty response, HTML, redirect, or merely a running container. Confirm a database outage makes the check fail. Any container health-check command must actually be available in its image.
 
 Use GitHub Secrets for Docker Hub publication credentials. Keep staging/production runtime secrets in their separate untracked host environment files, outside the runner checkout. The local deployment job does not need EC2 SSH secrets, AWS credentials, or security-group changes; do not print runner credentials or environment contents. Retain SSH host-key verification for manual administration. Use bounded job, readiness, and smoke-check timeouts; retain sanitized failure logs.
@@ -1280,6 +1282,33 @@ The matching metadata shows production was not recreated between the supplied in
 Codex removed only the temporary staging step and its removal comment from the workflow as recovery preparation. Local YAML/structure checks against base commit `ee8f94d746b977fdd1b478779f4e32f8b18fe4bc` confirmed all other workflow settings were unchanged, including production dependencies, digest promotion, release gates, and shared concurrency. All workflow shell blocks and both unchanged deployment scripts passed Bash syntax checks. At the local cleanup checkpoint, a real recovery deployment was still pending; the user subsequently reported the recovery workflow all green. Codex did not independently inspect that run. The old failed revision remains available in Git history and GitHub run history for inspection.
 
 The controlled failure, skipped production, unchanged/available production, successful recovery, and serialized A/B sequence are complete based on user-supplied evidence. After reporting B waiting for A and every job finished, the user explicitly confirmed B started after A finished. No A/B run links, commit identifiers, raw timestamps, or screenshots were supplied; collect them for the later evidence record. Codex did not independently inspect those GitHub runs. Task 5 is complete; the next bounded work is Phase 5 task 6: review credential handling. The controlled step tests job dependencies; Phase 6 still requires an actual controlled readiness/database failure, persistence checks, and real evidence collection. Tasks 6–7 and the second Phase 5 exit gate remain pending. Codex changed only the workflow, `AGENTS.md`, and this roadmap; no application builds/tests, live Docker/database/deployment commands, EC2 access, workflow triggers, provisioning, screenshots, commits, pushes, or PR creation occurred for either this implementation or local recovery preparation.
+
+### Deployment image-validation fix — October 11, 2026
+
+The user reported `Compose did not select the supplied API image`. Read-only GitHub inspection of [run 38183852655](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38183852655), a `master` push at commit `4f2e6580005f90bdcbedafb0ee4ec8d8f4095c40`, independently confirmed successful CI and image publication, failure in **Deploy staging by published digest**, and skipped production with no executed steps. The staging log received digest `sha256:4665c73bbaddd213eb455a03d35a393be3d0af927d8e821a50a65a4d783ee513` and printed the reported error before the script's pull/update commands. Codex did not independently inspect EC2 or the registry for this release.
+
+Source inspection found a timing-dependent false rejection in `docker compose config --images | grep -Fxq "$image"` under `set -euo pipefail`. `grep -q` can exit after reading the matching API image, closing the pipe before Compose writes another service's image. The producer can then fail with a broken pipe, causing `pipefail` to reject a valid match. A controlled two-line producer reproduced pipeline exit `141` with producer/grep statuses `141 0`, and the regression verifier reproduced the original script's false rejection in both staging and production. This behavior is documented in the [GNU grep manual](https://www.gnu.org/software/grep/manual/html_node/Usage.html). The actual failed GitHub log did not expose the producer's status, so the specific EC2 SIGPIPE status is not claimed as independently observed.
+
+[scripts/deploy.sh](../scripts/deploy.sh) now captures the complete `config --images` output before performing the exact digest match. A failed image-list command reports `Could not read Compose image configuration`; empty, incorrect, or partial image matches still fail with the original mismatch message. Validation remains before pulling/updating containers. Digest promotion, health/smoke checks, credentials, workflow dependencies/concurrency, and persistent database resources are unchanged.
+
+Added [scripts/verify-deploy.py](../scripts/verify-deploy.py), a Python standard-library verifier using temporary checkouts, mock Docker/curl/sleep, and real Bash/grep/jq. It includes a delayed second image write to exercise the broken-pipe regression; it performs no real Docker or network operations. Run from the repository root:
+
+```bash
+bash -n scripts/deploy.sh scripts/smoke.sh
+python3 scripts/verify-deploy.py
+```
+
+Codex verified against the local base commit above:
+
+| Check | Observed result |
+| --- | --- |
+| Before/after regression | Original script rejected valid early matches in staging and production; the fixed script passed all fifteen scenarios |
+| Valid image ordering | API image first or last passed, including production; mock health/smoke completed |
+| Guard and failure cases | Invalid digest, missing environment file, invalid Compose configuration, image-list failure before/after a match, empty/wrong/partial matches, pull failure, health-wait failure, HTTP failure, and missing company all remained failures |
+| Local Compose configuration | Compose `v5.1.3`, with a temporary synthetic environment file and exported `APP_IMAGE`, passed quiet validation and returned the failed run's exact API digest plus `mongo:8.0.29-noble` from `config --images` |
+| Bash/Python syntax | Both existing scripts and the new verifier passed syntax checks |
+
+The real Compose checks only rendered/validated local configuration; no image was pulled or container/database changed. The fifteen script scenarios used mocks and are not application tests, live deployments, or a successful GitHub recovery run. The script fix and documentation remain uncommitted. After committing and merging the fix, verify the new revision succeeds through staging and production and both runtime image references match that run's digest. Do not use an occasional successful rerun of the old revision as proof the race is fixed. Tasks 6–7, storage-preservation acceptance, and the second Phase 5 exit gate remain pending. No workflow was triggered, no AWS resource was provisioned, and no screenshot, commit, push, or PR was created by Codex for this fix.
 
 ### Verification
 
