@@ -1,5 +1,7 @@
 # Carbon API — release record and manual recovery
 
+For the current EC2 verification commands, controlled failure exercises, and screenshot requirements, use the [Phase 6 verification guide](ci-cd-verification.md). Historical release/persistence identifiers below retain their original dates and attribution.
+
 This document records Phase 5's release, recovery procedure, and completed storage-preservation check from the [active CI/CD roadmap](ci-cd-roadmap.md). GitHub evidence was inspected read-only on October 11, 2026; the later EC2 persistence results below were supplied by the user. Recovery commands remain a procedure for use when needed; Codex has not executed a rollback or host verification.
 
 ## Verified release — October 11, 2026

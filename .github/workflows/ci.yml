@@ -35,6 +35,23 @@ jobs:
           dotnet --version
           docker version
 
+      - name: Prepare optional PR test failure
+        if: ${{ github.event_name == 'pull_request' && vars.PHASE6_VERIFY_CI_FAILURE == 'true' }}
+        shell: bash
+        run: |
+          cat > Web.Fiap.Carbono.Tests/Phase6CiFailureVerificationTest.cs <<'CS'
+          namespace Web.Fiap.Carbono.Tests;
+
+          public sealed class Phase6CiFailureVerificationTest
+          {
+              [Fact]
+              public void ControlledFailureRetainsReportsAndBlocksDelivery()
+              {
+                  Assert.Fail("Controlled Phase 6 PR failure; disable PHASE6_VERIFY_CI_FAILURE after collecting evidence.");
+              }
+          }
+          CS
+
       - name: Restore dependencies
         id: restore
         run: dotnet restore Web.Fiap.Carbono.sln
@@ -166,6 +183,24 @@ jobs:
             /home/ubuntu/carbono/staging/staging.env \
             "gui2506/web-fiap-carbono@${CARBONO_DIGEST}" \
             http://127.0.0.1:8081/api/empresas
+
+      - name: Verify controlled staging database failure
+        if: ${{ vars.PHASE6_VERIFY_STAGING_FAILURE == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/phase6
+          bash scripts/phase6-staging-failure.sh --verify \
+            2>&1 | tee artifacts/phase6/staging-failure.txt
+
+      - name: Retain controlled staging failure evidence
+        if: ${{ !cancelled() && vars.PHASE6_VERIFY_STAGING_FAILURE == 'true' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: phase6-staging-failure
+          path: artifacts/phase6/staging-failure.txt
+          retention-days: 14
+          if-no-files-found: warn
 
   deploy_production:
     name: Deploy and verify production
