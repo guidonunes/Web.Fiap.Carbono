@@ -2,7 +2,7 @@
 
 API REST acadêmica da FIAP para medir e analisar emissões de gases de efeito estufa em cadeias de suprimentos. A persistência ativa usa MongoDB e o projeto mantém exatamente cinco coleções ESG.
 
-## Funcionalidades
+## Funcionalidades:
 
 - Autenticação JWT com os papéis ADMIN e ANALISTA_ESG.
 - CRUD de empresas, produtos, fornecedores e fatores de emissão.
@@ -14,7 +14,7 @@ API REST acadêmica da FIAP para medir e analisar emissões de gases de efeito e
 
 Fórmula: quantidadeEmitidaKgCO2e = quantidadeAtividade × fatorAplicado.valor. A unidade da atividade deve ser compatível com a unidade-base do fator.
 
-## Tecnologias
+## Tecnologias:
 
 | Área | Tecnologia |
 |---|---|

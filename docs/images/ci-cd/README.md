@@ -8,12 +8,12 @@ Only real captures belong here. No screenshot files have been supplied for Phase
 | `01b-pr-ci-failure.png` | Controlled PR test failure, retained summary/TRX, delivery jobs skipped | Pending |
 | `02-master-pipeline.png` | Successful run, ordered CI/publication/staging/production | Pending; execution records exist |
 | `03-docker-hub-image.png` | `gui2506/web-fiap-carbono`, full commit-SHA tag, matching registry digest | Pending; earlier registry evidence exists |
-| `04-staging.png` | Healthy staging containers, port `8081`, actual database-backed HTTP `200`/`EMP-001` | Pending |
-| `05-production.png` | Healthy production containers, port `8082`, same promoted digest and actual smoke result | Pending |
+| `04-staging.png` | Healthy staging containers, port `8081`, actual database-backed HTTP `200`/`EMP-001` | Capture pending; user-supplied environment and standalone smoke checks passed |
+| `05-production.png` | Healthy production containers, port `8082`, same promoted digest and actual smoke result | Capture pending; environment/smoke checks passed, current publication-run association still pending |
 | `06-failure-blocking.png` | Real staging database outage, recovery, skipped production, unchanged production metadata | Pending; real outage still to execute |
-| `07-persistence-isolation.png` | Already-recorded persistence comparison/volume, production marker absence, distinct networks/configuration | Pending; prior persistence result passed |
+| `07-persistence-isolation.png` | Already-recorded persistence comparison/volume, production marker absence, distinct networks/configuration | Capture pending; persistence and October 12 environment/isolation results passed |
 | `08-deployment-concurrency.png` | Actual A/B run links and UTC timing proving non-overlap | Pending; timing independently inspected |
-| `09-api-auth-analytics.png` | Sanitized API checker results for login/roles, persisted calculation, and analytics | Pending; EC2 check still to execute |
+| `09-api-auth-analytics.png` | Sanitized API checker results for login/roles, persisted calculation, and analytics | Capture pending; user-supplied October 12 EC2 check passed in both environments |
 
 Use additional images where required for legibility; do not cram different failed/recovery runs into an ambiguous image. Capture application/terminal/GitHub results, not source-code screenshots standing in for execution.
 

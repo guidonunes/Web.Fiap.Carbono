@@ -43,9 +43,59 @@ Expected: each command exits `0`; the two smoke commands print `Smoke check pass
 
 The environment report checks all four containers are healthy, both APIs use the same published digest, ports are `8081`/`8082`, MongoDB has no published port, volumes/networks are independent, runtime configuration exists, signing keys differ, and packaged JWT signing keys are empty. It prints only selected metadata and Boolean results, not raw container environment values. An optional `--image 'gui2506/web-fiap-carbono@sha256:FULL_DIGEST'` checks against the exact digest copied from the chosen successful workflow; an internally matching pair alone does not establish the association with that run.
 
+### User-supplied environment report — October 12, 2026
+
+The user supplied the report below after the manual EC2 checkout fast-forwarded from `230a6eb` to `fa133df`. `python3 scripts/phase6-environments.py` exited **`0`** at **`2026-10-12T19:16:15.810318+00:00`**. Codex did not execute this host command.
+
+| Check | Staging | Production |
+| --- | --- | --- |
+| API image, both environments | `gui2506/web-fiap-carbono@sha256:028cd12fc13f1bd56fbe2e5182bea24259cae0f8ec6bb5867ec9e006be02a279` | Same exact reference |
+| API / MongoDB health | `healthy` / `healthy` | `healthy` / `healthy` |
+| API host port | `8081` | `8082` |
+| MongoDB container ID | `fba828125d29c72578c95bc91facee975d9e0caf1343f856cf35b54f75b800c6` | `615eb74fb0ed312f6a5dee7509c54d7f62d4c21df5a82d691e9995b7bf3d2fe7` |
+| MongoDB volume | `carbono-staging_fiap_carbono_mongodb_data` | `carbono-production_fiap_carbono_mongodb_data` |
+| Network | `carbono-staging_default` | `carbono-production_default` |
+| MongoDB published host ports | None | None |
+| Runtime configuration valid | `true` | `true` |
+| Packaged JWT key empty | `true` | `true` |
+
+The report also returned `signing_keys_independent: true`. This completes task 6's resource/configuration checks together with the earlier production marker absence and post-recreation API responses. No current smoke/API output or screenshot was supplied with this report. The manual checkout revision is not proof that the running image was built from that same commit; no corresponding publication run/SHA was supplied for this digest. Capture this actual output for isolation evidence while retaining older release identifiers separately.
+
+### Next: smoke and API contract checks
+
 The API checker prompts for the **existing application account passwords**, hidden while typing: `admin@carbono.com` and `analista@carbono.com`. These are application passwords, not the SSH key or AWS password. It retains JWTs only in memory. It checks login, invalid credentials, `401`/`403` role restrictions, malformed request validation, every persisted emission's decimal quantity × applied factor, and footprint/ranking/dashboard totals. In `both` mode it also checks production rejects staging's token. It does not create domain records: its authenticated write-route probes contain invalid IDs or empty payloads. Its calculation assertion concerns persisted records; it does not demonstrate creation of a new calculated emission. It assumes the existing seeded academic dataset, at most 1,000 emissions, and the existing two demo identities.
 
 Capture the sanitized report and smoke output for `04-staging.png`, `05-production.png`, and `07-persistence-isolation.png`; capture API `PASS` lines and the final result in an additional `09-api-auth-analytics.png`. Keep UTC date, environment, and the matching release identity visible. Do not capture password input, login response bodies, tokens, or raw `docker inspect` JSON.
+
+### User-supplied API results — October 12, 2026
+
+The user ran `python3 scripts/phase6-api.py --environment both` on EC2 at **`2026-10-12T19:29:29.533439+00:00`**. Both environments completed every assertion; the command printed `API verification passed; passwords/tokens omitted; no MongoDB records changed` and exited **`0`**. This completes Phase 6 task 7's execution checks. Codex reviewed the supplied output without executing the checker on EC2.
+
+| Contract | Staging and production result |
+| --- | --- |
+| Company/product reads, required seeds present | HTTP `200`, passed |
+| ADMIN and ANALISTA_ESG login/role identity | HTTP `200`, both expected roles passed; tokens omitted |
+| Invalid account login | HTTP `401` |
+| Protected delete without token / with invalid token | HTTP `401` / `401` |
+| Analyst delete / factor-create restrictions | HTTP `403` / `403` |
+| Admin malformed delete ID | HTTP `400` |
+| Empty calculation payload with each permitted role | HTTP `400` for both roles |
+| Decimal quantity × applied factor | All fifteen persisted emissions in each environment passed |
+| Product footprint / supplier ranking / company dashboard totals | Passed in each environment |
+| Staging token used on production | HTTP `401`; production rejected it |
+
+The output includes no passwords or JWT values. Malformed write probes do not change domain records; the calculation checks validate existing emissions, not creation of a new one. No image digest or workflow/SHA association is captured by this command. Retain the earlier environment report's separate timestamp/digest without inventing a new release association. The standalone Bash smoke outputs were not supplied with these API results; keep that distinction in the happy-path record. Capture the actual `PASS` lines, timestamp, final message, and exit `0` in `09-api-auth-analytics.png`; no screenshot file has been supplied yet.
+
+### User-supplied standalone smoke results — October 12, 2026
+
+The user subsequently ran both Bash smoke commands in EC2's `/home/ubuntu/carbono/repository` terminal and supplied these results:
+
+| Environment | Command | Output | Exit code |
+| --- | --- | --- | --- |
+| Staging | `bash scripts/smoke.sh http://127.0.0.1:8081/api/empresas` | `Smoke check passed: HTTP 200 and EMP-001` | `0` |
+| Production | `bash scripts/smoke.sh http://127.0.0.1:8082/api/empresas` | `Smoke check passed: HTTP 200 and EMP-001` | `0` |
+
+This completes current host-local smoke evidence: HTTP `200`, a single JSON array, and seeded `EMP-001` in each environment. Codex reviewed the user's output without executing host commands. No exact smoke execution timestamp or new runtime image/publication-run comparison was supplied. The earlier environment and API timestamps identify those checks only; do not present them as the timestamps of these smoke commands. Capture the actual terminal results for `04-staging.png`/`05-production.png`, with a caption preserving this attribution. Screenshot files and the complete happy-path release/PR association remain pending.
 
 ## 1. Complete the happy-path record
 
@@ -124,14 +174,14 @@ Capture these real run identities/timings in `08-deployment-concurrency.png`; a 
 ## 5–7. Persistence, isolation, and API contracts
 
 - [x] Persistence already passed in the user's October 12 EC2 recreation, unchanged-record comparison, exact cleanup, and runner restart. Reuse the commands/results in the [storage-preservation record](ci-cd-deployment.md#storage-preservation-verification--october-12-2026-utc). The temporary record is already deleted; do not claim it still exists or recreate it solely to manufacture historical evidence.
-- [ ] Complete the remaining isolation evidence with the environment checker. Earlier production marker counts were zero before/after staging recreation, and both APIs returned `200` afterward. The outage helper additionally compares unchanged production metadata and checks availability; neither exercise proves uninterrupted availability at every instant.
-- [ ] Run the API checker in both environments and retain its sanitized results for login, roles, decimal calculation, and analytics. This helper has only synthetic local regression results so far.
+- [x] Complete the remaining isolation evidence with the environment checker. The user's October 12 report passed with exit `0`, supplementing the earlier production marker counts of zero before/after staging recreation and HTTP `200` from both APIs afterward. Task 6's execution checks are complete; screenshots remain pending. The separate outage helper will additionally compare unchanged production metadata and check availability; continuous availability is not claimed.
+- [x] Run the API checker in both environments and retain its sanitized results for login, roles, decimal calculation, and analytics. The user's October 12 execution passed with exit `0`, including fifteen persisted emission calculations per environment and rejection of staging's JWT by production. The actual results are recorded above; screenshot capture remains pending.
 
 ## 8. Gather actual evidence and close the phase
 
 The [screenshot index](images/ci-cd/README.md) lists each required capture and its context. Add real files and captions there, and retain downloaded reports before their fourteen-day retention expires. Keep PR and failure/recovery runs distinct. Add date/time, full SHA, digest where applicable, environment, command, result, and whether evidence was user-supplied or independently inspected. Do not add signing keys, passwords, tokens, private keys, or environment-file contents.
 
-Both Phase 6 exit gates remain unchecked until the missing real PR/outage/API/isolation results and readable screenshots are recorded. Phase 7 packaging, README/report updates, and the source ZIP are separate later work.
+Both Phase 6 exit gates remain unchecked until the missing happy-path release/PR records, controlled PR/outage results, and readable screenshots are recorded. Isolation, API, and standalone smoke execution evidence are now recorded above; their screenshots are still pending. Phase 7 packaging, README/report updates, and the source ZIP are separate later work.
 
 ## Local validation of this implementation
 
