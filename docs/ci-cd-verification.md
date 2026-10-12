@@ -2,6 +2,8 @@
 
 Use this guide with the [active roadmap](ci-cd-roadmap.md) and [release/recovery record](ci-cd-deployment.md). Helpers were implemented and locally verified on **October 12, 2026**. Their existence does not establish EC2 execution or complete Phase 6. Keep actual run results and screenshots separate from local regression results.
 
+**Phase 6 is complete on October 12, 2026**, based on the actual results and final acceptance below. Nine original captures and retained raw reports/log are indexed with captions. Earlier pending statements describe their dated checkpoints. Future use of the exercise instructions requires an explicitly chosen verification window; both switches are now confirmed off. The next work is Phase 7's README/report/checklist/source package, not another verification exercise.
+
 ## Start with the EC2 checks
 
 The files are authored once in the local repository. The manual EC2 checkout at `/home/ubuntu/carbono/repository` needs copies before these commands will work. The automated runner uses its own checkout of the published commit, not that manual directory.
@@ -99,11 +101,11 @@ This completes current host-local smoke evidence: HTTP `200`, a single JSON arra
 
 ## 1. Complete the happy-path record
 
-- [ ] Save an actual successful PR/run URL, SHA, successful restore/build/tests, and downloaded `ci-results` summary/TRX. Publication and both deployment jobs must be skipped on the PR.
-- [ ] Save an accepted `master` run URL, full SHA, Docker Hub full-SHA tag and registry digest, staging/production order, and each environment's real smoke output.
-- [ ] Run the EC2 checks above against that release, using `--image` to link runtime state to the publication digest.
+- [x] Save an actual successful PR/run URL, SHA, successful restore/build/tests, and downloaded `ci-results` summary/TRX. Run `38302777058` recovery is recorded; artifact `11771429292` confirms 107 passed, zero failed/not executed, with delivery skipped. The diagnostic commit and PR head are recorded separately.
+- [x] Save an accepted `master` run URL, full SHA, Docker Hub full-SHA tag and registry digest, staging/production order, and each environment's real smoke output. Run `38304927773`, source `b1f2bdb...`, observed registry/runtime digest `12e855e8...`, deployment metadata and retained real smoke/outage results complete this record.
+- [x] Run the EC2 checks above against that release, using `--image` to link runtime state to the registry digest. User capture `14-post-recovery-environments.png` at `2026-10-12T22:42:11.243395+00:00` passed with exit `0` in both environments.
 
-The independently inspected October 11 [run 38184996037](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38184996037), SHA `57bf5021356a8796b33df175ddde056e13559df6`, already records 107 passing tests and successful publication/staging/production using digest `sha256:dc309ed5084582eaa51a8f0143370a26e12dd41a69d811c9e85ba7bebb478b8e`. Reuse its dated execution record; do not label it the currently deployed release without a current comparison. The PR failure/recovery record below now supplies PR #1's successful CI link and real screenshots; current registry/runtime association and retained report contents still require their own evidence.
+The independently inspected October 11 [run 38184996037](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38184996037), SHA `57bf5021356a8796b33df175ddde056e13559df6`, records 107 passing tests and successful publication/staging/production using digest `sha256:dc309ed5084582eaa51a8f0143370a26e12dd41a69d811c9e85ba7bebb478b8e`. Preserve that dated execution record. The subsequent October 12 acceptance below supplies PR #1's successful CI report, the later registry/runtime association, and real screenshots with their own release identities.
 
 ### User-supplied registry tag/digest — October 12, 2026
 
@@ -119,7 +121,7 @@ The user supplied `docker buildx imagetools inspect gui2506/web-fiap-carbono:b1f
 
 Codex visually inspected the original screenshot, added its caption to the [evidence index](images/ci-cd/README.md#docker-hub-sha-tag-and-registry-digest), and reviewed the supplied command output without independently querying the registry or EC2. Exact command/capture time and the CLI exit code were not supplied. The full-SHA tag corresponds to master commit `b1f2bdb4783e9cdc97f1b9c34c6279a772c03b22`; the publication-job log digest was not read, so no publication attempt's digest is inferred from this later registry lookup. Keep older runtime observations unchanged.
 
-Next, run this read-only comparison in EC2's manual checkout:
+The user executed this read-only comparison in EC2's manual checkout:
 
 ```bash
 cd /home/ubuntu/carbono/repository
@@ -128,7 +130,7 @@ python3 scripts/phase6-environments.py \
 echo $?
 ```
 
-Expected: exit `0`, healthy independent environments, and both API image references equal to the observed registry digest. Save the report and a real terminal capture for the post-recovery runtime/host resource evidence. This comparison is pending; the earlier `028cd12...` report and `97355d...` production baseline do not replace it.
+The reviewed `14-post-recovery-environments.png` reports `2026-10-12T22:42:11.243395+00:00`, exit `0`, four healthy containers, and matching references to the expected `12e855e8...` image in both environments. Staging/production have ports `8081`/`8082`, independent volumes/networks/signing keys, no MongoDB host ports, valid runtime settings, and empty packaged signing keys. MongoDB IDs remain `fba828125d29c72578c95bc91facee975d9e0caf1343f856cf35b54f75b800c6` and `615eb74fb0ed312f6a5dee7509c54d7f62d4c21df5a82d691e9995b7bf3d2fe7`. This completes the versioned registry-to-runtime comparison. The earlier `028cd12...` and `97355d...` observations retain their separate checkpoint identities.
 
 ## 2. Verify a real PR test failure
 
@@ -151,7 +153,7 @@ Task 2's execution checks are complete. Codex inspected actual step/job metadata
 | [38302777058 / 1](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38302777058/attempts/1) | Controlled-test preparation, restore/build succeeded; tests failed; summary/upload succeeded; image/staging/production skipped | `10-failure-evidence.png` |
 | [38302777058 / 2](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38302777058/attempts/2) | Failure injection skipped; restore/build/tests/summary/upload succeeded; all delivery jobs still skipped | `11-build-before-merge.png` |
 
-The user's screenshots are captioned in the [evidence index](images/ci-cd/README.md#reviewed-captures). They prove the overview states; they do not show test counts, the specific test failure text, or downloaded `ci-results` contents. Metadata independently establishes stage outcomes/artifact upload, not report contents. Retain the downloaded summary/TRX and any required detailed test log for the final evidence package. The PR was subsequently merged after recovery.
+The user's screenshots are captioned in the [evidence index](images/ci-cd/README.md#reviewed-captures). Codex subsequently downloaded recovery artifact `11771429292`, created `20:28:29 UTC`, and verified/preserved its exact [summary](images/ci-cd/pr-recovery-summary.txt) and [TRX](images/ci-cd/pr-recovery-ci.trx): 107 passed, zero failed/not executed; restore/build/tests succeeded. Its diagnostic commit is `744e332c996e07749ea4a18da64f76aa0ab57401`, separate from run head `70743919...`. Failed-attempt report contents were not downloaded here; the original failure/retention and skipped delivery remain verified through job metadata/overview, alongside the earlier Phase 4 report acceptance. The PR was merged after successful recovery.
 
 ## 3. Verify an actual staging database outage blocks production
 
@@ -204,7 +206,7 @@ For master commit `b1f2bdb4783e9cdc97f1b9c34c6279a772c03b22`, read-only metadata
 
 The user supplied production's pre-outage baseline at `2026-10-12 20:41:55 UTC`: container ID `a1f9a27648e3673969ad0143eb5b1c04cca5c1ae140ba2f1deab60dd284d72a0`, image `gui2506/web-fiap-carbono@sha256:97355d07831b80b2fff9ed6f886e2d71a7e6ca61009adb545851e9aed4babe1f`, start time `2026-10-12T20:34:47.553875021Z`, followed by successful production smoke. This baseline precedes attempt 2; it is not the post-recovery digest.
 
-Task 3 still needs the retained `phase6-staging-failure` artifact/log showing the final restoration marker and identical production before/after metadata, plus the current post-recovery environment report matched to the selected publication digest. The overview screenshot alone does not prove those internal host results. Codex's job-log read returned no text; no restoration marker, unchanged production comparison, publication digest, or test counters were independently read from those logs. Use the existing artifact/log and current read-only host checker; repeating the outage is unnecessary.
+Task 3 is complete. The new `15-staging-outage-recovery.png` shows verification at `20:45:54 UTC`, the actual MongoDB stop, ten failed smoke attempts, successful restoration, identical production before/after metadata, production smoke success, and the final controlled-failure marker/exit `1`. Codex downloaded artifact `11772867181` and preserved its exact [staging-failure.txt](images/ci-cd/staging-failure.txt); automated inspection of this existing log verified every marker, identical baseline fields, and four baseline/recovery smoke successes. This supplements the independently inspected skipped production job, successful recovery jobs, and current matching-runtime capture. No new outage or host command was executed by Codex. Availability was sampled, not continuously monitored.
 
 ## 4. Reuse verified concurrency evidence
 
@@ -217,24 +219,22 @@ Task 4 is complete from the user's earlier A/B confirmation and Codex's October 
 
 A's SHA is `107d6b29661a5cf8704ff8c45f0cad2ca57bf35f`; B's SHA is `44704e096442fd385a404ed196d83d222dc0934c`. Both completed successfully. B was created while A ran, but its first job started three seconds after A's final production job completed. Together with the user's observed waiting status and the unchanged workflow-wide concurrency group, this demonstrates non-overlapping complete release sequences. No superseded pending run was identified in this pair; this is not a guarantee that every queued revision deploys.
 
-Capture these real run identities/timings in `08-deployment-concurrency.png`; a new concurrency exercise is unnecessary.
+The user's reviewed `08-deployment-concurrency.png` now shows both original run/attempt URLs, A's production completion at `23:01:00 UTC`, B's creation while A ran, and B's CI start at `23:01:03 UTC`. It agrees with independently read metadata and completes the concurrency capture; another exercise is unnecessary.
 
 ## 5–7. Persistence, isolation, and API contracts
 
 - [x] Persistence already passed in the user's October 12 EC2 recreation, unchanged-record comparison, exact cleanup, and runner restart. Reuse the commands/results in the [storage-preservation record](ci-cd-deployment.md#storage-preservation-verification--october-12-2026-utc). The temporary record is already deleted; do not claim it still exists or recreate it solely to manufacture historical evidence.
-- [x] Complete the remaining isolation evidence with the environment checker. The user's October 12 report passed with exit `0`, supplementing the earlier production marker counts of zero before/after staging recreation and HTTP `200` from both APIs afterward. Task 6's execution checks are complete; screenshots remain pending. The separate outage helper will additionally compare unchanged production metadata and check availability; continuous availability is not claimed.
+- [x] Complete the remaining isolation evidence with the environment checker. The dated original checks and reviewed `14-post-recovery-environments.png` show independent volumes/networks/ports/configuration, supplementing the earlier production marker absence and post-recreation HTTP responses. The reviewed/downloaded outage log also verifies unchanged, available production. The earlier actual persistence record is reused transparently; no separate historical snapshot PNG is supplied or invented and continuous availability is not claimed.
 - [x] Run the API checker in both environments and retain its sanitized results for login, roles, decimal calculation, and analytics. The user's October 12 execution passed with exit `0`, including fifteen persisted emission calculations per environment and rejection of staging's JWT by production. The actual results and reviewed `09-api-auth-analytics.png` are recorded above.
 
 ## 8. Gather actual evidence and close the phase
 
-The [screenshot index](images/ci-cd/README.md) now captions the user's six real PNGs with their reviewed context, including the registry tag/digest capture. It maps the original filenames to the planned evidence slots and identifies the missing host/storage, concurrency and detailed recovery captures. Add the remaining real files and retain downloaded reports before their fourteen-day retention expires. Keep PR and failure/recovery runs distinct. Add date/time, full SHA, digest where applicable, environment, command, result, and whether evidence was user-supplied or independently inspected. Do not add signing keys, passwords, tokens, private keys, or environment-file contents.
+The [screenshot index](images/ci-cd/README.md) now captions nine real PNGs and maps combined captures to all proposed evidence slots. It also links the exact downloaded PR recovery summary/TRX and outage log. Actual Phase 5 persistence commands/results plus the current isolation capture provide storage evidence; no historical screenshot is manufactured. Run/commit/digest/time/environment identity and user-versus-independent attribution are explicit. The new artifact downloads/captions remain uncommitted, and no raw credentials appear in the reviewed captures or outage log.
 
-Both Phase 6 exit gates remain unchecked until the missing complete release/registry/runtime record, detailed outage/recovery proof, retained reports and remaining readable captures are recorded. PR failure/recovery, isolation, API and standalone smoke execution evidence are recorded above; the API screenshot is now reviewed. Phase 7 packaging, README/report updates, and the source ZIP are separate later work.
+**Both Phase 6 exit gates are complete.** The accepted release links successful PR/master checks, actual versioned registry content, matching recovered runtimes, smoke/API behavior, real failure blocking/recovery, concurrency and earlier persistence/isolation evidence. Read-only GitHub variable checks on October 12 returned `false` for both exercise switches. Later documentation commits may publish different images; do not assign this dated `b1f2bdb...`/`12e855e8...` evidence to them. Phase 7's README, report with actual contributors, mandatory checklist and verified source ZIP remain next and are not implemented here.
 
 ## Local validation of this implementation
 
 Codex ran `python3 scripts/verify-phase6.py`: **17 regression cases passed** using mocked Docker/HTTP responses and the actual shell helpers; no EC2 operation occurred. They cover successful outage/recovery, catchable interruption, failed restoration, changed/unavailable production, baseline rejection, decimal/analytics contracts, and unsafe resource/configuration rejection with secret-output checks. Run this verifier locally, not as deployment evidence.
 
 All workflow shell blocks and deployment/failure scripts passed Bash syntax checks. Workflow review preserved triggers, CI/publication/deployment gates, same-digest promotion, prior steps, and concurrency. A temporary local copy of the generated Fact produced **one expected failure and a TRX**; it was removed, then `dotnet test Web.Fiap.Carbono.sln --configuration Release --no-restore --logger 'trx;LogFileName=phase6.trx' --results-directory ./artifacts/phase6/local-tests` rebuilt and passed **107 tests, zero failed/skipped**. These are local results, not a real PR exercise. `artifacts/` is ignored to keep generated reports out of tracked source. Codex did not publish this revision, change GitHub variables, trigger workflows, deploy, or access EC2.
-
-<!-- Temporary Phase 6 CI failure exercise. -->

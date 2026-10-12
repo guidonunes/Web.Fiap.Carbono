@@ -1,0 +1,33 @@
+Smoke check passed: HTTP 200 and EMP-001
+Smoke check passed: HTTP 200 and EMP-001
+Verification time UTC: 2026-10-12T20:45:54Z
+Production before: a1f9a27648e3673969ad0143eb5b1c04cca5c1ae140ba2f1deab60dd284d72a0 gui2506/web-fiap-carbono@sha256:97355d07831b80b2fff9ed6f886e2d71a7e6ca61009adb545851e9aed4babe1f 2026-10-12T20:34:47.553875021Z
+Staging MongoDB stopped; checking the real database-backed API
+curl: (28) Operation timed out after 5002 milliseconds with 0 bytes received
+Attempt 1/10 failed: HTTP 000
+curl: (28) Operation timed out after 5002 milliseconds with 0 bytes received
+Attempt 2/10 failed: HTTP 000
+curl: (28) Operation timed out after 5002 milliseconds with 0 bytes received
+Attempt 3/10 failed: HTTP 000
+curl: (28) Operation timed out after 5002 milliseconds with 0 bytes received
+Attempt 4/10 failed: HTTP 000
+curl: (28) Operation timed out after 5002 milliseconds with 0 bytes received
+Attempt 5/10 failed: HTTP 000
+curl: (28) Operation timed out after 5002 milliseconds with 0 bytes received
+Attempt 6/10 failed: HTTP 000
+curl: (28) Operation timed out after 5002 milliseconds with 0 bytes received
+Attempt 7/10 failed: HTTP 000
+curl: (28) Operation timed out after 5002 milliseconds with 0 bytes received
+Attempt 8/10 failed: HTTP 000
+curl: (28) Operation timed out after 5001 milliseconds with 0 bytes received
+Attempt 9/10 failed: HTTP 000
+curl: (28) Operation timed out after 5002 milliseconds with 0 bytes received
+Attempt 10/10 failed: HTTP 000
+Smoke check failed after 10 attempts
+Staging smoke check rejected the database outage
+Smoke check passed: HTTP 200 and EMP-001
+Staging database and API recovered
+Production after: a1f9a27648e3673969ad0143eb5b1c04cca5c1ae140ba2f1deab60dd284d72a0 gui2506/web-fiap-carbono@sha256:97355d07831b80b2fff9ed6f886e2d71a7e6ca61009adb545851e9aed4babe1f 2026-10-12T20:34:47.553875021Z
+Smoke check passed: HTTP 200 and EMP-001
+Production unchanged and available
+Controlled database failure verified; staging recovered; production must be skipped

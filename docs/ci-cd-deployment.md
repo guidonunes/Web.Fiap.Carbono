@@ -41,6 +41,28 @@ The user subsequently supplied `true` from `.Jwt.SecretKey == ""` in each deploy
 
 This successful run follows [failed run 38183852655](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38183852655), whose staging image-selection check failed before updating containers and blocked production. Commit `57bf502...` fixes that check. Keep the failed run and older successful digests as separate historical evidence.
 
+## Accepted Phase 6 release and outage recovery — October 12, 2026
+
+This later acceptance supplements the October 11 release above without replacing its identifiers. Host/registry observations come from the user's actual outputs/images; Codex inspected existing GitHub metadata, downloaded retained reports/log, and reviewed the captures, without running an EC2 deployment.
+
+| Field | Accepted evidence |
+| --- | --- |
+| Master source commit | `b1f2bdb4783e9cdc97f1b9c34c6279a772c03b22` |
+| Master run | [38304927773](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38304927773) |
+| Versioned registry tag | `gui2506/web-fiap-carbono:b1f2bdb4783e9cdc97f1b9c34c6279a772c03b22` |
+| Registry and accepted recovery runtime digest | `sha256:12e855e8d4552b394e41507cb300fbd33ff99170a016306e72745dadd47ef619` |
+| Runtime acceptance | User capture `14-post-recovery-environments.png`, `2026-10-12T22:42:11.243395+00:00`, exact `--image` match in both APIs, four healthy containers, isolated resources/configuration, exit `0` |
+| PR check | [PR #1/run 38302777058](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38302777058), head `70743919e4a209ddf5e46c12d3d8fcf53e5cdcdb`; original controlled failure then successful recovery, delivery skipped in both |
+| Independently inspected successful PR report | Retained artifact `11771429292`: 107 passed, zero failed/not executed; diagnostic commit `744e332c996e07749ea4a18da64f76aa0ab57401` |
+| Controlled outage | Attempt 2, staging job `115001048408`, verified at `2026-10-12T20:45:54Z`; database stopped, smoke rejected outage, staging restored, production unchanged/available, intentional exit `1`; production job skipped |
+| Deployment recovery | Attempt 3: staging `20:50:06`–`20:50:12 UTC`, production `20:50:14`–`20:50:26 UTC`, both successful; failure step skipped; prior successful CI/image jobs reused |
+
+During the outage, production retained container `a1f9a27648e3673969ad0143eb5b1c04cca5c1ae140ba2f1deab60dd284d72a0`, image `gui2506/web-fiap-carbono@sha256:97355d07831b80b2fff9ed6f886e2d71a7e6ca61009adb545851e9aed4babe1f`, and start time `2026-10-12T20:34:47.553875021Z`. The same three fields appear before and after in the actual [retained outage log](images/ci-cd/staging-failure.txt), whose stop/recovery markers and four successful baseline/recovery smoke checks were verified. This old image is the preserved failed-release baseline; the later successful deployment uses `12e855e8...`.
+
+The [evidence index](images/ci-cd/README.md) captions all nine original images and links the preserved [PR summary](images/ci-cd/pr-recovery-summary.txt)/[TRX](images/ci-cd/pr-recovery-ci.trx). Current storage isolation supplements the already executed persistence check below; no repeat recreation or standalone historical persistence PNG is claimed. Both exercise variables were independently read as `false` on October 12. The registry-to-runtime association is observed through the user's tag lookup/capture and exact runtime comparison; no original publication-job digest is retroactively inferred, and no fresh publication is claimed for recovery attempt 3. Later commits/runs need their own release identity.
+
+Phase 6 is complete on this evidence. Final README/report/checklist/ZIP work belongs to Phase 7. No rollback, new deployment, workflow trigger, Git publication, or application build/test was executed by Codex for this completion update.
+
 ## Storage-preservation verification — October 12, 2026 (UTC)
 
 **Phase 5 is complete based on the earlier release/failure/concurrency evidence and the user's supplied storage-preservation, isolation, cleanup, and runner-service results.** The dates in this section follow the host's UTC timestamps. Codex reviewed the supplied output without executing these commands on EC2.
