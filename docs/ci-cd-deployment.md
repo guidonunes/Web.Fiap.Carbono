@@ -1,6 +1,6 @@
 # Carbon API — release record and manual recovery
 
-This document implements Phase 5 task 7 of the [active CI/CD roadmap](ci-cd-roadmap.md). GitHub evidence below was inspected read-only on October 11, 2026. Recovery commands are a procedure for the user to execute when needed; Codex has not executed a rollback or verified persistence through recovery.
+This document records Phase 5's release, recovery procedure, and completed storage-preservation check from the [active CI/CD roadmap](ci-cd-roadmap.md). GitHub evidence was inspected read-only on October 11, 2026; the later EC2 persistence results below were supplied by the user. Recovery commands remain a procedure for use when needed; Codex has not executed a rollback or host verification.
 
 ## Verified release — October 11, 2026
 
@@ -39,9 +39,68 @@ The user subsequently supplied `true` from `.Jwt.SecretKey == ""` in each deploy
 
 This successful run follows [failed run 38183852655](https://github.com/guidonunes/Web.Fiap.Carbono/actions/runs/38183852655), whose staging image-selection check failed before updating containers and blocked production. Commit `57bf502...` fixes that check. Keep the failed run and older successful digests as separate historical evidence.
 
+## Storage-preservation verification — October 12, 2026 (UTC)
+
+**Phase 5 is complete based on the earlier release/failure/concurrency evidence and the user's supplied storage-preservation, isolation, cleanup, and runner-service results.** The dates in this section follow the host's UTC timestamps. Codex reviewed the supplied output without executing these commands on EC2.
+
+| Check | User-supplied result |
+| --- | --- |
+| Runner suspended before manual recreation | `inactive (dead)` at `2026-10-12 00:19:31 UTC` |
+| Captured staging API image, exported as `APP_IMAGE` | `gui2506/web-fiap-carbono@sha256:a3ae2c511135228a589224d1c31bbcebb3dbfe7d46d2dfc147ee491411a0b3ff` |
+| Original staging MongoDB container ID | `aab2af55d7435324efc82e79ca954999b86ebfe5eca37ad00464d52061d27506` |
+| Recreated staging MongoDB container ID | `5580882b53d1be47b16a116c89371ebb8740344be69dfc91157053b9dfc0f565` |
+| `/data/db` mount before and after recreation | `carbono-staging_fiap_carbono_mongodb_data` |
+| Temporary product business key | `CRUD-TEMP-PHASE5-PERSISTENCE` |
+| Temporary product ObjectId | `6acc284f1465a1dca91ca03a` |
+| Temporary product name | `CRUD-TEMP: Phase 5 persistence` |
+| Temporary product creation/update time | `2026-10-12T00:22:39.955Z` |
+| Compose recreation result | Staging API and MongoDB both reported `Healthy` |
+| Before/after record comparison | Printed `Persistence comparison passed`; no differences reported |
+| Matching product count in production | `0` before insertion and after staging recreation |
+| Host-local API responses after recreation | `Port 8081: HTTP 200` and `Port 8082: HTTP 200` |
+| Exact temporary-record cleanup | `acknowledged: true`, `deletedCount: 1`, `Remaining: 0` |
+| Runner service restored | `active (running)` at `2026-10-12 00:30:51 UTC`, with the service enabled |
+
+The captured `a3ae2c...` image is a later staging observation. No corresponding commit or workflow run was supplied for this check; do not attach it to run `38184996037`, whose recorded digest remains `dc309ed...`. No new production image reference was supplied either. Preserve both observations separately.
+
+The user copied seeded product `PRO-001`, checked its company reference, assigned a new ObjectId and UTC timestamps, removed its copied `legacyId`, and changed its code/name to the temporary values above. The original seeded product was not modified. The saved snapshot retained the product's BSON/decimal environmental attributes and existing `empresaId` reference.
+
+The user recreated only staging using its captured image, existing project, and protected environment file:
+
+```bash
+docker compose \
+  --file /home/ubuntu/carbono/repository/docker-compose.yml \
+  --project-name carbono-staging \
+  --env-file /home/ubuntu/carbono/staging/staging.env \
+  up -d \
+  --no-build --pull missing \
+  --force-recreate \
+  --wait --wait-timeout 120 \
+  api mongodb
+```
+
+The before snapshot was `/tmp/carbono-phase5-before.json` on EC2. After recreation, the user asserted exactly one matching product and saved it to `/tmp/carbono-phase5-after.json`. These are the `mongosh printjson` snapshots, not downloaded repository artifacts. The comparison ran in a `set -euo pipefail` subshell:
+
+```bash
+(
+  set -euo pipefail
+  diff -u \
+    /tmp/carbono-phase5-before.json \
+    /tmp/carbono-phase5-after.json
+
+  printf 'Persistence comparison passed\n'
+)
+```
+
+The supplied success message establishes that `diff` returned `0`; a missing or changed record would have stopped the preceding fail-fast block. The MongoDB container ID changed while its volume name stayed the same, establishing actual recreation with retained storage. Production's matching count remained zero, and both database-backed API URLs returned HTTP `200` afterward.
+
+Cleanup matched the exact ObjectId, business key, and temporary name. The user then restarted the service `actions.runner.guidonunes-Web.Fiap.Carbono.carbono-ec2.service` through `/home/ubuntu/actions-runner/svc.sh`; its status showed `active (running)` and `enabled`.
+
+This check satisfies the second Phase 5 exit gate and the record-persistence item planned for Phase 6. Verification covers staging recreation using the existing digest and unchanged temporary record. Initialization logs were not supplied, so no claim is made that every seed/startup message was inspected. Production availability was checked after staging recreation, not continuously throughout it. A production container recreation, rollback to an older image, GitHub runner online/idle status, and new pipeline/screenshot evidence were not demonstrated by these outputs. The remaining Phase 6 checks and evidence collection stay pending.
+
 ## Manual recovery to a previously verified release
 
-Use this procedure after a later release fails or needs to be replaced. Select an earlier passing release's exact commit and registry digest from a recorded run. The `57bf502...` / `dc309ed...` pair above is the current known-good baseline for future recovery; it is not a claim that a rollback has already occurred. Do not use the failed run's digest, a local image ID, or a mutable tag as recovery evidence.
+Use this procedure after a later release fails or needs to be replaced. Select an earlier passing release's exact commit and registry digest from a recorded run. The `57bf502...` / `dc309ed...` pair above is a documented known-good baseline for recovery; the later `a3ae2c...` observation does not replace that run/commit record. No rollback has been executed in the recorded persistence check. Do not use the failed run's digest, a local image ID, or a mutable tag as recovery evidence.
 
 Recovery changes the API image using the existing [deployment script](../scripts/deploy.sh). Preserve both environment files, Compose project names, MongoDB volumes, and database contents. Application rollback does not reverse database writes. Automatic rollback is outside this task.
 
@@ -132,7 +191,7 @@ bash scripts/smoke.sh http://127.0.0.1:8081/api/empresas
 bash scripts/smoke.sh http://127.0.0.1:8082/api/empresas
 ```
 
-Record recovery time, source commit, digest, environment results, and unchanged mount names. These mount checks do not prove record persistence; the temporary-record/redeployment exercise remains pending under the Phase 5 exit gate and Phase 6 plan.
+Record recovery time, source commit, digest, environment results, and unchanged mount names. Mount checks alone do not prove record persistence; the separate completed staging snapshot comparison is recorded above and satisfies Phase 5's storage-preservation acceptance. A future recovery needs its own results rather than reusing that earlier check as proof.
 
 Review queued runs and the intended next release before restarting the idle deployment service. A queued newer release can replace the manually selected API image once automatic delivery resumes. Keep the recovery checkout detached until deliberately selecting another revision; no push is needed for manual recovery.
 
@@ -146,4 +205,4 @@ Expected: the service is running and the runner is online/idle in repository set
 
 ## Record later releases
 
-For each accepted release, append its date, run URL, full commit SHA, published digest, staging/production job timing, and actual smoke results. Keep failures and recovery attempts separate. Use narrow image/mount inspections rather than dumping container environment values. Collect real screenshots and the outstanding persistence evidence in their assigned phases; do not mark them complete from this guide alone.
+For each accepted release, append its date, run URL, full commit SHA, published digest, staging/production job timing, and actual smoke results. Keep failures, recovery attempts, and manual verification observations separate. Use narrow image/mount inspections rather than dumping container environment values. Reuse the recorded staging-persistence result for Phase 6, then collect its real screenshots and the remaining evidence without inventing missing run/commit associations.
