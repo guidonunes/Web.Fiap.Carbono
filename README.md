@@ -88,6 +88,18 @@ No Docker Compose, prepare o arquivo `.env` conforme a seção abaixo. A conexã
 
 Pré-requisitos: Docker Engine em execução, plugin Docker Compose com suporte a `--wait` e `--wait-timeout`, acesso aos registros de imagens e `curl` no host. O comando de geração de chave abaixo usa OpenSSL; a verificação com `scripts/smoke.sh` também exige Bash e `jq`. Não é necessário instalar .NET SDK ou `mongosh` no host para executar via Compose. Execute os comandos na raiz do repositório, onde estão `Dockerfile`, `docker-compose.yml` e `.env.example`.
 
+### Compatibilidade do MongoDB com o kernel
+
+O projeto fixa a imagem `mongo:8.0.29-noble`. Essa versão encerra a inicialização quando o kernel Linux é `6.19` ou superior; para executar a versão fixada, use um kernel Linux anterior ao `6.19`. A restrição consta na [matriz oficial de compatibilidade do MongoDB](https://jira.mongodb.org/browse/SERVER-125742).
+
+Confira o kernel utilizado pelo Docker antes de iniciar os containers:
+
+~~~bash
+docker info --format '{{.KernelVersion}}'
+~~~
+
+Em Docker Desktop, esse comando consulta o kernel da máquina virtual Linux do Docker. Na recuperação registrada da EC2 com Ubuntu 24.04, foi selecionado `6.17.0-1017-aws`, e o MongoDB voltou a iniciar. O kernel anterior, `7.0.0-1014-aws`, provocava reinícios contínuos com a mensagem `MongoDB cannot start`. Se houver esse erro, preserve o volume e resolva a compatibilidade do kernel; recriar o banco ou reaplicar o seed não corrige a causa.
+
 ### Preparar a configuração
 
 Na raiz do repositório, crie `.env` somente se ele ainda não existir:
